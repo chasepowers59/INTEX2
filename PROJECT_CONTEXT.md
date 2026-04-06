@@ -158,7 +158,7 @@ Frontend:
 API:
 - `POST /api/auth/login`, `GET /api/auth/me`
 - Public impact snapshots: `GET /api/public/impact-snapshots`
-- Auth-protected CRUD endpoints for supporters, contributions, residents, process recordings, home visitations, case conferences
+- Auth-protected CRUD endpoints for supporters, contributions, residents, process recordings, home visitations, case conferences (**staff-only**: `Admin` or `Employee` via policy `StaffOnly`; `Donor` uses `/api/donor/*` only)
 - Delete confirmation enforced via `?confirm=true`
 - Dashboard/report endpoints: `/api/admin-dashboard/*`, `/api/reports/*`
 
@@ -187,7 +187,7 @@ Analytics endpoints:
 Admin features:
 - Admin-managed accounts (no public registration): `GET/POST /api/admin/users/*`
 - Passwords are hashed by ASP.NET Identity (never stored in plaintext).
-- Donor linking: Admin can link a donor login to `SupporterId` to enable donor portal history.
+- Donor linking: Admin can link a donor login to `SupporterId` (`POST /api/admin/users/link-donor`) to enable donor portal history; **not allowed on Admin accounts**. With `Seed:DemoData` true and `Seed:DonorEmail` set, startup creates/links a `Supporter` and sample `Contribution` / `ImpactAllocation` rows for that donor when the seeded donor user exists.
 
 ## Deployment
 

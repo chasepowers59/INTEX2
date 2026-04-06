@@ -40,6 +40,8 @@ Region guidance (team decision):
 
    Sign in at `/login` with the **email** as username (or email). Then use `/app/admin/users` for additional accounts.
 
+   **Donor portal demo:** If `Seed__DonorEmail` / `Seed__DonorPassword` are set and `Seed__DemoData` is `true`, the API creates a `Supporters` row (matching that email), links `AspNetUsers.SupporterId`, and inserts sample contributions and impact allocations so `/app/donor` shows data without manual steps.
+
 6. Other useful settings:
 
    - `Database__AutoMigrate` = `true` (set `false` later if you do not want automatic migrations on startup)

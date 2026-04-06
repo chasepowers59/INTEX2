@@ -48,8 +48,10 @@ export function LoginPage() {
             setError(null);
             setLoading(true);
             try {
-              await auth.login(username.trim(), password);
-              nav("/app/dashboard");
+              const roles = await auth.login(username.trim(), password);
+              const isStaff = roles.includes("Admin") || roles.includes("Employee");
+              const donorOnly = roles.includes("Donor") && !isStaff;
+              nav(donorOnly ? "/app/donor" : "/app/dashboard");
             } catch (e) {
               setError((e as Error).message);
             } finally {

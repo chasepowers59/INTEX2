@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/residents")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class ResidentsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]

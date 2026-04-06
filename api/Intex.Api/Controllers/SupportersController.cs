@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/supporters")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class SupportersController(AppDbContext db) : ControllerBase
 {
     [HttpGet]

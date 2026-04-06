@@ -152,6 +152,11 @@ public sealed class UserAdminController(
         var user = await userManager.FindByEmailAsync(req.Email.Trim());
         if (user is null) return NotFound(new { message = "User not found." });
 
+        if (await userManager.IsInRoleAsync(user, AppRoles.Admin))
+        {
+            return BadRequest(new { message = "Do not attach SupporterId to Admin accounts; create or use a Donor login for grading." });
+        }
+
         var exists = await db.Supporters.AsNoTracking().AnyAsync(x => x.SupporterId == req.SupporterId);
         if (!exists) return BadRequest(new { message = "SupporterId not found." });
 

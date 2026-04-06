@@ -48,7 +48,7 @@ export function AdminUsersPage() {
         <div className="card">
           <h1 style={{ marginTop: 0 }}>User Administration</h1>
           <p className="muted">
-            Create staff accounts, disable access, reset passwords, and link donor accounts to supporter records.
+            Create staff accounts, disable access, reset passwords, and link donor accounts to supporter records. Link donor cannot be used on Admin accounts (use a Donor login for grading).
           </p>
           {error ? (
             <div className="badge danger" style={{ marginTop: 10 }}>

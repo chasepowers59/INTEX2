@@ -1,4 +1,5 @@
 using Intex.Api.Auth;
+using Intex.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -69,6 +70,7 @@ public static class SeedData
         if (seedDemo)
         {
             await EnsureDemoDataAsync(db);
+            await EnsureDonorPortalDemoAsync(db, userManager, config, logger);
         }
     }
 
@@ -177,7 +179,6 @@ END
         var email = account.Email.Trim();
         var password = account.Password;
         var user = await userManager.FindByEmailAsync(email);
-        var existedBefore = user is not null;
 
         if (user is null)
         {
@@ -253,6 +254,123 @@ END
                 IsPublished = true,
                 PublishedAt = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-28))
             });
+            await db.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>
+    /// When <c>Seed:DonorEmail</c> is set, ensures a matching <see cref="Supporter"/>, links the donor user,
+    /// and adds sample <see cref="Contribution"/> / <see cref="ImpactAllocation"/> rows so <c>/app/donor</c> is non-empty.
+    /// </summary>
+    private static async Task EnsureDonorPortalDemoAsync(
+        AppDbContext db,
+        UserManager<AppUser> userManager,
+        IConfiguration config,
+        ILogger logger
+    )
+    {
+        var donorEmail = config["Seed:DonorEmail"]?.Trim();
+        if (string.IsNullOrEmpty(donorEmail))
+        {
+            return;
+        }
+
+        var user = await userManager.FindByEmailAsync(donorEmail);
+        if (user is null || !await userManager.IsInRoleAsync(user, AppRoles.Donor))
+        {
+            logger.LogInformation(
+                "Skipping donor portal demo data: no Identity user with Donor role for {Email}.",
+                donorEmail);
+            return;
+        }
+
+        var supporter = await db.Supporters.FirstOrDefaultAsync(s => s.Email == donorEmail);
+        if (supporter is null)
+        {
+            supporter = new Supporter
+            {
+                FullName = user.DisplayName ?? "Demo donor",
+                Email = donorEmail,
+                SupporterType = "Monetary",
+                IsActive = true
+            };
+            db.Supporters.Add(supporter);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Created Supporter record for seeded donor {Email} (SupporterId={Id}).", donorEmail, supporter.SupporterId);
+        }
+
+        if (user.SupporterId != supporter.SupporterId)
+        {
+            user.SupporterId = supporter.SupporterId;
+            var updated = await userManager.UpdateAsync(user);
+            if (!updated.Succeeded)
+            {
+                var msg = string.Join("; ", updated.Errors.Select(e => $"{e.Code}:{e.Description}"));
+                logger.LogWarning("Could not link donor user to SupporterId {Id}: {Errors}", supporter.SupporterId, msg);
+            }
+            else
+            {
+                logger.LogInformation("Linked donor login {Email} to SupporterId {Id}.", donorEmail, supporter.SupporterId);
+            }
+        }
+
+        var sid = supporter.SupporterId;
+        if (!await db.Contributions.AnyAsync(c => c.SupporterId == sid))
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            db.Contributions.AddRange(
+                new Contribution
+                {
+                    SupporterId = sid,
+                    ContributionType = "Monetary",
+                    Amount = 2500m,
+                    Currency = "PHP",
+                    ContributionDate = today.AddMonths(-2),
+                    CampaignName = "Year-End Hope",
+                    Notes = "Seeded demo contribution"
+                },
+                new Contribution
+                {
+                    SupporterId = sid,
+                    ContributionType = "Monetary",
+                    Amount = 1000m,
+                    Currency = "PHP",
+                    ContributionDate = today.AddMonths(-1),
+                    CampaignName = "Back to School",
+                    Notes = "Seeded demo contribution"
+                });
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.ImpactAllocations.AnyAsync(a => a.SupporterId == sid))
+        {
+            var snapshot = await db.PublicImpactSnapshots.AsNoTracking()
+                .Where(x => x.IsPublished)
+                .OrderByDescending(x => x.SnapshotId)
+                .FirstOrDefaultAsync();
+
+            var month = DateOnly.FromDateTime(DateTime.UtcNow);
+            db.ImpactAllocations.AddRange(
+                new ImpactAllocation
+                {
+                    SupporterId = sid,
+                    SnapshotId = snapshot?.SnapshotId,
+                    AllocationDate = month.AddMonths(-1),
+                    Category = "Education",
+                    Amount = 1800m,
+                    Currency = "PHP",
+                    Notes = "Seeded demo allocation"
+                },
+                new ImpactAllocation
+                {
+                    SupporterId = sid,
+                    SnapshotId = snapshot?.SnapshotId,
+                    AllocationDate = month,
+                    Category = "Wellbeing",
+                    Amount = 700m,
+                    Currency = "PHP",
+                    Notes = "Seeded demo allocation"
+                });
             await db.SaveChangesAsync();
         }
     }

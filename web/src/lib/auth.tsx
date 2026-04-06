@@ -24,7 +24,7 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   isAuthenticated: boolean;
   hasRole: (role: string) => boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<string[]>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -57,6 +57,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
         displayName: res.displayName,
         roles: res.roles,
       });
+      return res.roles;
     };
 
     const logout = () => {

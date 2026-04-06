@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth";
 import { apiFetch } from "../../../lib/api";
 import { StatCard } from "../../../components/ui/StatCard";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 type Overview = {
   asOfUtc: string;
@@ -32,11 +32,13 @@ type OpsAlerts = {
 
 export function AppDashboardPage() {
   const auth = useAuth();
+  const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
   const [data, setData] = useState<Overview | null>(null);
   const [alerts, setAlerts] = useState<OpsAlerts | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!auth.token || !staff) return;
     (async () => {
       try {
         const res = await apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined });
@@ -47,7 +49,11 @@ export function AppDashboardPage() {
         setError((e as Error).message);
       }
     })();
-  }, [auth.token]);
+  }, [auth.token, staff]);
+
+  if (auth.hasRole("Donor") && !staff) {
+    return <Navigate to="/app/donor" replace />;
+  }
 
   return (
     <div style={{ display: "grid", gap: 12 }}>

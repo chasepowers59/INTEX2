@@ -77,68 +77,72 @@ export function AppLayout() {
           </div>
         </div>
 
-        <div className="sidebar-section-label">Operations</div>
-        <nav className="nav">
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/dashboard">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M4 13.5V20a1 1 0 0 0 1 1h5v-6.5H4Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M14 21h5a1 1 0 0 0 1-1v-9l-8-6-8 6v2.5h6V21h4Z" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            Dashboard
-          </NavLink>
+        {auth.hasRole("Admin") || auth.hasRole("Employee") ? (
+          <>
+            <div className="sidebar-section-label">Operations</div>
+            <nav className="nav">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/dashboard">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 13.5V20a1 1 0 0 0 1 1h5v-6.5H4Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M14 21h5a1 1 0 0 0 1-1v-9l-8-6-8 6v2.5h6V21h4Z" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Dashboard
+              </NavLink>
 
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/cases">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-              <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            Caseload
-          </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/cases">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Caseload
+              </NavLink>
 
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donors">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 21s7-4.35 7-10a4 4 0 0 0-7-2.4A4 4 0 0 0 5 11c0 5.65 7 10 7 10Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-            </svg>
-            Donors
-          </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donors">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 21s7-4.35 7-10a4 4 0 0 0-7-2.4A4 4 0 0 0 5 11c0 5.65 7 10 7 10Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>
+                Donors
+              </NavLink>
 
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/reports">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            Analytics
-          </NavLink>
-        </nav>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/reports">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Analytics
+              </NavLink>
+            </nav>
 
-        <div className="sidebar-section-label">Machine Learning</div>
-        <nav className="nav">
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/action-center">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 3 3 7v6c0 5 3.8 8.8 9 10 5.2-1.2 9-5 9-10V7l-9-4Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-              <path d="M9.5 12.5 11 14l3.5-4" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            Action Center
-          </NavLink>
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/ml">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M4 16V8M8 18V6M12 20V4M16 18V6M20 16V8" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            ML Insights
-          </NavLink>
-        </nav>
+            <div className="sidebar-section-label">Machine Learning</div>
+            <nav className="nav">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/action-center">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 3 3 7v6c0 5 3.8 8.8 9 10 5.2-1.2 9-5 9-10V7l-9-4Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path d="M9.5 12.5 11 14l3.5-4" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Action Center
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/ml">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 16V8M8 18V6M12 20V4M16 18V6M20 16V8" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                ML Insights
+              </NavLink>
+            </nav>
+          </>
+        ) : null}
 
         {auth.hasRole("Admin") ? (
           <>

@@ -61,7 +61,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AppPolicies.StaffOnly, policy =>
+        policy.RequireRole(AppRoles.Admin, AppRoles.Employee));
+});
 
 builder.Services.AddCors(options =>
 {

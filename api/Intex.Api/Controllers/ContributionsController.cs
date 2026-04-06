@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/contributions")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class ContributionsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]

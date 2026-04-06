@@ -24,6 +24,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<AppUser>()
+            .HasOne<Supporter>()
+            .WithMany()
+            .HasForeignKey(u => u.SupporterId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Entity<Supporter>()
             .HasIndex(x => x.Email);
 
