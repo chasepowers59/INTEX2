@@ -46,5 +46,35 @@ public sealed class DonorController(AppDbContext db, Microsoft.AspNetCore.Identi
 
         return Ok(new PagedResult<object>(page, pageSize, total, items));
     }
-}
 
+    [HttpGet("allocations")]
+    public async Task<ActionResult> MyAllocations([FromQuery] int months = 12)
+    {
+        months = Math.Clamp(months, 1, 24);
+
+        var userId = userManager.GetUserId(User);
+        if (userId is null) return Unauthorized();
+
+        var user = await userManager.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
+        if (user is null || user.SupporterId is null) return Ok(new { months, items = Array.Empty<object>() });
+
+        var from = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-months + 1));
+
+        var items = await db.ImpactAllocations.AsNoTracking()
+            .Where(x => x.SupporterId == user.SupporterId.Value && x.AllocationDate >= from)
+            .GroupBy(x => new { x.AllocationDate.Year, x.AllocationDate.Month, x.Category, x.Currency })
+            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month).ThenBy(g => g.Key.Category)
+            .Select(g => new
+            {
+                year = g.Key.Year,
+                month = g.Key.Month,
+                category = g.Key.Category,
+                currency = g.Key.Currency,
+                totalAmount = g.Sum(x => x.Amount),
+                count = g.Count()
+            })
+            .ToListAsync();
+
+        return Ok(new { months, items });
+    }
+}

@@ -18,7 +18,14 @@ export async function apiFetch<T>(
   headers.set("Content-Type", "application/json");
   if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
 
-  const res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch {
+    throw new Error(
+      "Network error (Failed to fetch). Check API URL, HTTPS, and CORS settings on the API (App Service).",
+    );
+  }
 
   if (!res.ok) {
     let msg = `Request failed (${res.status})`;
@@ -34,4 +41,3 @@ export async function apiFetch<T>(
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
-

@@ -183,6 +183,11 @@ Analytics endpoints:
 - `GET /api/analytics/overview` (dashboard KPIs)
 - `GET /api/analytics/ops-alerts` (follow-up alerts; anonymized)
 
+Admin features:
+- Admin-managed accounts (no public registration): `GET/POST /api/admin/users/*`
+- Passwords are hashed by ASP.NET Identity (never stored in plaintext).
+- Donor linking: Admin can link a donor login to `SupporterId` to enable donor portal history.
+
 ## Deployment
 
 Step-by-step Azure setup: `docs/azure-deploy.md`

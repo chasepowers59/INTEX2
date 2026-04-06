@@ -137,6 +137,41 @@ export function AppLayout() {
           </NavLink>
         </nav>
 
+        {auth.hasRole("Admin") ? (
+          <>
+            <div className="sidebar-section-label">Admin</div>
+            <nav className="nav">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/users">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M4 21a8 8 0 0 1 16 0"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Users
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/allocations">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Allocations
+              </NavLink>
+            </nav>
+          </>
+        ) : null}
+
         {auth.hasRole("Donor") ? (
           <>
             <div className="sidebar-section-label">Donor</div>

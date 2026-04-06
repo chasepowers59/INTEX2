@@ -25,6 +25,10 @@ Region guidance (team decision):
 4. Verify connectivity:
    - API `GET /health` should return `{ "status": "ok" }`
    - API `GET /health/db` should return `200` when SQL is reachable (and `503` when not)
+
+5. Seed an initial admin (recommended for grading):
+   - Set App Service settings `Seed__AdminEmail` and `Seed__AdminPassword` and restart the API.
+   - Sign in at `/login`, then visit `/app/admin/users` to create employee/donor accounts.
    - Seed users (optional but recommended for first deploy):
      - `Seed__AdminEmail`, `Seed__AdminPassword`
      - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
