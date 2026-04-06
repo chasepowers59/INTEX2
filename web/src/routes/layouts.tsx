@@ -26,7 +26,7 @@ export function PublicLayout() {
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}
       >
         <Link to="/" style={{ fontWeight: 800 }}>
-          Sanctuary Leadership Portal
+          Steps of Hope Leadership Portal
         </Link>
         <nav className="row">
           <Link className="btn" to="/give">
@@ -71,7 +71,7 @@ export function AppLayout() {
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="title">Sanctuary Portal</div>
+          <div className="title">Steps of Hope</div>
           <div className="muted" style={{ fontSize: 12 }}>
             Signed in as {auth.displayName ?? auth.username}
           </div>

@@ -1,4 +1,4 @@
-# INTEX W26 — Lighthouse Sanctuary (Team Project)
+# INTEX W26 — Steps of Hope (Team Project)
 
 Stack (per case requirements):
 - Frontend: React + TypeScript (Vite) deployed to Azure Static Web Apps

@@ -14,7 +14,7 @@ export function HomePage() {
           Keep support strong.
         </h1>
         <p className="muted" style={{ maxWidth: 850, fontSize: 16 }}>
-          Sanctuary helps leadership coordinate survivor support across safehouses—tracking follow-ups, counseling
+          Steps of Hope helps leadership coordinate survivor support across safehouses—tracking follow-ups, counseling
           documentation, and anonymized impact outcomes—without exposing sensitive details.
         </p>
 

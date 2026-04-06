@@ -4,7 +4,7 @@ This file is a quick “memory” for future teammates (and AI assistants) so wo
 
 ## What we’re building
 
-Product: **Sanctuary Leadership Portal** for a safehouse nonprofit.
+Product: **Steps of Hope Leadership Portal** for a safehouse nonprofit.
 
 Operating location assumption for this team/project:
 - **South Korea** (use KR locale conventions where relevant: time zone, date/time formats, and Azure region selection).
