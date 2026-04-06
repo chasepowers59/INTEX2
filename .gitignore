@@ -1,0 +1,24 @@
+# Build outputs
+bin/
+obj/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Local env/secrets
+.env
+.env.*
+appsettings.*.json
+!appsettings.json
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/

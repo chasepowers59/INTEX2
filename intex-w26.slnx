@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/api/">
+    <Project Path="api/Intex.Api/Intex.Api.csproj" />
+  </Folder>
+</Solution>
