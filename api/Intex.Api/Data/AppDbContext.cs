@@ -17,6 +17,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<CaseConference> CaseConferences => Set<CaseConference>();
 
     public DbSet<PublicImpactSnapshot> PublicImpactSnapshots => Set<PublicImpactSnapshot>();
+    public DbSet<MlPrediction> MlPredictions => Set<MlPrediction>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -39,6 +40,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         builder.Entity<PublicImpactSnapshot>()
             .HasIndex(x => x.SnapshotDate);
+
+        builder.Entity<MlPrediction>()
+            .HasIndex(x => new { x.PredictionType, x.EntityType, x.EntityId });
+
+        builder.Entity<MlPrediction>()
+            .HasIndex(x => new { x.PredictionType, x.CreatedAtUtc });
     }
 }
-

@@ -10,7 +10,16 @@ public static class SeedData
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
+        // If migrations exist, use them; otherwise fall back to EnsureCreated for fast competition setup.
+        var hasMigrations = (await db.Database.GetMigrationsAsync()).Any();
+        if (hasMigrations)
+        {
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         foreach (var role in new[] { AppRoles.Admin, AppRoles.Employee, AppRoles.Donor })

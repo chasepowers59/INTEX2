@@ -31,7 +31,9 @@ Repo structure:
 - `api/Intex.Api/` — .NET 10 API
 - `web/` — React/TS app
 - `docs/` — deployment + future docs
+- `data/raw/` — place the provided INTEX CSVs here (not committed)
 - `ml-pipelines/` — reserved for IS455 notebooks (to be added)
+- `output/ml-predictions/` — notebook-exported predictions JSON (optional to commit; safe if it contains no sensitive data)
 
 ## Personas (for IS401 + product decisions)
 
@@ -185,6 +187,7 @@ Step-by-step Azure setup: `docs/azure-deploy.md`
 - Show RBAC: employee can view but cannot CUD; admin can CUD.
 - Show delete confirmation behavior (UI prompt + API confirm requirement).
 - Be explicit whether cookie consent is cosmetic or functional (ours is functional for preference cookies).
+- Show ML integration: run a notebook → export JSON → import via `POST /api/ml/import?replace=true` → view in `/app/ml`.
 
 ## How AI should help (allowed + encouraged)
 

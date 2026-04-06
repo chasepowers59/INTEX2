@@ -14,6 +14,7 @@ import { ResidentProcessRecordingsPage } from "./pages/app/ResidentProcessRecord
 import { ResidentHomeVisitsPage } from "./pages/app/ResidentHomeVisitsPage";
 import { ReportsPage } from "./pages/app/ReportsPage";
 import { DonorPortalPage } from "./pages/app/DonorPortalPage";
+import { MlInsightsPage } from "./pages/app/MlInsightsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
               <Route path="/app/residents/:residentId/home-visits" element={<ResidentHomeVisitsPage />} />
               <Route path="/app/reports" element={<ReportsPage />} />
               <Route path="/app/donor" element={<DonorPortalPage />} />
+              <Route path="/app/ml" element={<MlInsightsPage />} />
             </Route>
           </Route>
 

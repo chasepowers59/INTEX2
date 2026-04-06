@@ -8,6 +8,7 @@ Stack (per case requirements):
 This repo contains:
 - `api/Intex.Api` — backend API + auth/RBAC
 - `web/` — React/TS frontend (SPA)
+- `data/raw/` — place provided CSVs here (not committed)
 - `ml-pipelines/` — (to be added) Jupyter notebooks for IS455
 
 ## Local dev (quick start)
@@ -42,6 +43,16 @@ cd web
 npm install
 npm run dev
 ```
+
+## ML (IS455) quick path
+
+1. Put the provided CSVs in `data/raw/` (e.g., `data/raw/supporters.csv`, `data/raw/donations.csv`, etc.).
+2. Run any notebook in `ml-pipelines/` top-to-bottom.
+3. Export predictions JSON to `output/ml-predictions/<type>.json` using the helper in the notebook.
+4. Import into the deployed API (admin-only):
+   - `POST /api/ml/import?replace=true`
+5. View outputs in the deployed web app:
+   - `/app/ml` (Staff Portal → ML Insights)
 
 ## Deployment notes (Azure)
 

@@ -42,6 +42,7 @@ Region guidance (team decision):
    - `web/staticwebapp.config.json` includes CSP + HSTS headers.
    - `Privacy Policy` link is visible in the footer.
    - Cookie consent banner appears on first visit.
+   - ML Insights page is reachable after login: `/app/ml`
 
 ## 4) Required URLs for final submission
 

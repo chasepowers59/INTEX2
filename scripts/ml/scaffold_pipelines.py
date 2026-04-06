@@ -123,6 +123,38 @@ def eval_regression(y_true, y_pred):
         "rmse": float(mean_squared_error(y_true, y_pred, squared=False)),
         "r2": float(r2_score(y_true, y_pred)),
     }
+
+
+def export_predictions_json(
+    prediction_type: str,
+    entity_type: str,
+    entity_ids: pd.Series,
+    scores: pd.Series,
+    labels: pd.Series | None = None,
+    payload_json: pd.Series | None = None,
+    out_dir: Path | None = None,
+):
+    out_dir = out_dir or (REPO_ROOT / "output" / "ml-predictions")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{prediction_type}.json"
+
+    rows = []
+    for i in range(len(entity_ids)):
+        rows.append(
+            {
+                "predictionType": prediction_type,
+                "entityType": entity_type,
+                "entityId": int(entity_ids.iloc[i]),
+                "score": float(scores.iloc[i]),
+                "label": None if labels is None else (None if pd.isna(labels.iloc[i]) else str(labels.iloc[i])),
+                "payloadJson": None
+                if payload_json is None
+                else (None if pd.isna(payload_json.iloc[i]) else str(payload_json.iloc[i])),
+            }
+        )
+
+    out_path.write_text(pd.Series(rows).to_json(orient="values", indent=2), encoding="utf-8")
+    print("Wrote predictions:", out_path)
 """
 
 
@@ -208,6 +240,15 @@ For explanatory modeling, we discuss:
 ## 6) Deployment Notes
 
 {spec.deployment_notes}
+
+### Import into the deployed app (Admin-only)
+
+After exporting predictions JSON, import into the API:
+- Endpoint: `POST /api/ml/import?replace=true`
+- Body: the JSON array written by `export_predictions_json(...)`
+
+Then view results in the web app:
+- Staff portal → **ML Insights** (`/app/ml`)
 """
 
     cells = [
@@ -275,6 +316,21 @@ df = None
 """
         ),
         nb_cell_markdown(md_deploy),
+        nb_cell_code(
+            r"""
+# TODO: Export predictions for app integration (example).
+# Replace entity_ids/scores with your real outputs.
+#
+# export_predictions_json(
+#     prediction_type="donor_lapse_90d",
+#     entity_type="Supporter",
+#     entity_ids=df["supporter_id"],
+#     scores=df["risk_score"],
+#     labels=df.get("risk_band"),
+#     payload_json=df.get("explanations_json"),
+# )
+"""
+        ),
     ]
 
     return {
@@ -382,4 +438,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
