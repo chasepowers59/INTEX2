@@ -1,6 +1,8 @@
 using Intex.Api.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Intex.Api.Data;
 
@@ -9,6 +11,7 @@ public static class SeedData
     public static async Task EnsureSeededAsync(IServiceProvider services, IConfiguration config)
     {
         await using var scope = services.CreateAsyncScope();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SeedData");
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         // Prefer migrations, but allow running without them (fast competition setup).
         try
@@ -32,37 +35,91 @@ public static class SeedData
         }
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var syncPasswords = config.GetValue("Seed:SyncPasswords", false);
+        var clearLockouts = config.GetValue("Seed:ClearLockouts", false);
 
-        // Optional seed users via env vars / App Service settings.
-        // Set these in Azure App Service Configuration (or locally) and rotate after grading.
-        await EnsureUserAsync(
-            userManager,
-            email: config["Seed:AdminEmail"],
-            password: config["Seed:AdminPassword"],
-            displayName: "Admin",
-            role: AppRoles.Admin
-        );
+        if (syncPasswords)
+        {
+            logger.LogWarning(
+                "Seed:SyncPasswords is enabled: existing seeded users will have passwords overwritten from configuration. Disable in production unless intentional.");
+        }
 
-        await EnsureUserAsync(
-            userManager,
-            email: config["Seed:EmployeeEmail"],
-            password: config["Seed:EmployeePassword"],
-            displayName: "Employee",
-            role: AppRoles.Employee
-        );
+        var seenEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var account in BuildSeedAccountSpecs(config, logger))
+        {
+            if (!string.IsNullOrWhiteSpace(account.Email))
+            {
+                var dedupeKey = account.Email.Trim();
+                if (!seenEmails.Add(dedupeKey))
+                {
+                    logger.LogWarning("Skipping duplicate seed email in configuration: {Email}", dedupeKey);
+                    continue;
+                }
+            }
 
-        await EnsureUserAsync(
-            userManager,
-            email: config["Seed:DonorEmail"],
-            password: config["Seed:DonorPassword"],
-            displayName: "Donor",
-            role: AppRoles.Donor
-        );
+            await EnsureUserAsync(
+                userManager,
+                account,
+                syncPasswords,
+                clearLockouts,
+                logger);
+        }
 
         var seedDemo = config.GetValue("Seed:DemoData", true);
         if (seedDemo)
         {
             await EnsureDemoDataAsync(db);
+        }
+    }
+
+    private static IEnumerable<SeedAccountSpec> BuildSeedAccountSpecs(IConfiguration config, ILogger logger)
+    {
+        // Flat keys — same names as Azure App Service (Seed__AdminEmail, etc.)
+        yield return new SeedAccountSpec(
+            "Admin",
+            config["Seed:AdminEmail"],
+            config["Seed:AdminPassword"],
+            "Admin",
+            AppRoles.Admin);
+
+        yield return new SeedAccountSpec(
+            "Employee",
+            config["Seed:EmployeeEmail"],
+            config["Seed:EmployeePassword"],
+            "Employee",
+            AppRoles.Employee);
+
+        yield return new SeedAccountSpec(
+            "Donor",
+            config["Seed:DonorEmail"],
+            config["Seed:DonorPassword"],
+            "Donor",
+            AppRoles.Donor);
+
+        var extras = config.GetSection("Seed:Accounts").Get<List<SeedAccountBinding>>() ?? [];
+        foreach (var x in extras)
+        {
+            if (string.IsNullOrWhiteSpace(x.Email))
+            {
+                continue;
+            }
+
+            var role = string.IsNullOrWhiteSpace(x.Role) ? AppRoles.Employee : x.Role.Trim();
+            if (role != AppRoles.Admin && role != AppRoles.Employee && role != AppRoles.Donor)
+            {
+                logger.LogWarning(
+                    "Skipping Seed:Accounts entry for {Email}: invalid Role '{Role}' (use Admin, Employee, or Donor).",
+                    x.Email.Trim(),
+                    x.Role);
+                continue;
+            }
+
+            yield return new SeedAccountSpec(
+                "Accounts",
+                x.Email.Trim(),
+                x.Password,
+                string.IsNullOrWhiteSpace(x.DisplayName) ? x.Email.Trim() : x.DisplayName.Trim(),
+                role);
         }
     }
 
@@ -96,18 +153,32 @@ END
 
     private static async Task EnsureUserAsync(
         UserManager<AppUser> userManager,
-        string? email,
-        string? password,
-        string displayName,
-        string role
+        SeedAccountSpec account,
+        bool syncPasswords,
+        bool clearLockouts,
+        ILogger logger
     )
     {
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(account.Email))
         {
+            logger.LogInformation("Skipping seed for {Label}: email not configured.", account.Label);
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(account.Password))
+        {
+            logger.LogInformation(
+                "Skipping seed for {Label} ({Email}): password not configured.",
+                account.Label,
+                account.Email);
+            return;
+        }
+
+        var email = account.Email.Trim();
+        var password = account.Password;
         var user = await userManager.FindByEmailAsync(email);
+        var existedBefore = user is not null;
+
         if (user is null)
         {
             user = new AppUser
@@ -115,20 +186,48 @@ END
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
-                DisplayName = displayName
+                DisplayName = account.DisplayName
             };
 
             var created = await userManager.CreateAsync(user, password);
             if (!created.Succeeded)
             {
                 var msg = string.Join("; ", created.Errors.Select(e => $"{e.Code}:{e.Description}"));
+                logger.LogError("Failed seeding user {Email}: {Errors}", email, msg);
                 throw new InvalidOperationException($"Failed seeding user {email}: {msg}");
             }
         }
-
-        if (!await userManager.IsInRoleAsync(user, role))
+        else
         {
-            await userManager.AddToRoleAsync(user, role);
+            if (syncPasswords)
+            {
+                var rem = await userManager.RemovePasswordAsync(user);
+                if (!rem.Succeeded)
+                {
+                    var msg = string.Join("; ", rem.Errors.Select(e => $"{e.Code}:{e.Description}"));
+                    logger.LogError("Failed removing password for seeded user {Email}: {Errors}", email, msg);
+                    throw new InvalidOperationException($"Failed removing password for seeded user {email}: {msg}");
+                }
+
+                var add = await userManager.AddPasswordAsync(user, password);
+                if (!add.Succeeded)
+                {
+                    var msg = string.Join("; ", add.Errors.Select(e => $"{e.Code}:{e.Description}"));
+                    logger.LogError("Failed setting password for seeded user {Email}: {Errors}", email, msg);
+                    throw new InvalidOperationException($"Failed setting password for seeded user {email}: {msg}");
+                }
+            }
+        }
+
+        if (clearLockouts)
+        {
+            await userManager.SetLockoutEndDateAsync(user, null);
+            await userManager.ResetAccessFailedCountAsync(user);
+        }
+
+        if (!await userManager.IsInRoleAsync(user, account.Role))
+        {
+            await userManager.AddToRoleAsync(user, account.Role);
         }
     }
 
@@ -157,4 +256,6 @@ END
             await db.SaveChangesAsync();
         }
     }
+
+    private sealed record SeedAccountSpec(string Label, string? Email, string? Password, string DisplayName, string Role);
 }

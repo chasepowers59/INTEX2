@@ -26,10 +26,13 @@ Set environment variables:
 - `Jwt__Issuer` = e.g. `intex-w26`
 - `Jwt__Audience` = e.g. `intex-w26-web`
 - `Cors__AllowedOrigins__0` = `http://localhost:5173`
-- Optional seeded accounts:
+- Optional seeded accounts (same mechanism as Azure; see `api/Intex.Api/appsettings.Development.json.example`):
   - `Seed__AdminEmail`, `Seed__AdminPassword`
   - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
   - `Seed__DonorEmail`, `Seed__DonorPassword`
+- If you change a seed password in config but the user already exists in the DB, set `Seed__SyncPasswords=true` for one run (then set back to `false`), or use `Seed__ClearLockouts=true` after failed login lockout.
+
+Copy `api/Intex.Api/appsettings.Development.json.example` to `api/Intex.Api/appsettings.Development.json` (gitignored) for local secrets. Passwords must satisfy `Identity:Password` in `appsettings.json` (minimum length 12, upper, lower, digit, non-alphanumeric, unique characters).
 
 Run:
 ```bash

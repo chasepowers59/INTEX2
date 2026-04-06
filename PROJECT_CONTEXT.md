@@ -170,7 +170,8 @@ API (App Service “Configuration”):
 - `ConnectionStrings__AppDb` (Azure SQL)
 - `Jwt__Key`, `Jwt__Issuer`, `Jwt__Audience`
 - `Cors__AllowedOrigins__0` = SWA URL
-- Optional seed users: `Seed__AdminEmail`, `Seed__AdminPassword`, `Seed__EmployeeEmail`, `Seed__EmployeePassword`
+- Optional seed users: `Seed__AdminEmail`, `Seed__AdminPassword`, `Seed__EmployeeEmail`, `Seed__EmployeePassword`, `Seed__DonorEmail`, `Seed__DonorPassword`
+- If a seeded user already exists, changing the App Service password alone does not update Identity until you set `Seed__SyncPasswords=true` for one restart (then turn off), or delete the user. Use `Seed__ClearLockouts=true` to recover from lockout after bad attempts.
 
 Web (SWA env vars):
 - `VITE_API_BASE_URL` = App Service API URL

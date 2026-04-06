@@ -26,12 +26,23 @@ Region guidance (team decision):
    - API `GET /health` should return `{ "status": "ok" }`
    - API `GET /health/db` should return `200` when SQL is reachable (and `503` when not)
 
-5. Seed an initial admin (recommended for grading):
-   - Set App Service settings `Seed__AdminEmail` and `Seed__AdminPassword` and restart the API.
-   - Sign in at `/login`, then visit `/app/admin/users` to create employee/donor accounts.
-   - Optionally seed convenience accounts:
-     - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
-     - `Seed__DonorEmail`, `Seed__DonorPassword` (then link donor to a `SupporterId` in `/app/admin/users`)
+5. Seed users (all use the same startup path in `SeedData`):
+
+   | App Service setting | Purpose |
+   | --- | --- |
+   | `Seed__AdminEmail`, `Seed__AdminPassword` | Admin account (recommended for first login) |
+   | `Seed__EmployeeEmail`, `Seed__EmployeePassword` | Optional convenience employee |
+   | `Seed__DonorEmail`, `Seed__DonorPassword` | Optional convenience donor (link `SupporterId` in `/app/admin/users`) |
+   | `Seed__SyncPasswords` = `true` or `false` | When `true`, **overwrites** passwords for **existing** users that match configured seed emails (use after changing App Service passwords or fixing a stale hash). **Turn off** in production unless you intend this. |
+   | `Seed__ClearLockouts` = `true` or `false` | When `true`, clears Identity lockout and failed-attempt count for each configured seed email on startup (use if login fails after too many bad attempts). |
+
+   After changing seed passwords in Azure, either set `Seed__SyncPasswords` to `true` for **one** restart (then set back to `false`), or delete the user in the database and restart so the user is recreated.
+
+   Sign in at `/login` with the **email** as username (or email). Then use `/app/admin/users` for additional accounts.
+
+6. Other useful settings:
+
+   - `Database__AutoMigrate` = `true` (set `false` later if you do not want automatic migrations on startup)
 
 ## Debugging (when something breaks)
 
@@ -42,15 +53,13 @@ App Service (API) troubleshooting checklist:
 - Every API response includes `X-Correlation-Id` and `/health` returns a `traceId` you can match in logs.
 
 Do not leave `ASPNETCORE_ENVIRONMENT=Development` enabled for grading; use it temporarily only.
-   - Seed users (optional but recommended for first deploy):
-     - `Seed__AdminEmail`, `Seed__AdminPassword`
-     - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
-     - `Seed__DonorEmail`, `Seed__DonorPassword` (optional)
-   - `Database__AutoMigrate` = `true` (set `false` later if you don’t want automatic migrations)
-4. Verify:
-   - `https://<your-api>.azurewebsites.net/health` returns `{ status: "ok" }`.
-5. HTTPS/redirect:
-   - App Service is HTTPS by default. Ensure “HTTPS Only” is enabled.
+
+- Log stream: if a seed account is skipped, look for `Skipping seed for …` (missing email/password). If seeding throws, the API may still start in degraded mode—check logs for `Failed seeding user` / Identity error codes (often password policy).
+
+**API final checks:**
+
+   - `https://<your-api>.azurewebsites.net/health` returns `{ "status": "ok" }`.
+   - HTTPS: App Service should have **HTTPS Only** enabled.
 
 ## 3) Frontend — Azure Static Web Apps
 
