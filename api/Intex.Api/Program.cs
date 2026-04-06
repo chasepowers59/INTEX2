@@ -83,6 +83,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Fail fast: empty/short Jwt:Key causes Identity login to succeed then throws when signing JWT → browser sees HTTP 500.
+{
+    var jwtKey = app.Configuration["Jwt:Key"] ?? "";
+    var keyBytes = Encoding.UTF8.GetByteCount(jwtKey);
+    if (keyBytes < 32)
+    {
+        throw new InvalidOperationException(
+            "Jwt:Key must be at least 32 UTF-8 bytes. Without it, POST /api/auth/login returns 500 after a correct password. " +
+            "Set Jwt__Key in Azure Application Settings, or Jwt:Key in appsettings.Development.json (see appsettings.Development.json.example).");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
