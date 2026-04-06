@@ -98,17 +98,20 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-app.MapGet("/health/db", async (AppDbContext db) =>
+app.MapGet("/health/db", async (IServiceProvider services) =>
 {
     try
     {
+        await using var scope = services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var ok = await db.Database.CanConnectAsync();
         return ok
             ? Results.Ok(new { status = "ok" })
             : Results.Problem("Database unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
     }
-    catch
+    catch (Exception ex)
     {
+        app.Logger.LogError(ex, "Health check failed: DB unavailable.");
         return Results.Problem("Database unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 });
