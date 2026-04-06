@@ -20,7 +20,12 @@ Region guidance (team decision):
    - `Jwt__Key` = long random secret (32+ chars)
    - `Jwt__Issuer` = `intex-w26`
    - `Jwt__Audience` = `intex-w26-web`
-   - `Cors__AllowedOrigins__0` = `https://<your-swa-name>.azurestaticapps.net`
+   - `Cors__AllowedOrigins__0` = your **exact** Static Web Apps site URL (must match what the browser sends as `Origin`, including `https://` and **no trailing slash**).
+     - Classic hostname: `https://<app-name>.azurestaticapps.net`
+     - Newer hostnames often look like: `https://<label>.2.azurestaticapps.net` (e.g. `https://nice-coast-0c9d7ab10.2.azurestaticapps.net`)
+   - Optional: `Cors__AllowedOrigins__1` = `http://localhost:5173` if you want a published API to accept requests from local Vite while debugging.
+
+   **If login works locally but the deployed site shows a CORS error**, the SWA URL is missing or wrong in App Service. Open `GET https://<your-api>/health/info` and check `corsAllowedOrigins` — it must list your SWA origin.
 
 4. Verify connectivity:
    - API `GET /health` should return `{ "status": "ok" }`

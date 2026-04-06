@@ -8,6 +8,12 @@
   "ConnectionStrings": {
     "AppDb": "Server=localhost;Database=IntexDev;Trusted_Connection=True;TrustServerCertificate=True"
   },
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:5173",
+      "https://YOUR-SWA.2.azurestaticapps.net"
+    ]
+  },
   "Jwt": {
     "Key": "CHANGE_ME_MIN_32_CHARS_RANDOM_SECRET_KEY",
     "Issuer": "intex-w26",
