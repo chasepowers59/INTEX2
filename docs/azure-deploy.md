@@ -29,6 +29,9 @@ Region guidance (team decision):
 5. Seed an initial admin (recommended for grading):
    - Set App Service settings `Seed__AdminEmail` and `Seed__AdminPassword` and restart the API.
    - Sign in at `/login`, then visit `/app/admin/users` to create employee/donor accounts.
+   - Optionally seed convenience accounts:
+     - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
+     - `Seed__DonorEmail`, `Seed__DonorPassword` (then link donor to a `SupporterId` in `/app/admin/users`)
 
 ## Debugging (when something breaks)
 

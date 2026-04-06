@@ -29,6 +29,9 @@ export function PublicLayout() {
           Sanctuary Leadership Portal
         </Link>
         <nav className="row">
+          <Link className="btn" to="/give">
+            Give
+          </Link>
           <Link className="btn" to="/impact">
             Impact
           </Link>

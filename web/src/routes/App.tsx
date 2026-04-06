@@ -5,6 +5,7 @@ import { AppLayout, PublicLayout } from "./layouts";
 import { RequireAuth } from "./guards";
 import { HomePage } from "./pages/HomePage";
 import { ImpactPage } from "./pages/ImpactPage";
+import { GivePage } from "./pages/GivePage";
 import { LoginPage } from "./pages/LoginPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { AppDashboardPage } from "./pages/app/AppDashboardPage";
@@ -28,6 +29,7 @@ export function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/impact" element={<ImpactPage />} />
+            <Route path="/give" element={<GivePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
           </Route>
