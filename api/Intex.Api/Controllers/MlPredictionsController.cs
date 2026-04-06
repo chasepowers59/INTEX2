@@ -52,6 +52,71 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
         return Ok(items);
     }
 
+    [HttpGet("donor-lapse/top")]
+    public async Task<ActionResult> GetTopDonorLapse([FromQuery] int take = 25)
+    {
+        take = Math.Clamp(take, 1, 100);
+        const string predictionType = "donor_lapse_90d";
+
+        var items = await db.MlPredictions.AsNoTracking()
+            .Where(x => x.PredictionType == predictionType && x.EntityType == "Supporter")
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ThenByDescending(x => x.Score)
+            .Take(take)
+            .Join(
+                db.Supporters.AsNoTracking(),
+                p => p.EntityId,
+                s => s.SupporterId,
+                (p, s) => new
+                {
+                    supporterId = s.SupporterId,
+                    displayName = s.FullName,
+                    email = s.Email,
+                    supporterType = s.SupporterType,
+                    isActive = s.IsActive,
+                    riskScore = p.Score,
+                    riskBand = p.Label,
+                    createdAtUtc = p.CreatedAtUtc
+                }
+            )
+            .ToListAsync();
+
+        return Ok(items);
+    }
+
+    [HttpGet("resident-risk/top")]
+    public async Task<ActionResult> GetTopResidentRisk([FromQuery] int take = 25)
+    {
+        take = Math.Clamp(take, 1, 100);
+        const string predictionType = "resident_incident_30d";
+
+        var items = await db.MlPredictions.AsNoTracking()
+            .Where(x => x.PredictionType == predictionType && x.EntityType == "Resident")
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ThenByDescending(x => x.Score)
+            .Take(take)
+            .Join(
+                db.Residents.AsNoTracking(),
+                p => p.EntityId,
+                r => r.ResidentId,
+                (p, r) => new
+                {
+                    residentId = r.ResidentId,
+                    displayName = r.DisplayName,
+                    caseStatus = r.CaseStatus,
+                    caseCategory = r.CaseCategory,
+                    safehouseId = r.SafehouseId,
+                    assignedSocialWorker = r.AssignedSocialWorker,
+                    riskScore = p.Score,
+                    riskBand = p.Label,
+                    createdAtUtc = p.CreatedAtUtc
+                }
+            )
+            .ToListAsync();
+
+        return Ok(items);
+    }
+
     [HttpPost("import")]
     [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult> Import(
@@ -94,4 +159,3 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
         return Ok(new { inserted = entities.Count, predictionType, replaced = replace });
     }
 }
-

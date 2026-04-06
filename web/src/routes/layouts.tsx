@@ -90,6 +90,9 @@ export function AppLayout() {
           <NavLink className="btn" to="/app/reports">
             Reports & Analytics
           </NavLink>
+          <NavLink className="btn" to="/app/action-center">
+            Action Center (ML)
+          </NavLink>
           <NavLink className="btn" to="/app/ml">
             ML Insights
           </NavLink>

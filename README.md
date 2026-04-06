@@ -26,6 +26,10 @@ Set environment variables:
 - `Jwt__Issuer` = e.g. `intex-w26`
 - `Jwt__Audience` = e.g. `intex-w26-web`
 - `Cors__AllowedOrigins__0` = `http://localhost:5173`
+- Optional seeded accounts:
+  - `Seed__AdminEmail`, `Seed__AdminPassword`
+  - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
+  - `Seed__DonorEmail`, `Seed__DonorPassword`
 
 Run:
 ```bash

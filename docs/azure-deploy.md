@@ -24,6 +24,7 @@ Region guidance (team decision):
    - Seed users (optional but recommended for first deploy):
      - `Seed__AdminEmail`, `Seed__AdminPassword`
      - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
+     - `Seed__DonorEmail`, `Seed__DonorPassword` (optional)
    - `Database__AutoMigrate` = `true` (set `false` later if you don’t want automatic migrations)
 4. Verify:
    - `https://<your-api>.azurewebsites.net/health` returns `{ status: "ok" }`.

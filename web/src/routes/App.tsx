@@ -15,6 +15,7 @@ import { ResidentHomeVisitsPage } from "./pages/app/ResidentHomeVisitsPage";
 import { ReportsPage } from "./pages/app/ReportsPage";
 import { DonorPortalPage } from "./pages/app/DonorPortalPage";
 import { MlInsightsPage } from "./pages/app/MlInsightsPage";
+import { MlActionCenterPage } from "./pages/app/MlActionCenterPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 export function App() {
@@ -39,6 +40,7 @@ export function App() {
               <Route path="/app/reports" element={<ReportsPage />} />
               <Route path="/app/donor" element={<DonorPortalPage />} />
               <Route path="/app/ml" element={<MlInsightsPage />} />
+              <Route path="/app/action-center" element={<MlActionCenterPage />} />
             </Route>
           </Route>
 

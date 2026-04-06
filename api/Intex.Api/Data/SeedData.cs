@@ -50,6 +50,14 @@ public static class SeedData
             role: AppRoles.Employee
         );
 
+        await EnsureUserAsync(
+            userManager,
+            email: config["Seed:DonorEmail"],
+            password: config["Seed:DonorPassword"],
+            displayName: "Donor",
+            role: AppRoles.Donor
+        );
+
         var seedDemo = config.GetValue("Seed:DemoData", true);
         if (seedDemo)
         {
