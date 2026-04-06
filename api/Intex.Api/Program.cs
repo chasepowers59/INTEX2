@@ -117,7 +117,14 @@ app.MapControllers();
 
 if (app.Configuration.GetValue("Database:AutoMigrate", true))
 {
-    await SeedData.EnsureSeededAsync(app.Services, app.Configuration);
+    try
+    {
+        await SeedData.EnsureSeededAsync(app.Services, app.Configuration);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Database migration/seed failed. API will start in degraded mode.");
+    }
 }
 
 app.Run();
