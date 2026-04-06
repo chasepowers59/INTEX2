@@ -1,24 +1,48 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth";
 import { apiFetch } from "../../../lib/api";
+import { StatCard } from "../../../components/ui/StatCard";
+import { Link } from "react-router-dom";
 
-type Summary = {
+type Overview = {
+  asOfUtc: string;
   activeResidents: number;
-  recentDonations: number;
-  upcomingConferences: number;
-  bySafehouse: { safehouseId: number; activeResidents: number }[];
+  donations30d: { count: number; totalAmount: number };
+  processRecordings7d: number;
+  upcomingConferences14d: number;
+  checkInsDue30d: number;
+  donorLapse: { asOfUtc: string | null; byBand: { band: string; count: number }[] };
+  residentRisk: { asOfUtc: string | null; byBand: { band: string; count: number }[] };
+};
+
+type OpsAlerts = {
+  asOfUtc: string;
+  items: {
+    residentId: number;
+    displayName: string;
+    safehouseId: number;
+    assignedSocialWorker: string | null;
+    lastHomeVisitDate: string | null;
+    lastProcessRecordingDate: string | null;
+    riskScore: number | null;
+    riskBand: string | null;
+    reasons: string[];
+  }[];
 };
 
 export function AppDashboardPage() {
   const auth = useAuth();
-  const [data, setData] = useState<Summary | null>(null);
+  const [data, setData] = useState<Overview | null>(null);
+  const [alerts, setAlerts] = useState<OpsAlerts | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiFetch<Summary>("/api/admin-dashboard/summary", { token: auth.token ?? undefined });
+        const res = await apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined });
         setData(res);
+        const ops = await apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token: auth.token ?? undefined });
+        setAlerts(ops);
       } catch (e) {
         setError((e as Error).message);
       }
@@ -28,56 +52,110 @@ export function AppDashboardPage() {
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Admin Dashboard</h1>
+        <h1 style={{ marginTop: 0 }}>Leadership Dashboard</h1>
         <p className="muted">
-          Command center view for leadership: residents across safehouses, donation activity, and upcoming case
-          conferences.
+          High-signal, privacy-first view of operations: follow-up health, donor momentum, and safety-critical alerts.
         </p>
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? (
+          <div className="badge danger" style={{ marginTop: 10 }}>
+            {error}
+          </div>
+        ) : null}
+        {data ? (
+          <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
+            Updated {new Date(data.asOfUtc).toLocaleString()}
+          </div>
+        ) : null}
       </div>
 
-      <div className="row">
-        <div className="card" style={{ flex: 1, minWidth: 220 }}>
-          <div className="muted">Active residents</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{data?.activeResidents ?? "—"}</div>
-        </div>
-        <div className="card" style={{ flex: 1, minWidth: 220 }}>
-          <div className="muted">Monetary donations (last 30d)</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{data?.recentDonations ?? "—"}</div>
-        </div>
-        <div className="card" style={{ flex: 1, minWidth: 220 }}>
-          <div className="muted">Upcoming conferences (14d)</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{data?.upcomingConferences ?? "—"}</div>
-        </div>
+      <div className="kpi-grid">
+        <StatCard label="Active residents" value={data?.activeResidents ?? "—"} />
+        <StatCard
+          label="Donations (30d)"
+          value={data ? `${data.donations30d.count}` : "—"}
+          hint={data ? `₱${data.donations30d.totalAmount.toFixed(2)} total` : undefined}
+          tone="brand"
+        />
+        <StatCard label="Check-ins due (30d)" value={data?.checkInsDue30d ?? "—"} tone="warn" />
+        <StatCard label="Process recordings (7d)" value={data?.processRecordings7d ?? "—"} tone="ok" />
+        <StatCard label="Case conferences (14d)" value={data?.upcomingConferences14d ?? "—"} />
+        <StatCard
+          label="Resident incident risk bands"
+          value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" · ") || "—" : "—"}
+          hint={data?.residentRisk.asOfUtc ? `As of ${new Date(data.residentRisk.asOfUtc).toLocaleString()}` : "No ML import yet"}
+        />
       </div>
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>By safehouse (active residents)</h2>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Safehouse ID</th>
-                <th>Active residents</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.bySafehouse ?? []).map((x) => (
-                <tr key={x.safehouseId}>
-                  <td data-label="Safehouse ID">{x.safehouseId}</td>
-                  <td data-label="Active residents">{x.activeResidents}</td>
-                </tr>
-              ))}
-              {data && data.bySafehouse.length === 0 ? (
-                <tr>
-                  <td colSpan={2} className="muted">
-                    No data yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Operational alerts</h2>
+          <Link className="btn" to="/app/action-center">
+            View ML Action Center
+          </Link>
         </div>
+
+        <p className="muted" style={{ marginTop: 8 }}>
+          Prioritize follow-ups without exposing sensitive details.
+        </p>
+
+        {alerts?.items?.length ? (
+          <div className="table-wrap" style={{ marginTop: 10 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Resident</th>
+                  <th>Safehouse</th>
+                  <th>Worker</th>
+                  <th>Reasons</th>
+                  <th style={{ width: 260 }}>Quick links</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alerts.items.map((x) => (
+                  <tr key={x.residentId}>
+                    <td data-label="Resident" style={{ fontWeight: 800 }}>
+                      {x.displayName}
+                    </td>
+                    <td data-label="Safehouse" className="muted">
+                      {x.safehouseId}
+                    </td>
+                    <td data-label="Worker" className="muted">
+                      {x.assignedSocialWorker ?? "—"}
+                    </td>
+                    <td data-label="Reasons">
+                      <div className="row" style={{ gap: 8 }}>
+                        {x.reasons.map((r) => (
+                          <span
+                            key={r}
+                            className={`badge ${
+                              r.includes("High incident risk") ? "danger" : r.includes("due") ? "warn" : "ok"
+                            }`}
+                          >
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td data-label="Quick links">
+                      <div className="row">
+                        <Link className="btn" to={`/app/residents/${x.residentId}/process-recordings`}>
+                          Process recordings
+                        </Link>
+                        <Link className="btn" to={`/app/residents/${x.residentId}/home-visits`}>
+                          Home visits
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="muted" style={{ marginTop: 10 }}>
+            No alerts yet. Add home visits/process recordings, or import `resident_incident_30d` predictions.
+          </div>
+        )}
       </div>
     </div>
   );

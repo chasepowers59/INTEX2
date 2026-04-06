@@ -175,6 +175,14 @@ API (App Service “Configuration”):
 Web (SWA env vars):
 - `VITE_API_BASE_URL` = App Service API URL
 
+Operational checks:
+- API `GET /health` = API is up
+- API `GET /health/db` = API can connect to SQL (503 if not)
+
+Analytics endpoints:
+- `GET /api/analytics/overview` (dashboard KPIs)
+- `GET /api/analytics/ops-alerts` (follow-up alerts; anonymized)
+
 ## Deployment
 
 Step-by-step Azure setup: `docs/azure-deploy.md`

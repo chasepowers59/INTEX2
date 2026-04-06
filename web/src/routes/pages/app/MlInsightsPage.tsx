@@ -19,6 +19,8 @@ export function MlInsightsPage() {
   const [type, setType] = useState<string>("");
   const [items, setItems] = useState<MlPred[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [importBusy, setImportBusy] = useState<boolean>(false);
+  const [importReplace, setImportReplace] = useState<boolean>(true);
 
   const canAdminImport = useMemo(() => auth.hasRole("Admin"), [auth]);
 
@@ -66,7 +68,11 @@ export function MlInsightsPage() {
         <p className="muted">
           This page displays model outputs imported from the IS455 notebooks. Import is admin-only.
         </p>
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? (
+          <div className="badge danger" style={{ marginTop: 10 }}>
+            {error}
+          </div>
+        ) : null}
 
         <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
           <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
@@ -102,6 +108,82 @@ export function MlInsightsPage() {
             How to import
           </button>
         </div>
+
+        {canAdminImport ? (
+          <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
+            <div style={{ fontWeight: 900 }}>Admin import (in-browser)</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Upload a JSON array exported by the notebooks. This sends it to <code>/api/ml/import</code>.
+            </div>
+
+            <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
+              <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+                <span className="muted">Replace existing type</span>
+                <select
+                  className="input"
+                  value={importReplace ? "yes" : "no"}
+                  onChange={(e) => setImportReplace(e.target.value === "yes")}
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No (append)</option>
+                </select>
+              </label>
+
+              <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 260 }}>
+                <span className="muted">JSON file</span>
+                <input
+                  className="input"
+                  type="file"
+                  accept="application/json"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setError(null);
+                    setImportBusy(true);
+                    try {
+                      const text = await file.text();
+                      const parsed = JSON.parse(text);
+                      if (!Array.isArray(parsed)) throw new Error("Import file must be a JSON array.");
+                      if (parsed.length === 0) throw new Error("Import file is empty.");
+
+                      const predictionType = String(parsed[0]?.predictionType ?? parsed[0]?.PredictionType ?? "").trim();
+                      if (!predictionType) throw new Error("Missing PredictionType in the import payload.");
+
+                      await apiFetch(`/api/ml/import?replace=${importReplace ? "true" : "false"}`, {
+                        method: "POST",
+                        token: auth.token ?? undefined,
+                        body: JSON.stringify(
+                          parsed.map((x: any) => ({
+                            predictionType: x.predictionType ?? x.PredictionType,
+                            entityType: x.entityType ?? x.EntityType,
+                            entityId: x.entityId ?? x.EntityId,
+                            score: x.score ?? x.Score,
+                            label: x.label ?? x.Label ?? null,
+                            payloadJson: x.payloadJson ?? x.PayloadJson ?? x.payload_json ?? null,
+                          }))
+                        ),
+                      });
+
+                      await loadTypes();
+                      setType(predictionType);
+                      await loadPreds(predictionType);
+                    } catch (err) {
+                      setError((err as Error).message);
+                    } finally {
+                      setImportBusy(false);
+                      e.target.value = "";
+                    }
+                  }}
+                  disabled={importBusy}
+                />
+              </label>
+
+              <button className="btn" onClick={() => void loadPreds(type)} disabled={!type || importBusy}>
+                {importBusy ? "Importing..." : "Reload type"}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="card">
@@ -156,4 +238,3 @@ export function MlInsightsPage() {
     </div>
   );
 }
-

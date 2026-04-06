@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
+import { KeyValueGrid } from "../../components/ui/KeyValueGrid";
 
 type Snapshot = {
   snapshotId: number;
@@ -28,10 +29,15 @@ export function ImpactPage() {
     <div className="card">
       <h1 style={{ marginTop: 0 }}>Impact Dashboard (Public)</h1>
       <p className="muted">
-        This page is intentionally anonymized and aggregated to protect residents, staff, and partners.
+        This page is intentionally anonymized and aggregated to protect residents, staff, and partners. It highlights
+        trends and outcomes—not individuals.
       </p>
 
-      {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+      {error ? (
+        <div className="badge danger" style={{ marginTop: 10 }}>
+          {error}
+        </div>
+      ) : null}
 
       {items.length === 0 && !error ? <div className="muted">No published snapshots yet.</div> : null}
 
@@ -45,14 +51,25 @@ export function ImpactPage() {
             <div className="muted" style={{ marginTop: 6 }}>
               {x.summaryText}
             </div>
-            <details style={{ marginTop: 10 }}>
-              <summary className="muted">Metrics (JSON)</summary>
-              <pre style={{ whiteSpace: "pre-wrap" }}>{x.metricPayloadJson}</pre>
-            </details>
+            {(() => {
+              try {
+                const obj = JSON.parse(x.metricPayloadJson) as Record<string, unknown>;
+                const rows = Object.entries(obj)
+                  .slice(0, 12)
+                  .map(([k, v]) => ({ key: k, value: typeof v === "number" ? v.toLocaleString() : String(v) }));
+                return rows.length ? <KeyValueGrid items={rows} /> : null;
+              } catch {
+                return (
+                  <details style={{ marginTop: 10 }}>
+                    <summary className="muted">Metrics (JSON)</summary>
+                    <pre style={{ whiteSpace: "pre-wrap" }}>{x.metricPayloadJson}</pre>
+                  </details>
+                );
+              }
+            })()}
           </div>
         ))}
       </div>
     </div>
   );
 }
-

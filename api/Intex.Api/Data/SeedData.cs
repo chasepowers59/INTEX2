@@ -10,13 +10,12 @@ public static class SeedData
     {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        // If migrations exist, use them; otherwise fall back to EnsureCreated for fast competition setup.
-        var hasMigrations = (await db.Database.GetMigrationsAsync()).Any();
-        if (hasMigrations)
+        // Prefer migrations, but allow running without them (fast competition setup).
+        try
         {
             await db.Database.MigrateAsync();
         }
-        else
+        catch (InvalidOperationException ex) when (ex.Message.Contains("migration", StringComparison.OrdinalIgnoreCase))
         {
             await db.Database.EnsureCreatedAsync();
         }

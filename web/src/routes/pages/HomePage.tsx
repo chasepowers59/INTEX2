@@ -3,33 +3,51 @@ import { Link } from "react-router-dom";
 
 export function HomePage() {
   return (
-    <div className="row" style={{ alignItems: "stretch" }}>
-      <div className="card" style={{ flex: 2, minWidth: 300 }}>
-        <h1 style={{ marginTop: 0 }}>A safer, smarter way to run a safehouse network</h1>
-        <p className="muted">
-          This portal helps leadership track resident progress, prevent cases from falling through the cracks, and
-          connect operational outcomes to donor support—without exposing sensitive details.
+    <div style={{ display: "grid", gap: 12 }}>
+      <div className="card" style={{ padding: 20 }}>
+        <div className="badge" style={{ borderColor: "rgba(124,108,255,0.45)", background: "rgba(124,108,255,0.08)" }}>
+          Privacy-first case operations & donor stewardship
+        </div>
+        <h1 style={{ marginTop: 12, marginBottom: 8, fontSize: 40, lineHeight: 1.05 }}>
+          Run safer programs.
+          <br />
+          Keep support strong.
+        </h1>
+        <p className="muted" style={{ maxWidth: 850, fontSize: 16 }}>
+          Sanctuary helps leadership coordinate survivor support across safehouses—tracking follow-ups, counseling
+          documentation, and anonymized impact outcomes—without exposing sensitive details.
         </p>
-        <div className="row" style={{ marginTop: 12 }}>
-          <Link className="btn primary" to="/impact">
-            View public impact
-          </Link>
-          <Link className="btn" to="/login">
+
+        <div className="row" style={{ marginTop: 14 }}>
+          <Link className="btn primary" to="/login">
             Sign in (staff)
+          </Link>
+          <Link className="btn" to="/impact">
+            View public impact
           </Link>
         </div>
       </div>
 
-      <div className="card" style={{ flex: 1, minWidth: 260 }}>
-        <div style={{ fontWeight: 800 }}>Leadership value</div>
-        <ul className="muted" style={{ lineHeight: 1.6 }}>
-          <li>Spot residents at risk and intervene earlier</li>
-          <li>Monitor safehouse load and staffing needs</li>
-          <li>Standardize process recordings and home visits</li>
-          <li>Share anonymized impact snapshots publicly</li>
-        </ul>
+      <div className="row" style={{ alignItems: "stretch" }}>
+        <div className="card" style={{ flex: 1, minWidth: 260, background: "var(--panel2)" }}>
+          <div style={{ fontWeight: 900 }}>Prevent gaps</div>
+          <div className="muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
+            Flag overdue check-ins and missing process recordings so residents don’t fall through the cracks.
+          </div>
+        </div>
+        <div className="card" style={{ flex: 1, minWidth: 260, background: "var(--panel2)" }}>
+          <div style={{ fontWeight: 900 }}>Standardize care</div>
+          <div className="muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
+            Use structured counseling notes and home visitation templates to keep documentation consistent.
+          </div>
+        </div>
+        <div className="card" style={{ flex: 1, minWidth: 260, background: "var(--panel2)" }}>
+          <div style={{ fontWeight: 900 }}>Show impact safely</div>
+          <div className="muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
+            Publish aggregated snapshots for donors and the public—no resident-level data.
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

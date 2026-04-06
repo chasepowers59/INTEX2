@@ -21,6 +21,10 @@ Region guidance (team decision):
    - `Jwt__Issuer` = `intex-w26`
    - `Jwt__Audience` = `intex-w26-web`
    - `Cors__AllowedOrigins__0` = `https://<your-swa-name>.azurestaticapps.net`
+
+4. Verify connectivity:
+   - API `GET /health` should return `{ "status": "ok" }`
+   - API `GET /health/db` should return `200` when SQL is reachable (and `503` when not)
    - Seed users (optional but recommended for first deploy):
      - `Seed__AdminEmail`, `Seed__AdminPassword`
      - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
