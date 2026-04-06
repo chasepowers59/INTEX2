@@ -126,6 +126,17 @@ app.MapGet("/health/db", async (IServiceProvider services) =>
     catch (Exception ex)
     {
         app.Logger.LogError(ex, "Health check failed: DB unavailable.");
+        if (app.Environment.IsDevelopment())
+        {
+            return Results.Json(new
+            {
+                status = "error",
+                message = "Database unavailable.",
+                exception = ex.GetType().FullName,
+                detail = ex.Message,
+                inner = ex.InnerException?.Message
+            }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
         return Results.Problem("Database unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 });
