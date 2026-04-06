@@ -13,6 +13,14 @@ dist/
 appsettings.*.json
 !appsettings.json
 
+# Data (keep only .gitkeep)
+data/raw/**/*.csv
+data/raw/**/*.zip
+data/raw/**/lighthouse_csv_v7/
+
+# ML exports (keep only .gitkeep)
+output/ml-predictions/*.json
+
 # OS
 .DS_Store
 
