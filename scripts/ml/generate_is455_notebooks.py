@@ -19,12 +19,14 @@ def code(s: str) -> dict[str, Any]:
 
 COMMON = r'''
 import json
+import re
 from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
@@ -198,6 +200,48 @@ def compact_randomized_tune_regressor(train, features, target, cat_cols, num_col
     print("RandomizedSearchCV best CV MAE:", float(-search.best_score_))
     return search.best_estimator_
 
+def quick_eda(df, name, target_col=None, numeric_cols=None, categorical_cols=None):
+    print(f"\\nEDA: {name}")
+    print("Shape:", df.shape)
+    safe_name = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    plot_dir = OUT_DIR / "eda-plots"
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    missing = df.isna().mean().sort_values(ascending=False).head(10)
+    print("\\nTop missing-value rates:")
+    print(missing.to_string())
+    if target_col and target_col in df.columns:
+        print(f"\\nTarget distribution / summary: {target_col}")
+        if pd.api.types.is_numeric_dtype(df[target_col]):
+            print(df[target_col].describe().to_string())
+            plt.figure(figsize=(7, 4))
+            df[target_col].hist(bins=20)
+            plt.title(f"{name}: {target_col} distribution")
+            plt.xlabel(target_col)
+            plt.ylabel("Count")
+            plt.tight_layout()
+        else:
+            print(df[target_col].value_counts(dropna=False).head(20).to_string())
+            plt.figure(figsize=(7, 4))
+            df[target_col].value_counts(dropna=False).head(10).plot(kind="bar")
+            plt.title(f"{name}: {target_col} distribution")
+            plt.xlabel(target_col)
+            plt.ylabel("Count")
+            plt.tight_layout()
+        plot_path = plot_dir / f"{safe_name}_{target_col}_distribution.png"
+        plt.savefig(plot_path, dpi=150, bbox_inches="tight")
+        plt.close()
+        print("Saved EDA plot:", plot_path)
+    if numeric_cols:
+        cols = [c for c in numeric_cols if c in df.columns]
+        if cols:
+            print("\\nNumeric feature summary:")
+            print(df[cols].describe().T[["mean", "std", "min", "50%", "max"]].round(3).to_string())
+    if categorical_cols:
+        cols = [c for c in categorical_cols if c in df.columns]
+        for col in cols[:5]:
+            print(f"\\nTop values for {col}:")
+            print(df[col].value_counts(dropna=False).head(10).to_string())
+
 def time_split(df, date_col, test_frac=0.25):
     df = df.sort_values(date_col).copy()
     split_idx = max(1, int(len(df) * (1 - test_frac)))
@@ -243,20 +287,80 @@ def export_predictions_json(prediction_type, entity_type, df_out, id_col, score_
 '''
 
 
-def nb(title: str, business: str, cells: list[str]) -> dict[str, Any]:
+def nb(title: str, business: str, sections: dict[str, list[str]]) -> dict[str, Any]:
     created = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     all_cells = [
         md(f"# {title}\n\nGenerated: {created}"),
         md(
-            "## CRISP-DM / Rubric Overview\n\n"
-            f"Business understanding: {business}\n\n"
-            "Data understanding and preparation are implemented in code below. Each notebook includes a predictive model, "
-            "an explanatory model, evaluation metrics, relationship-analysis notes, and JSON export for app deployment."
+            f"""
+## 1) Problem Framing
+
+**Business question:** {business}
+
+**Who cares:** nonprofit leadership, program staff, and/or fundraising staff depending on the pipeline domain.
+
+**Why it matters:** this model turns operational, donor, or outreach data into a decision-support signal for a resource-constrained safehouse nonprofit.
+
+**Predictive vs. explanatory goal:** this notebook includes both. The predictive model is evaluated on unseen data and is used for deployment-oriented scoring. The explanatory or relationship model is included to identify which variables appear most connected to the target and to support business interpretation. We do not treat predictive accuracy as causal proof.
+
+**Success metrics:** classification pipelines use accuracy, F1, and ROC AUC where appropriate. Regression/forecasting pipelines use MAE, RMSE, and R-squared. The notebook also compares against a simple baseline so the results can be interpreted honestly.
+"""
+        ),
+        md(
+            """
+## Notebook Setup
+
+Shared imports and helper functions are defined once here so the later rubric sections can focus on the pipeline-specific code for this business problem.
+"""
         ),
         code(COMMON),
     ]
-    all_cells.extend(code(c) for c in cells)
-    all_cells.append(md("## Deployment\n\nImport the exported JSON with `POST /api/ml/import?replace=true` and view results in `/app/ml`."))
+    section_specs = [
+        (
+            "data",
+            """
+## 2) Data Acquisition, Preparation, and Exploration
+
+The pipeline reads the provided CSV files from `data/raw/`, performs joins and feature engineering in code, handles missing values reproducibly, and prints an EDA summary before modeling. The EDA step checks row counts, missingness, target distributions, feature summaries, and key categorical distributions.
+""",
+        ),
+        (
+            "modeling",
+            """
+## 3) Modeling and Feature Selection
+
+The feature set is selected from fields that would be available at the decision point whenever possible. Predictive models use ensembles or tuned tree-based models when they improve out-of-sample performance. Explanatory models use simpler linear or logistic models when interpretability matters.
+""",
+        ),
+        (
+            "evaluation",
+            """
+## 4) Evaluation and Selection
+
+The notebook uses a train/test or time-based holdout split depending on the business problem. Where appropriate, it also uses compact cross-validation, model comparison tables, and lightweight randomized tuning. Metrics are interpreted in business terms rather than treated as abstract statistics.
+""",
+        ),
+        (
+            "causal",
+            """
+## 5) Causal and Relationship Analysis
+
+The relationship analysis section highlights important features and discusses whether those relationships make sense for the organization. These findings are observational: they can guide hypotheses and strategy, but they are not automatically causal. Any sensitive resident-care decision must remain human-reviewed.
+""",
+        ),
+        (
+            "deployment",
+            """
+## 6) Deployment Notes
+
+The final scoring step exports JSON to `output/ml-predictions/`. These files match the API import contract used by `POST /api/ml/import?replace=true` and can be viewed in the deployed staff portal under `/app/ml` or the ML action center.
+""",
+        ),
+    ]
+    for key, section_md in section_specs:
+        all_cells.append(md(section_md))
+        for cell in sections.get(key, []):
+            all_cells.append(code(cell))
     return {
         "cells": all_cells,
         "metadata": {
@@ -268,7 +372,8 @@ def nb(title: str, business: str, cells: list[str]) -> dict[str, Any]:
     }
 
 
-DONOR_LAPSE = [
+DONOR_LAPSE = {
+    "data": [
 r'''
 supporters = require_csv("supporters")
 donations = require_csv("donations")
@@ -313,27 +418,40 @@ num_cols = ["donation_count","distinct_campaigns","distinct_channels","recurring
 df[cat_cols] = df[cat_cols].fillna("Unknown")
 fill_numeric_median(df, num_cols)
 print("Rows:", len(df), "lapse rate:", round(df["lapsed_next_90d"].mean(), 3))
+quick_eda(df, "Donor lapse modeling table", target_col="lapsed_next_90d", numeric_cols=num_cols, categorical_cols=cat_cols)
 ''',
+    ],
+    "modeling": [
 r'''
 features = cat_cols + num_cols
 X_train, X_test, y_train, y_test = safe_classifier_split(df[features], df["lapsed_next_90d"])
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
+''',
+    ],
+    "evaluation": [
+r'''
 print("Baseline:", classification_baseline(y_train, y_test))
 compact_cv_classification(df[features], df["lapsed_next_90d"], cat_cols, num_cols)
-predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
 predictive.fit(X_train, y_train)
 proba = predictive.predict_proba(X_test)[:, 1]
 print("Predictive:", eval_classification(y_test, (proba >= 0.5).astype(int), proba))
-print("Top predictive features:")
-print(top_features(predictive).to_string(index=False))
 
-explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
 explanatory.fit(X_train, y_train)
 proba_exp = explanatory.predict_proba(X_test)[:, 1]
 print("Explanatory:", eval_classification(y_test, (proba_exp >= 0.5).astype(int), proba_exp))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
 print("Top explanatory relationships:")
 print(top_features(explanatory).to_string(index=False))
 print_business_takeaway("Prioritize high-risk supporters for retention outreach, especially when recency and low engagement patterns suggest they may lapse.")
 ''',
+    ],
+    "deployment": [
 r'''
 df_out = df[["supporter_id"] + features].copy()
 df_out["risk_score"] = predictive.predict_proba(df_out[features])[:, 1]
@@ -347,10 +465,12 @@ export_predictions_json(
     "risk_band",
 )
 '''
-]
+    ],
+}
 
 
-DONOR_UPGRADE = [
+DONOR_UPGRADE = {
+    "data": [
 r'''
 supporters = require_csv("supporters")
 donations = require_csv("donations")
@@ -379,27 +499,30 @@ df[cat_cols] = df[cat_cols].fillna("Unknown")
 fill_numeric_median(df, num_cols + ["next_amount"])
 train, test = time_split(df, "donation_date")
 print("Rows:", len(df), "Train:", len(train), "Test:", len(test))
+quick_eda(df, "Donor upgrade modeling table", target_col="next_amount", numeric_cols=num_cols + ["next_amount"], categorical_cols=cat_cols)
 ''',
+    ],
+    "modeling": [
 r'''
 features = cat_cols + num_cols
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", RandomForestRegressor(n_estimators=300, random_state=42, min_samples_leaf=3))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LinearRegression())])
+''',
+    ],
+    "evaluation": [
+r'''
 print("Baseline:", regression_baseline(train["next_amount"], test["next_amount"]))
 comparison, tuned_candidate = compact_holdout_regression(train, test, features, "next_amount", cat_cols, num_cols, log_target=False)
 tuned_rf = compact_randomized_tune_regressor(train, features, "next_amount", cat_cols, num_cols, log_target=False)
 tuned_pred = np.maximum(0, tuned_rf.predict(test[features]))
 print("Tuned RandomForest holdout:", eval_regression(test["next_amount"], tuned_pred))
-predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", RandomForestRegressor(n_estimators=300, random_state=42, min_samples_leaf=3))])
 predictive.fit(train[features], train["next_amount"])
 pred = np.maximum(0, predictive.predict(test[features]))
 print("Predictive RandomForest:", eval_regression(test["next_amount"], pred))
-print("Top predictive features:")
-print(top_features(predictive).to_string(index=False))
 
-explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LinearRegression())])
 explanatory.fit(train[features], train["next_amount"])
 pred_exp = np.maximum(0, explanatory.predict(test[features]))
 print("Explanatory LinearRegression:", eval_regression(test["next_amount"], pred_exp))
-print("Top explanatory relationships:")
-print(top_features(explanatory).to_string(index=False))
 
 selected_model = explanatory if mean_absolute_error(test["next_amount"], pred_exp) <= mean_absolute_error(test["next_amount"], pred) else predictive
 selected_model_name = "LinearRegression" if selected_model is explanatory else "RandomForestRegressor"
@@ -407,8 +530,18 @@ if mean_absolute_error(test["next_amount"], tuned_pred) < min(mean_absolute_erro
     selected_model = tuned_rf
     selected_model_name = "TunedRandomForestRegressor"
 print("Selected export model:", selected_model_name)
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
+print("Top explanatory relationships:")
+print(top_features(explanatory).to_string(index=False))
 print_business_takeaway("Use suggested ask tiers as fundraising guidance, not an automated rule. Validate large ask increases with relationship context.")
 ''',
+    ],
+    "deployment": [
 r'''
 latest = mon.groupby("supporter_id").tail(1).copy()
 latest = latest.merge(supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]], on="supporter_id", how="left")
@@ -439,10 +572,12 @@ export_predictions_json(
     "ask_tier",
 )
 '''
-]
+    ],
+}
 
 
-NEXT_BEST_CHANNEL = [
+NEXT_BEST_CHANNEL = {
+    "data": [
 r'''
 supporters = require_csv("supporters")
 donations = require_csv("donations")
@@ -469,29 +604,42 @@ df[cat_cols] = df[cat_cols].fillna("Unknown")
 fill_numeric_median(df, num_cols)
 train, test = time_split(df, "donation_date")
 print("Rows:", len(df), "Classes:", sorted(df["next_channel"].unique()))
+quick_eda(df, "Next-channel modeling table", target_col="next_channel", numeric_cols=num_cols, categorical_cols=cat_cols)
 ''',
+    ],
+    "modeling": [
 r'''
 features = cat_cols + num_cols
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", RandomForestClassifier(n_estimators=300, random_state=42, min_samples_leaf=3))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
+''',
+    ],
+    "evaluation": [
+r'''
 print("Baseline:", classification_baseline(train["next_channel"], test["next_channel"]))
 compact_cv_classification(train[features], train["next_channel"], cat_cols, num_cols, scoring_metric="accuracy")
-predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", RandomForestClassifier(n_estimators=300, random_state=42, min_samples_leaf=3))])
 predictive.fit(train[features], train["next_channel"])
 pred = predictive.predict(test[features])
 print("Predictive accuracy:", float(accuracy_score(test["next_channel"], pred)))
 proba = predictive.predict_proba(test[features])
 classes = predictive.named_steps["model"].classes_
 print("Predictive top-2 accuracy:", float(top_k_accuracy_score(test["next_channel"], proba, k=2, labels=classes)))
-print("Top predictive features:")
-print(top_features(predictive).to_string(index=False))
 
-explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
 explanatory.fit(train[features], train["next_channel"])
 pred_exp = explanatory.predict(test[features])
 print("Explanatory accuracy:", float(accuracy_score(test["next_channel"], pred_exp)))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
 print("Top explanatory relationships:")
 print(top_features(explanatory).to_string(index=False))
 print_business_takeaway("Treat the next-channel result as a ranked recommendation. Top-2 accuracy is more useful than exact-channel accuracy because outreach teams can test two good options.")
 ''',
+    ],
+    "deployment": [
 r'''
 latest = donations.groupby("supporter_id").tail(1).copy()
 latest = latest.merge(supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]], on="supporter_id", how="left")
@@ -522,10 +670,12 @@ export_predictions_json(
     "predicted_channel",
 )
 '''
-]
+    ],
+}
 
 
-SOCIAL_REFERRALS = [
+SOCIAL_REFERRALS = {
+    "data": [
 r'''
 posts = require_csv("social_media_posts")
 posts["created_at"] = pd.to_datetime(posts["created_at"], errors="coerce")
@@ -547,9 +697,17 @@ posts[cat_cols_pre] = posts[cat_cols_pre].fillna("Unknown")
 fill_numeric_median(posts, list(set(num_cols_pre + num_cols_exp + [target])))
 train, test = time_split(posts, "created_at")
 print("Rows:", len(posts), "Train:", len(train), "Test:", len(test))
+quick_eda(posts, "Social post donation-value modeling table", target_col=target, numeric_cols=num_cols_pre + [target], categorical_cols=cat_cols_pre)
 ''',
+    ],
+    "modeling": [
 r'''
 predictive = Pipeline([("pre", prep(cat_cols_pre, num_cols_pre)), ("model", RandomForestRegressor(n_estimators=200, random_state=42, min_samples_leaf=5))])
+explanatory = Pipeline([("pre", prep(cat_cols_exp, num_cols_exp)), ("model", GradientBoostingRegressor(random_state=42))])
+''',
+    ],
+    "evaluation": [
+r'''
 print("Baseline:", regression_baseline(train[target], test[target]))
 comparison, tuned_candidate = compact_holdout_regression(train, test, pre_features, target, cat_cols_pre, num_cols_pre, log_target=True)
 tuned_rf = compact_randomized_tune_regressor(train, pre_features, target, cat_cols_pre, num_cols_pre, log_target=True)
@@ -562,17 +720,22 @@ if mean_absolute_error(test[target], tuned_pred) < mean_absolute_error(test[targ
     predictive = tuned_rf
     pred = tuned_pred
     print("Selected tuned RandomForest for post export.")
-print("Top predictive features:")
-print(top_features(predictive).to_string(index=False))
 
-explanatory = Pipeline([("pre", prep(cat_cols_exp, num_cols_exp)), ("model", GradientBoostingRegressor(random_state=42))])
 explanatory.fit(train[exp_features], np.log1p(train[target]))
 pred_exp = np.maximum(0, np.expm1(explanatory.predict(test[exp_features])))
 print("Relationship / engagement model:", eval_regression(test[target], pred_exp))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
 print("Top engagement relationship features:")
 print(top_features(explanatory).to_string(index=False))
 print_business_takeaway("For planning, use pre-post signals such as platform, format, CTA, and boost budget. For retrospective learning, engagement metrics explain more donation-value variance.")
 ''',
+    ],
+    "deployment": [
 r'''
 posts_out = posts[["post_id"] + pre_features].copy()
 posts_out["predicted_value_php"] = np.maximum(0, np.expm1(predictive.predict(posts_out[pre_features])))
@@ -586,10 +749,12 @@ export_predictions_json(
     "value_band",
 )
 '''
-]
+    ],
+}
 
 
-SAFEHOUSE_FORECAST = [
+SAFEHOUSE_FORECAST = {
+    "data": [
 r'''
 metrics = require_csv("safehouse_monthly_metrics")
 metrics["month_start"] = pd.to_datetime(metrics["month_start"], errors="coerce")
@@ -609,30 +774,43 @@ features = num_base + ["incident_lag1","incident_lag2","active_lag1","active_lag
 fill_numeric_median(df, features + ["incident_next","active_residents_next"])
 train, test = time_split(df, "month_start")
 print("Rows:", len(df), "Train:", len(train), "Test:", len(test))
+quick_eda(df, "Safehouse forecast modeling table", target_col="incident_next", numeric_cols=features + ["active_residents_next"], categorical_cols=["safehouse_id"])
 ''',
+    ],
+    "modeling": [
 r'''
 incident_model = RandomForestRegressor(n_estimators=300, random_state=42)
+active_model = RandomForestRegressor(n_estimators=300, random_state=42)
+explanatory = LinearRegression()
+''',
+    ],
+    "evaluation": [
+r'''
 print("Incident baseline:", regression_baseline(train["incident_next"], test["incident_next"]))
 compact_holdout_regression(train, test, features, "incident_next", [], features, log_target=False)
 incident_model.fit(train[features], train["incident_next"])
 incident_pred = np.maximum(0, incident_model.predict(test[features]))
 print("Predictive incident forecast:", eval_regression(test["incident_next"], incident_pred))
-print("Top incident forecast features:")
-print(pd.DataFrame({"feature": features, "importance": incident_model.feature_importances_}).sort_values("importance", ascending=False).head(10).to_string(index=False))
 
-active_model = RandomForestRegressor(n_estimators=300, random_state=42)
 print("Capacity baseline:", regression_baseline(train["active_residents_next"], test["active_residents_next"]))
 compact_holdout_regression(train, test, features, "active_residents_next", [], features, log_target=False)
 active_model.fit(train[features], train["active_residents_next"])
 active_pred = np.maximum(0, active_model.predict(test[features]))
 print("Predictive capacity forecast:", eval_regression(test["active_residents_next"], active_pred))
 
-explanatory = LinearRegression()
 explanatory.fit(train[features], train["incident_next"])
 incident_exp = np.maximum(0, explanatory.predict(test[features]))
 print("Explanatory incident model:", eval_regression(test["incident_next"], incident_exp))
+''',
+    ],
+    "causal": [
+r'''
+print("Top incident forecast features:")
+print(pd.DataFrame({"feature": features, "importance": incident_model.feature_importances_}).sort_values("importance", ascending=False).head(10).to_string(index=False))
 print_business_takeaway("Use the safehouse forecast as a relative ranking for planning staffing and attention, not as an exact count forecast.")
 ''',
+    ],
+    "deployment": [
 r'''
 latest = metrics.groupby("safehouse_id").tail(1).copy()
 fill_numeric_median(latest, features)
@@ -648,10 +826,12 @@ export_predictions_json(
     "risk_band",
 )
 '''
-]
+    ],
+}
 
 
-RESIDENT_RISK = [
+RESIDENT_RISK = {
+    "data": [
 r'''
 residents = require_csv("residents")
 incidents = require_csv("incident_reports")
@@ -716,28 +896,53 @@ fill_numeric_median(df, health_edu_cols)
 cat_cols = ["case_status","case_category","referral_source","reintegration_status","initial_risk_level","current_risk_level","education_level","enrollment_status","completion_status"]
 df[cat_cols] = df[cat_cols].fillna("Unknown")
 print("Rows:", len(df), "Incident rate:", round(df["incident_next_30d"].mean(), 3))
+quick_eda(df, "Resident risk/readiness modeling table", target_col="incident_next_30d", numeric_cols=count_cols + health_edu_cols, categorical_cols=cat_cols)
 ''',
+    ],
+    "modeling": [
 r'''
 target = "incident_next_30d"
 num_cols = ["safehouse_id","is_pwd","has_special_needs","family_is_4ps","family_solo_parent","family_indigenous","family_parent_pwd","family_informal_settler","incidents_90d","high_severity_90d","unresolved_90d","visits_90d","safety_concerns_90d","followups_90d","recordings_30d","progress_noted_30d","concerns_flagged_30d","referrals_30d","attendance_rate","progress_percent","general_health_score","nutrition_score","sleep_quality_score","energy_level_score","bmi"]
 features = cat_cols + num_cols
 X_train, X_test, y_train, y_test = safe_classifier_split(df[features], df[target])
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
+
+df["readiness_positive"] = df["reintegration_status"].isin(["Completed", "In Progress"]).astype(int)
+X_ready_train, X_ready_test, y_ready_train, y_ready_test = safe_classifier_split(df[features], df["readiness_positive"])
+readiness_model = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
+''',
+    ],
+    "evaluation": [
+r'''
 print("Baseline:", classification_baseline(y_train, y_test))
 compact_cv_classification(df[features], df[target], cat_cols, num_cols)
-predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
 predictive.fit(X_train, y_train)
 proba = predictive.predict_proba(X_test)[:, 1]
 print("Predictive incident model:", eval_classification(y_test, (proba >= 0.5).astype(int), proba))
-print("Top predictive risk features:")
-print(top_features(predictive).to_string(index=False))
-explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
 explanatory.fit(X_train, y_train)
 proba_exp = explanatory.predict_proba(X_test)[:, 1]
 print("Explanatory incident model:", eval_classification(y_test, (proba_exp >= 0.5).astype(int), proba_exp))
+
+print("Readiness baseline:", classification_baseline(y_ready_train, y_ready_test))
+compact_cv_classification(df[features], df["readiness_positive"], cat_cols, num_cols)
+readiness_model.fit(X_ready_train, y_ready_train)
+readiness_proba = readiness_model.predict_proba(X_ready_test)[:, 1]
+print("Predictive readiness model:", eval_classification(y_ready_test, (readiness_proba >= 0.5).astype(int), readiness_proba))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive risk features:")
+print(top_features(predictive).to_string(index=False))
 print("Top explanatory risk relationships:")
 print(top_features(explanatory).to_string(index=False))
+print("Top readiness features:")
+print(top_features(readiness_model).to_string(index=False))
 print_business_takeaway("Use resident risk scores for staff triage only. Sensitive care decisions should always remain human-reviewed.")
 ''',
+    ],
+    "deployment": [
 r'''
 df_out = df[["resident_id"] + features].copy()
 df_out["risk_score"] = predictive.predict_proba(df_out[features])[:, 1]
@@ -752,16 +957,6 @@ export_predictions_json(
 )
 ''',
 r'''
-df["readiness_positive"] = df["reintegration_status"].isin(["Completed", "In Progress"]).astype(int)
-X_train, X_test, y_train, y_test = safe_classifier_split(df[features], df["readiness_positive"])
-print("Readiness baseline:", classification_baseline(y_train, y_test))
-compact_cv_classification(df[features], df["readiness_positive"], cat_cols, num_cols)
-readiness_model = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
-readiness_model.fit(X_train, y_train)
-readiness_proba = readiness_model.predict_proba(X_test)[:, 1]
-print("Predictive readiness model:", eval_classification(y_test, (readiness_proba >= 0.5).astype(int), readiness_proba))
-print("Top readiness features:")
-print(top_features(readiness_model).to_string(index=False))
 ready_out = df[["resident_id"] + features].copy()
 ready_out["readiness_score"] = readiness_model.predict_proba(ready_out[features])[:, 1]
 ready_out["readiness_band"] = score_bands(ready_out["readiness_score"])
@@ -774,7 +969,8 @@ export_predictions_json(
     "readiness_band",
 )
 '''
-]
+    ],
+}
 
 
 NOTEBOOKS = [
