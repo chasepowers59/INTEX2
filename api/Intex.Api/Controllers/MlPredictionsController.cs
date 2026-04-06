@@ -120,8 +120,8 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
     [HttpPost("import")]
     [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult> Import(
-        [FromQuery] bool replace = false,
-        [FromBody] IReadOnlyList<MlPredictionImportItem> items
+        [FromBody] IReadOnlyList<MlPredictionImportItem> items,
+        [FromQuery] bool replace = false
     )
     {
         if (items.Count == 0) return BadRequest(new { message = "No items provided." });
