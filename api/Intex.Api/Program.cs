@@ -12,6 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -85,6 +87,26 @@ else
     app.UseHsts();
 }
 
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var ex = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        if (ex is not null)
+        {
+            app.Logger.LogError(ex, "Unhandled exception. TraceId={TraceId}", context.TraceIdentifier);
+        }
+
+        var problem = Results.Problem(
+            title: "Unexpected error",
+            statusCode: StatusCodes.Status500InternalServerError,
+            extensions: new Dictionary<string, object?> { ["traceId"] = context.TraceIdentifier }
+        );
+
+        await problem.ExecuteAsync(context);
+    });
+});
+
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
@@ -92,12 +114,45 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseHttpsRedirection();
 
+app.Use(async (context, next) =>
+{
+    // Correlation ID for faster debugging across client ↔ API ↔ DB issues.
+    const string header = "X-Correlation-Id";
+    if (!context.Request.Headers.TryGetValue(header, out var incoming) || string.IsNullOrWhiteSpace(incoming))
+    {
+        context.Response.Headers[header] = context.TraceIdentifier;
+    }
+    else
+    {
+        context.Response.Headers[header] = incoming.ToString();
+    }
+
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    try
+    {
+        await next();
+    }
+    finally
+    {
+        sw.Stop();
+        app.Logger.LogInformation(
+            "{Method} {Path} -> {Status} ({ElapsedMs}ms) TraceId={TraceId}",
+            context.Request.Method,
+            context.Request.Path.Value,
+            context.Response.StatusCode,
+            sw.ElapsedMilliseconds,
+            context.TraceIdentifier
+        );
+    }
+});
+
 app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", (HttpContext ctx) =>
+    Results.Ok(new { status = "ok", traceId = ctx.TraceIdentifier }));
 app.MapGet("/health/info", () =>
 {
     var conn = app.Configuration.GetConnectionString("AppDb");
@@ -137,7 +192,13 @@ app.MapGet("/health/db", async (IServiceProvider services) =>
                 inner = ex.InnerException?.Message
             }, statusCode: StatusCodes.Status503ServiceUnavailable);
         }
-        return Results.Problem("Database unavailable.", statusCode: StatusCodes.Status503ServiceUnavailable);
+        // In production return a trace id so we can immediately find the matching server log line.
+        var traceId = services.GetService<IHttpContextAccessor>()?.HttpContext?.TraceIdentifier;
+        return Results.Problem(
+            detail: "Database unavailable.",
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            extensions: new Dictionary<string, object?> { ["traceId"] = traceId }
+        );
     }
 });
 

@@ -29,6 +29,16 @@ Region guidance (team decision):
 5. Seed an initial admin (recommended for grading):
    - Set App Service settings `Seed__AdminEmail` and `Seed__AdminPassword` and restart the API.
    - Sign in at `/login`, then visit `/app/admin/users` to create employee/donor accounts.
+
+## Debugging (when something breaks)
+
+App Service (API) troubleshooting checklist:
+- Turn on **Application logging (Filesystem)** temporarily and use **Log stream**.
+- Hit `GET /health/info` to verify the API is deployed and sees CORS + connection string.
+- Hit `GET /health/db` to verify SQL connectivity.
+- Every API response includes `X-Correlation-Id` and `/health` returns a `traceId` you can match in logs.
+
+Do not leave `ASPNETCORE_ENVIRONMENT=Development` enabled for grading; use it temporarily only.
    - Seed users (optional but recommended for first deploy):
      - `Seed__AdminEmail`, `Seed__AdminPassword`
      - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
