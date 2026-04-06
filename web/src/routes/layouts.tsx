@@ -76,6 +76,11 @@ export function AppLayout() {
           <NavLink className="btn" to="/app/dashboard">
             Dashboard
           </NavLink>
+          {auth.hasRole("Donor") ? (
+            <NavLink className="btn" to="/app/donor">
+              Donor Portal
+            </NavLink>
+          ) : null}
           <NavLink className="btn" to="/app/donors">
             Donors & Contributions
           </NavLink>

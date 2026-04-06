@@ -9,9 +9,12 @@ Product: **Sanctuary Leadership Portal** for a safehouse nonprofit.
 Operating location assumption for this team/project:
 - **South Korea** (use KR locale conventions where relevant: time zone, date/time formats, and Azure region selection).
 
-Primary users (personas):
-- **Employee (staff)**: day-to-day case management + logging (view + assist).
+Primary users (personas used for IS401):
 - **Admin (leadership)**: full operational control + create/update/delete (CUD) data + KPI oversight.
+- **Donor (supporter)**: wants to see personal impact + stay engaged (drives the donation growth goal).
+
+Secondary internal user (still a key design target):
+- **Employee (staff)**: day-to-day case management + logging (view + assist).
 
 Public users (non-auth):
 - Can view the **Landing page**, **Public Impact dashboard**, **Privacy policy**, and see **Cookie consent**.
@@ -32,7 +35,30 @@ Repo structure:
 
 ## Personas (for IS401 + product decisions)
 
-### Persona 1 — Employee (Case Management Staff)
+### Persona 1 — Donor (Monetary Supporter)
+
+- **Name:** Hana Kim
+- **Role:** Donor (authenticated; not staff)
+- **Environment:** mobile-first; discovers updates via social media; wants quick clarity and trust
+- **Goals:**
+  - Understand how her donations translate into real outcomes (without exposing sensitive details).
+  - Feel confident recurring giving is safe and used effectively.
+  - Get timely, relevant updates that match her interests (education, health, reintegration).
+- **Pain points:**
+  - Generic donation receipts that don’t show impact.
+  - Not sure which campaigns matter or when giving is most needed.
+  - Doesn’t want to share personal data broadly.
+- **Top tasks in the portal:**
+  - View donation history (amounts, campaigns, dates).
+  - View personalized impact summary (aggregated/anonymized).
+  - Manage communication preferences (future).
+- **Security needs:**
+  - Only sees **her** donation history and approved impact aggregates.
+  - No access to resident-level data or staff portal features.
+- **Success looks like:**
+  - Higher retention (keeps giving) and increased donation frequency/amount.
+
+### Persona 2 — Admin (Leadership / Operations Director)
 
 - **Name:** Mia Santos
 - **Role:** Employee / Social work staff (non-admin)
@@ -56,8 +82,6 @@ Repo structure:
 - **Success looks like:**
   - No “lost” cases; fewer missed follow-ups; faster documentation turnaround.
 
-### Persona 2 — Admin (Leadership / Operations Director)
-
 - **Name:** Jordan Lee
 - **Role:** Admin / Operations Director
 - **Environment:** laptop, often remote; needs reliable dashboards; accountability to donors and partners
@@ -80,6 +104,30 @@ Repo structure:
   - Secrets must never be in the public repo.
 - **Success looks like:**
   - Clear metrics for leadership decisions; consistent reporting; safe operations.
+
+### Secondary Persona — Employee (Case Management Staff)
+
+- **Name:** Mia Santos
+- **Role:** Employee / Social work staff (non-admin)
+- **Environment:** shared office computer + occasional mobile use; time-constrained; sensitive context
+- **Goals:**
+  - Quickly find a resident and understand current status.
+  - Log process recordings and home visitation notes consistently.
+  - Prepare for upcoming case conferences without missing follow-ups.
+- **Pain points:**
+  - Too many spreadsheets/documents → inconsistent formats.
+  - Hard to spot who is “at risk” or slipping without a consolidated view.
+  - Documentation takes time and is easy to delay.
+- **Top tasks in the portal:**
+  - Search/filter caseload inventory.
+  - Review resident history chronologically (process recordings, home visits).
+  - Review dashboards/reports to prioritize work.
+- **Security needs:**
+  - Must never expose resident identities publicly.
+  - Should not be able to delete records.
+  - Least-privilege: view-only for high-risk operations.
+- **Success looks like:**
+  - No “lost” cases; fewer missed follow-ups; faster documentation turnaround.
 
 ## INTEX deliverables we must show (high-level)
 
