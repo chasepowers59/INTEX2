@@ -98,6 +98,20 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health/info", () =>
+{
+    var conn = app.Configuration.GetConnectionString("AppDb");
+    var hasConn = !string.IsNullOrWhiteSpace(conn);
+    var corsOrigins = app.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+    return Results.Ok(new
+    {
+        status = "ok",
+        environment = app.Environment.EnvironmentName,
+        hasConnectionString = hasConn,
+        corsAllowedOrigins = corsOrigins,
+        nowUtc = DateTime.UtcNow
+    });
+});
 app.MapGet("/health/db", async (IServiceProvider services) =>
 {
     try
