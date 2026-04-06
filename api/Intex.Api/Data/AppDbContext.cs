@@ -27,6 +27,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Supporter>()
             .HasIndex(x => x.Email);
 
+        // Explicit keys for entities whose PK property name doesn't match EF conventions.
+        builder.Entity<PublicImpactSnapshot>()
+            .HasKey(x => x.SnapshotId);
+
+        builder.Entity<MlPrediction>()
+            .HasKey(x => x.PredictionId);
+
         builder.Entity<Resident>()
             .HasIndex(x => x.SafehouseId);
 
