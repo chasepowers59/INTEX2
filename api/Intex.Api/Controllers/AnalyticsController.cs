@@ -27,7 +27,7 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
         var donation30d = await db.Contributions.AsNoTracking()
             .Where(x => x.ContributionType == "Monetary" && x.ContributionDate >= donationsCutoff)
             .GroupBy(_ => 1)
-            .Select(g => new { count = g.Count(), totalAmount = g.Sum(x => x.Amount) })
+            .Select(g => new { count = g.Count(), totalAmount = g.Sum(x => x.Amount ?? 0m) })
             .FirstOrDefaultAsync();
 
         var processRecordings7d = await db.ProcessRecordings.AsNoTracking()
@@ -174,6 +174,129 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
             .ToListAsync();
 
         return new { predictionType, entityType, asOfUtc = latestCreatedAt, byBand };
+    }
+
+    /// <summary>
+    /// Cross-domain insights from Lighthouse tables: program pillars (AAR-style), allocations, education/health, incidents, social ROI.
+    /// </summary>
+    [HttpGet("program-insights")]
+    public async Task<ActionResult> GetProgramInsights()
+    {
+        var nowUtc = DateTime.UtcNow;
+        var incidentFrom = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-90));
+
+        var interventionByStatus = await db.InterventionPlans.AsNoTracking()
+            .GroupBy(x => x.Status)
+            .Select(g => new { status = g.Key, count = g.Count() })
+            .OrderByDescending(x => x.count)
+            .ToListAsync();
+
+        var serviceTexts = await db.InterventionPlans.AsNoTracking()
+            .Where(x => x.ServicesProvided != null && x.ServicesProvided != "")
+            .Select(x => x.ServicesProvided!)
+            .ToListAsync();
+
+        var caring = 0;
+        var healing = 0;
+        var teaching = 0;
+        var legal = 0;
+        foreach (var s in serviceTexts)
+        {
+            var t = s.ToLowerInvariant();
+            if (t.Contains("caring")) caring++;
+            if (t.Contains("healing")) healing++;
+            if (t.Contains("teaching")) teaching++;
+            if (t.Contains("legal")) legal++;
+        }
+
+        var donationAllocationsByProgram = await db.DonationAllocations.AsNoTracking()
+            .GroupBy(x => x.ProgramArea)
+            .Select(g => new { programArea = g.Key, totalPhp = g.Sum(x => x.AmountAllocated) })
+            .OrderByDescending(x => x.totalPhp)
+            .ToListAsync();
+
+        var eduForAvg = db.EducationRecords.AsNoTracking().Where(x => x.ProgressPercent.HasValue);
+        var eduAvg = await eduForAvg.AnyAsync()
+            ? await eduForAvg.AverageAsync(x => x.ProgressPercent!.Value)
+            : (decimal?)null;
+
+        var eduCompleted = await db.EducationRecords.AsNoTracking()
+            .CountAsync(x => x.CompletionStatus == "Completed");
+
+        var healthForAvg = db.HealthWellbeingRecords.AsNoTracking().Where(x => x.GeneralHealthScore.HasValue);
+        var healthAvg = await healthForAvg.AnyAsync()
+            ? await healthForAvg.AverageAsync(x => x.GeneralHealthScore!.Value)
+            : (decimal?)null;
+
+        var incidentsByType = await db.IncidentReports.AsNoTracking()
+            .Where(x => x.IncidentDate >= incidentFrom)
+            .GroupBy(x => x.IncidentType)
+            .Select(g => new { incidentType = g.Key, count = g.Count() })
+            .OrderByDescending(x => x.count)
+            .ToListAsync();
+
+        var openIncidents = await db.IncidentReports.AsNoTracking()
+            .CountAsync(x => !x.Resolved && x.FollowUpRequired);
+
+        var boostSpendPhp = await db.SocialMediaPosts.AsNoTracking()
+            .SumAsync(x => x.BoostBudgetPhp ?? 0m);
+
+        var socialEstimatedValuePhp = await db.SocialMediaPosts.AsNoTracking()
+            .SumAsync(x => x.EstimatedDonationValuePhp ?? 0m);
+
+        var topReferralPosts = await db.SocialMediaPosts.AsNoTracking()
+            .Where(x => (x.DonationReferrals ?? 0) > 0 || (x.EstimatedDonationValuePhp ?? 0m) > 0)
+            .OrderByDescending(x => x.EstimatedDonationValuePhp ?? 0m)
+            .ThenByDescending(x => x.DonationReferrals ?? 0)
+            .Take(5)
+            .Select(x => new
+            {
+                x.PostId,
+                x.Platform,
+                x.PostType,
+                x.CampaignName,
+                referrals = x.DonationReferrals ?? 0,
+                estimatedValuePhp = x.EstimatedDonationValuePhp ?? 0m,
+                x.IsBoosted,
+                boostPhp = x.BoostBudgetPhp ?? 0m
+            })
+            .ToListAsync();
+
+        var contributionMix = await db.Contributions.AsNoTracking()
+            .GroupBy(x => x.ContributionType)
+            .Select(g => new { type = g.Key, count = g.Count(), monetaryPhp = g.Sum(x => x.Amount ?? 0m) })
+            .OrderByDescending(x => x.count)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            asOfUtc = nowUtc,
+            interventionByStatus,
+            servicesPillarMentions = new { caring, healing, teaching, legal, plansWithServicesText = serviceTexts.Count },
+            donationAllocationsByProgram,
+            education = new
+            {
+                avgProgressPercent = eduAvg.HasValue ? Math.Round((double)eduAvg.Value, 1) : (double?)null,
+                recordsCompleted = eduCompleted
+            },
+            health = new
+            {
+                avgGeneralHealthScore = healthAvg.HasValue ? Math.Round((double)healthAvg.Value, 2) : (double?)null
+            },
+            incidents90d = new
+            {
+                from = incidentFrom,
+                byType = incidentsByType,
+                openFollowUps = openIncidents
+            },
+            socialRoi = new
+            {
+                totalBoostSpendPhp = boostSpendPhp,
+                totalEstimatedDonationValuePhp = socialEstimatedValuePhp,
+                topPosts = topReferralPosts
+            },
+            contributionMix
+        });
     }
 }
 

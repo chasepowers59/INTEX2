@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage";
 import { ImpactPage } from "./pages/ImpactPage";
 import { GivePage } from "./pages/GivePage";
 import { LoginPage } from "./pages/LoginPage";
+import { RegisterDonorPage } from "./pages/RegisterDonorPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { AppDashboardPage } from "./pages/app/AppDashboardPage";
 import { DonorsPage } from "./pages/app/DonorsPage";
@@ -19,6 +20,7 @@ import { MlInsightsPage } from "./pages/app/MlInsightsPage";
 import { MlActionCenterPage } from "./pages/app/MlActionCenterPage";
 import { AdminUsersPage } from "./pages/app/AdminUsersPage";
 import { AdminAllocationsPage } from "./pages/app/AdminAllocationsPage";
+import { AdminLighthouseImportPage } from "./pages/app/AdminLighthouseImportPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 export function App() {
@@ -31,6 +33,7 @@ export function App() {
             <Route path="/impact" element={<ImpactPage />} />
             <Route path="/give" element={<GivePage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterDonorPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
           </Route>
 
@@ -47,6 +50,7 @@ export function App() {
               <Route path="/app/action-center" element={<MlActionCenterPage />} />
               <Route path="/app/admin/users" element={<AdminUsersPage />} />
               <Route path="/app/admin/allocations" element={<AdminAllocationsPage />} />
+              <Route path="/app/admin/lighthouse-import" element={<AdminLighthouseImportPage />} />
             </Route>
           </Route>
 

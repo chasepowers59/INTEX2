@@ -35,6 +35,9 @@ export function PublicLayout() {
           <Link className="btn" to="/impact">
             Impact
           </Link>
+          <Link className="btn" to="/register">
+            Register
+          </Link>
           <Link className="btn primary" to="/login">
             Sign in
           </Link>
@@ -174,6 +177,13 @@ export function AppLayout() {
                   <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
                 Allocations
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/lighthouse-import">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3v12M8 11l4 4 4-4" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M5 21h14" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                CSV import
               </NavLink>
             </nav>
           </>

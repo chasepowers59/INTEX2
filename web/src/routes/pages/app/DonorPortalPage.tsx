@@ -156,7 +156,8 @@ export function DonorPortalPage() {
             </>
           ) : (
             <div className="muted" style={{ marginTop: 10 }}>
-              No allocations recorded yet for your account. Ask an admin to link your login to your Supporter record and record allocations.
+              No allocations recorded yet for your account. If you registered with the same email as your supporter
+              record, allocations will appear once staff record them—or use Register with your CRM email after import.
             </div>
           )}
         </div>

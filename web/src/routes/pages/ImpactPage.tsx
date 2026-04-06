@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import { KeyValueGrid } from "../../components/ui/KeyValueGrid";
+import { StatCard } from "../../components/ui/StatCard";
 
 type Snapshot = {
   snapshotId: number;
@@ -10,65 +12,183 @@ type Snapshot = {
   metricPayloadJson: string;
 };
 
+type Highlights = {
+  asOfUtc: string;
+  activeSafehouses: number;
+  totalBedsCapacity: number;
+  totalCurrentOccupancy: number;
+  latestMonthSummary: null | {
+    monthStart: string;
+    activeResidentsTotal: number;
+    avgEducationProgress: number | null;
+    avgHealthScore: number | null;
+    counselingSessionsMonth: number;
+    homeVisitsMonth: number;
+    incidentsMonth: number;
+  };
+  socialEstimatedDonationValuePhp: number;
+  socialPostsWithDonationReferrals: number;
+  publishedImpactSnapshots: number;
+  activeSupporters: number;
+};
+
+function formatMonth(d: string) {
+  const x = new Date(d + "T12:00:00");
+  return x.toLocaleString(undefined, { month: "long", year: "numeric" });
+}
+
 export function ImpactPage() {
   const [items, setItems] = useState<Snapshot[]>([]);
+  const [highlights, setHighlights] = useState<Highlights | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const data = await apiFetch<Snapshot[]>("/api/public/impact-snapshots");
-        setItems(data);
+        const [snapshots, hi] = await Promise.all([
+          apiFetch<Snapshot[]>("/api/public/impact-snapshots"),
+          apiFetch<Highlights>("/api/public/impact-highlights"),
+        ]);
+        setItems(snapshots);
+        setHighlights(hi);
       } catch (e) {
         setError((e as Error).message);
       }
     })();
   }, []);
 
-  return (
-    <div className="card">
-      <h1 style={{ marginTop: 0 }}>Impact Dashboard (Public)</h1>
-      <p className="muted">
-        This page is intentionally anonymized and aggregated to protect residents, staff, and partners. It highlights
-        trends and outcomes—not individuals.
-      </p>
+  const lm = highlights?.latestMonthSummary;
 
-      {error ? (
-        <div className="badge danger" style={{ marginTop: 10 }}>
-          {error}
-        </div>
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div className="card">
+        <h1 style={{ marginTop: 0 }}>Impact Dashboard (Public)</h1>
+        <p className="muted">
+          Aggregated, anonymized view aligned with how Philippine social welfare programs report outcomes: safe shelter,
+          education and wellbeing progress, field engagement, and outreach effectiveness—without identifying any resident.
+        </p>
+
+        {error ? (
+          <div className="badge danger" style={{ marginTop: 10 }}>
+            {error}
+          </div>
+        ) : null}
+
+        {highlights ? (
+          <div className="muted" style={{ marginTop: 8, fontSize: 12 }}>
+            Figures refresh from live data · updated {new Date(highlights.asOfUtc).toLocaleString()}
+          </div>
+        ) : null}
+      </div>
+
+      {highlights ? (
+        <>
+          <div className="card" style={{ background: "linear-gradient(135deg, rgba(124,108,255,0.12), rgba(45,212,191,0.08))" }}>
+            <h2 style={{ marginTop: 0, fontSize: 18 }}>Why this work matters (for partners & investors)</h2>
+            <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>
+              Every peso and every hour of advocacy translates into measurable program activity: girls housed within licensed
+              capacity, documented counseling and home visits, and education and health trends tracked the same way agencies
+              expect in annual accomplishment reporting. Social outreach is tied to modeled donation impact so you can see
+              which channels help the mission scale.
+            </p>
+          </div>
+
+          <div className="kpi-grid">
+            <StatCard
+              label="Active safehouses"
+              value={highlights.activeSafehouses}
+              hint={`${highlights.totalCurrentOccupancy} girls housed · ${highlights.totalBedsCapacity} total bed capacity`}
+              tone="brand"
+            />
+            <StatCard
+              label="Community on record"
+              value={highlights.activeSupporters}
+              hint="Supporters & advocates (aggregate count)"
+            />
+            <StatCard
+              label="Social-attributed giving (modeled)"
+              value={`₱${highlights.socialEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+              hint={`${highlights.socialPostsWithDonationReferrals} posts linked to referral activity`}
+              tone="ok"
+            />
+            <StatCard
+              label="Published story cards"
+              value={highlights.publishedImpactSnapshots}
+              hint="Monthly snapshots below"
+            />
+          </div>
+
+          {lm ? (
+            <div className="card">
+              <h2 style={{ marginTop: 0, fontSize: 18 }}>Latest program month · {formatMonth(lm.monthStart)}</h2>
+              <p className="muted" style={{ marginTop: 6 }}>
+                Rolled up from safehouse monthly metrics—same family of indicators agencies use for supervision and reporting.
+              </p>
+              <div className="kpi-grid" style={{ marginTop: 12 }}>
+                <StatCard label="Resident-months in program" value={lm.activeResidentsTotal} />
+                <StatCard
+                  label="Avg education progress"
+                  value={lm.avgEducationProgress != null ? `${lm.avgEducationProgress}%` : "—"}
+                  hint="Across sites (monthly average)"
+                />
+                <StatCard
+                  label="Avg wellbeing score"
+                  value={lm.avgHealthScore != null ? lm.avgHealthScore.toFixed(2) : "—"}
+                  hint="General health score (1–5 scale)"
+                />
+                <StatCard label="Counseling sessions logged" value={lm.counselingSessionsMonth} tone="ok" />
+                <StatCard label="Home / field visits" value={lm.homeVisitsMonth} />
+                <StatCard label="Incidents documented" value={lm.incidentsMonth} tone="warn" />
+              </div>
+            </div>
+          ) : (
+            <div className="card muted">
+              No <code>safehouse_monthly_metrics</code> rows yet. After CSV import, latest-month tiles will appear here.
+            </div>
+          )}
+        </>
       ) : null}
 
-      {items.length === 0 && !error ? <div className="muted">No published snapshots yet.</div> : null}
+      <div className="card">
+        <h2 style={{ marginTop: 0, fontSize: 18 }}>Published monthly snapshots</h2>
+        <p className="muted" style={{ marginTop: 6 }}>
+          Curated headlines for donors—staff publish these from Reports &amp; Analytics.{" "}
+          <Link to="/give" className="muted" style={{ textDecoration: "underline" }}>
+            Ready to give?
+          </Link>
+        </p>
 
-      <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-        {items.map((x) => (
-          <div key={x.snapshotId} className="card" style={{ boxShadow: "none" }}>
-            <div className="muted" style={{ fontSize: 12 }}>
-              {x.snapshotDate}
+        {items.length === 0 && !error ? <div className="muted">No published snapshots yet.</div> : null}
+
+        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+          {items.map((x) => (
+            <div key={x.snapshotId} className="card" style={{ boxShadow: "none" }}>
+              <div className="muted" style={{ fontSize: 12 }}>
+                {x.snapshotDate}
+              </div>
+              <div style={{ fontWeight: 800, marginTop: 6 }}>{x.headline}</div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {x.summaryText}
+              </div>
+              {(() => {
+                try {
+                  const obj = JSON.parse(x.metricPayloadJson) as Record<string, unknown>;
+                  const rows = Object.entries(obj)
+                    .slice(0, 12)
+                    .map(([k, v]) => ({ key: k, value: typeof v === "number" ? v.toLocaleString() : String(v) }));
+                  return rows.length ? <KeyValueGrid items={rows} /> : null;
+                } catch {
+                  return (
+                    <details style={{ marginTop: 10 }}>
+                      <summary className="muted">Metrics (JSON)</summary>
+                      <pre style={{ whiteSpace: "pre-wrap" }}>{x.metricPayloadJson}</pre>
+                    </details>
+                  );
+                }
+              })()}
             </div>
-            <div style={{ fontWeight: 800, marginTop: 6 }}>{x.headline}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {x.summaryText}
-            </div>
-            {(() => {
-              try {
-                const obj = JSON.parse(x.metricPayloadJson) as Record<string, unknown>;
-                const rows = Object.entries(obj)
-                  .slice(0, 12)
-                  .map(([k, v]) => ({ key: k, value: typeof v === "number" ? v.toLocaleString() : String(v) }));
-                return rows.length ? <KeyValueGrid items={rows} /> : null;
-              } catch {
-                return (
-                  <details style={{ marginTop: 10 }}>
-                    <summary className="muted">Metrics (JSON)</summary>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>{x.metricPayloadJson}</pre>
-                  </details>
-                );
-              }
-            })()}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

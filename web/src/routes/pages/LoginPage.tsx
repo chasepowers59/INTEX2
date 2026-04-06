@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
 export function LoginPage() {
   const auth = useAuth();
   const nav = useNavigate();
+  const loc = useLocation();
+  const from = (loc.state as { from?: string } | null)?.from;
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +17,11 @@ export function LoginPage() {
     <div className="card" style={{ maxWidth: 520, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>Sign in</h1>
       <p className="muted">
-        This portal is for authorized staff and administrators only.
+        Staff and administrators use email and password here. Donors can{" "}
+        <Link to="/register" state={from ? { from } : undefined} style={{ textDecoration: "underline" }}>
+          create an account
+        </Link>{" "}
+        or sign in below to view the donor portal and give.
       </p>
 
       <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
@@ -51,7 +57,13 @@ export function LoginPage() {
               const roles = await auth.login(username.trim(), password);
               const isStaff = roles.includes("Admin") || roles.includes("Employee");
               const donorOnly = roles.includes("Donor") && !isStaff;
-              nav(donorOnly ? "/app/donor" : "/app/dashboard");
+              const dest =
+                from && from.startsWith("/")
+                  ? from
+                  : donorOnly
+                    ? "/app/donor"
+                    : "/app/dashboard";
+              nav(dest, { replace: true });
             } catch (e) {
               setError((e as Error).message);
             } finally {
@@ -62,7 +74,10 @@ export function LoginPage() {
           {loading ? "Signing in..." : "Sign in"}
         </button>
         <div className="muted" style={{ fontSize: 12, alignSelf: "center" }}>
-          Need access? Ask an admin.
+          <Link to="/register" state={from ? { from } : undefined} style={{ textDecoration: "underline" }}>
+            New donor?
+          </Link>{" "}
+          · Staff: ask an admin for an account.
         </div>
       </div>
     </div>

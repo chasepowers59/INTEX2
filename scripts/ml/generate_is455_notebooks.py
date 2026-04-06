@@ -33,6 +33,7 @@ def now_utc() -> str:
 COMMON_SETUP = r"""
 import json
 import os
+import re
 from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
@@ -69,6 +70,49 @@ def require_csv(stem: str) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"Missing {path}.")
     return pd.read_csv(path, encoding="utf-8-sig")
+
+
+# After POST /api/admin/lighthouse-import, train from Azure SQL by setting INTEX_ODBC to your ODBC connection string.
+SQL_TABLE_BY_STEM = {
+    "supporters": "Supporters",
+    "donations": "Contributions",
+    "social_media_posts": "SocialMediaPosts",
+    "safehouse_monthly_metrics": "SafehouseMonthlyMetrics",
+    "residents": "Residents",
+    "incident_reports": "IncidentReports",
+    "home_visitations": "HomeVisitations",
+    "process_recordings": "ProcessRecordings",
+    "education_records": "EducationRecords",
+    "health_wellbeing_records": "HealthWellbeingRecords",
+}
+
+
+def load_df(stem: str) -> pd.DataFrame:
+    odbc = os.environ.get("INTEX_ODBC")
+    table = SQL_TABLE_BY_STEM.get(stem)
+    if odbc and table:
+        try:
+            import pyodbc
+
+            with pyodbc.connect(odbc, timeout=120) as cnx:
+                df = pd.read_sql(f"SELECT * FROM [{table}]", cnx)
+            print(f"DB [{table}] rows:", len(df))
+            if len(df) > 0:
+
+                def pascal_to_snake(name: str) -> str:
+                    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+                df = df.rename(columns={c: pascal_to_snake(str(c)) for c in df.columns})
+                if stem == "donations":
+                    df = df.rename(columns={"contribution_id": "donation_id"})
+                if stem == "process_recordings":
+                    df = df.rename(columns={"process_recording_id": "recording_id"})
+                if stem == "home_visitations":
+                    df = df.rename(columns={"home_visitation_id": "visitation_id"})
+                return df
+        except Exception as ex:
+            print("INTEX_ODBC failed, using CSV:", ex)
+    return require_csv(stem)
 
 
 def to_date(s: pd.Series) -> pd.Series:
@@ -240,8 +284,8 @@ Export predictions to JSON and import into the deployed app:
 
 PIPELINE_1 = [
     r"""
-supporters = require_csv("supporters")
-donations = require_csv("donations")
+supporters = load_df("supporters")
+        donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 
 max_date = donations["donation_date"].max()
@@ -358,8 +402,8 @@ export_predictions_json(
 
 PIPELINE_2 = [
     r"""
-supporters = require_csv("supporters")
-donations = require_csv("donations")
+supporters = load_df("supporters")
+        donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 
 # Focus on monetary donations with numeric amount
@@ -478,8 +522,8 @@ export_predictions_json(
 
 PIPELINE_3 = [
     r"""
-supporters = require_csv("supporters")
-donations = require_csv("donations")
+supporters = load_df("supporters")
+        donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 donations = donations.dropna(subset=["donation_date"]).sort_values(["supporter_id","donation_date"]).copy()
 
@@ -576,7 +620,7 @@ export_predictions_json(
 
 PIPELINE_4 = [
     r"""
-posts = require_csv("social_media_posts")
+posts = load_df("social_media_posts")
 posts["created_at"] = pd.to_datetime(posts["created_at"], errors="coerce")
 posts = posts.dropna(subset=["created_at"]).sort_values("created_at").copy()
 
@@ -649,7 +693,7 @@ export_predictions_json(
 
 PIPELINE_5 = [
     r"""
-metrics = require_csv("safehouse_monthly_metrics")
+metrics = load_df("safehouse_monthly_metrics")
 metrics["month_start"] = pd.to_datetime(metrics["month_start"], errors="coerce")
 metrics = metrics.dropna(subset=["month_start"]).sort_values(["safehouse_id","month_start"]).copy()
 
@@ -712,12 +756,12 @@ export_predictions_json(
 
 PIPELINE_6 = [
     r"""
-residents = require_csv("residents")
-incidents = require_csv("incident_reports")
-visits = require_csv("home_visitations")
-recordings = require_csv("process_recordings")
-edu = require_csv("education_records")
-health = require_csv("health_wellbeing_records")
+residents = load_df("residents")
+        incidents = load_df("incident_reports")
+        visits = load_df("home_visitations")
+        recordings = load_df("process_recordings")
+        edu = load_df("education_records")
+        health = load_df("health_wellbeing_records")
 
 incidents["incident_date"] = pd.to_datetime(incidents["incident_date"], errors="coerce")
 visits["visit_date"] = pd.to_datetime(visits["visit_date"], errors="coerce")

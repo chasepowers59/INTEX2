@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
-export type ApiError = { message: string };
+export type ApiError = { message?: string; log?: string[] };
 
 function requireApiBaseUrl(): string {
   if (!API_BASE_URL) throw new Error("Missing VITE_API_BASE_URL");
@@ -32,6 +32,7 @@ export async function apiFetch<T>(
     try {
       const json = (await res.json()) as ApiError;
       if (json?.message) msg = json.message;
+      if (json?.log?.length) msg += `\n\n${json.log.join("\n")}`;
     } catch {
       // ignore
     }

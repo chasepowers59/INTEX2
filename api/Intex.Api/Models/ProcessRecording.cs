@@ -17,13 +17,23 @@ public sealed class ProcessRecording
     [MaxLength(30)]
     public string SessionType { get; set; } = "Individual";
 
+    public int? SessionDurationMinutes { get; set; }
+
     [MaxLength(80)]
     public string? EmotionalStateObserved { get; set; }
+
+    [MaxLength(80)]
+    public string? EmotionalStateEnd { get; set; }
 
     public string NarrativeSummary { get; set; } = "";
 
     public string? InterventionsApplied { get; set; }
 
     public string? FollowUpActions { get; set; }
-}
 
+    public bool ProgressNoted { get; set; }
+    public bool ConcernsFlagged { get; set; }
+    public bool ReferralMade { get; set; }
+
+    public string? NotesRestricted { get; set; }
+}

@@ -11,16 +11,31 @@ public sealed class HomeVisitation
 
     public DateOnly VisitDate { get; set; }
 
-    [MaxLength(50)]
+    [MaxLength(120)]
+    public string? SocialWorkerName { get; set; }
+
+    [MaxLength(80)]
     public string VisitType { get; set; } = "RoutineFollowUp";
 
+    [MaxLength(300)]
+    public string? LocationVisited { get; set; }
+
+    [MaxLength(200)]
+    public string? FamilyMembersPresent { get; set; }
+
+    public string? Purpose { get; set; }
     public string? Observations { get; set; }
 
     [MaxLength(40)]
     public string? FamilyCooperationLevel { get; set; }
 
-    public string? SafetyConcerns { get; set; }
+    public bool SafetyConcernsNoted { get; set; }
+    public bool FollowUpNeeded { get; set; }
+    public string? FollowUpNotes { get; set; }
 
+    [MaxLength(40)]
+    public string? VisitOutcome { get; set; }
+
+    public string? SafetyConcerns { get; set; }
     public string? FollowUpActions { get; set; }
 }
-

@@ -1,6 +1,7 @@
 using System.Text;
 using Intex.Api.Auth;
 using Intex.Api.Data;
+using Intex.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -20,6 +21,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddScoped<LighthouseCsvImportService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {

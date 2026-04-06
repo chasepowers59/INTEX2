@@ -25,7 +25,7 @@ public sealed class ReportsController(AppDbContext db) : ControllerBase
             {
                 year = g.Key.Year,
                 month = g.Key.Month,
-                totalAmount = g.Sum(x => x.Amount),
+                totalAmount = g.Sum(x => x.Amount ?? 0m),
                 count = g.Count()
             })
             .ToListAsync();

@@ -34,6 +34,13 @@ export function GivePage() {
           Anyone can visit this page. To protect donor records and receipts, donors must sign in before making a donation
           or viewing personal donation history.
         </p>
+        <p className="muted" style={{ marginTop: 10 }}>
+          Exploring impact first? See the{" "}
+          <Link to="/impact" style={{ textDecoration: "underline" }}>
+            public impact dashboard
+          </Link>{" "}
+          for anonymized safehouse, program, and outreach metrics drawn from the same operational data your gift supports.
+        </p>
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
             {error}
@@ -50,13 +57,16 @@ export function GivePage() {
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Sign in required</h2>
           <p className="muted">
-            Sign in to donate and to access your donor portal (history + allocations). If you don’t have an account, ask
-            an admin for access.
+            Sign in to donate and open your donor portal (history + allocations). New supporters can register—use the same
+            email as your supporter record if we already imported it from our CRM.
           </p>
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn primary" onClick={signInToDonate}>
               Sign in to donate
             </button>
+            <Link className="btn" to="/register" state={{ from: loc.pathname }}>
+              Create donor account
+            </Link>
             <Link className="btn" to="/impact">
               View public impact
             </Link>

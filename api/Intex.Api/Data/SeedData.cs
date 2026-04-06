@@ -290,6 +290,7 @@ END
             supporter = new Supporter
             {
                 FullName = user.DisplayName ?? "Demo donor",
+                DisplayName = user.DisplayName ?? "Demo donor",
                 Email = donorEmail,
                 SupporterType = "Monetary",
                 IsActive = true

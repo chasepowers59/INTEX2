@@ -45,6 +45,9 @@ Region guidance (team decision):
 6. Other useful settings:
 
    - `Database__AutoMigrate` = `true` (set `false` later if you do not want automatic migrations on startup)
+   - `LighthouseImport__SourceDirectory` = absolute path on the App Service VM where CSVs live (e.g. after uploading via Kudu). Admins can also pass `sourceDirectory` in `POST /api/admin/lighthouse-import`. Use the web page **`/app/admin/lighthouse-import`** (Admin role) for the same operation.
+
+7. **Lighthouse / full case data:** After deploy, ensure migrations ran, upload CSVs to the folder referenced by `LighthouseImport__SourceDirectory` (or use the request body path), then run import with **`replace: true`** once for a clean load. Identity users are not deleted; operational tables are cleared when replacing.
 
 ## Debugging (when something breaks)
 

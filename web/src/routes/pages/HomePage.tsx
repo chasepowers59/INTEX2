@@ -20,7 +20,10 @@ export function HomePage() {
 
         <div className="row" style={{ marginTop: 14 }}>
           <Link className="btn primary" to="/login">
-            Sign in (staff)
+            Sign in
+          </Link>
+          <Link className="btn" to="/register">
+            Register as donor
           </Link>
           <Link className="btn" to="/impact">
             View public impact
