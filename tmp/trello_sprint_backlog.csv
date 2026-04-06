@@ -1,0 +1,33 @@
+Day,List,Backlog ID,Card Title,Description,Points,Owner
+Monday,Monday Sprint,PB1,M1 - Define Team Roles and Working Agreement,"Assign the Scrum Master and Product Owner, agree on team norms, and document branch, pull, and merge expectations.",1,Member 1
+Monday,Monday Sprint,PB2,M2 - Create Primary User Personas,"Create two realistic personas, including goals, frustrations, and why they are the most important users to design for.",2,Member 2
+Monday,Monday Sprint,PB2,M3 - Build Current-State Journey Map,"Map how users currently manage donations and resident care, and identify major pain points the product should solve.",2,Member 3
+Monday,Monday Sprint,PB3,M4 - Write Problem Statement and Product Goal,"Define the specific business problem, user problem, and product goal the team will use to guide decisions.",1,Member 4
+Monday,Monday Sprint,PB4,M5 - Build MoSCoW Prioritization,"Classify requirements into Must, Should, Could, and Won't items, add at least five nice-to-have ideas, and identify one feature not being built.",3,Member 1
+Monday,Monday Sprint,PB5,M6 - Set Up Product Backlog and Sprint Boards,"Create the Trello product backlog, add estimates, and organize the Monday through Thursday sprint structure.",3,Member 2
+Monday,Monday Sprint,PB10,M7 - Profile the Raw CSV Dataset,"Review the 17 CSV files, identify key tables and relationships, and note any missing data, inconsistencies, or fields the app will rely on most.",3,Member 3
+Monday,Monday Sprint,PB7,M8 - Produce Key Wireframes,"Create desktop wireframes for the three most important screens, such as landing page, dashboard, and caseload page.",3,Member 4
+Tuesday,Tuesday Sprint,PB8,T1 - Explore and Choose UI Direction,"Generate AI UI concepts for the main screens, evaluate them, and document the final design choice with rationale.",3,Member 1
+Tuesday,Tuesday Sprint,PB22,T2 - Build Shared Frontend Layout and Navigation,"Create the app shell, shared navigation, footer, and consistent styling structure for public and authenticated pages.",3,Member 2
+Tuesday,Tuesday Sprint,PB18,T3 - Build Public Landing Page,"Implement the public homepage with organization overview, trust-building content, and clear calls to action.",3,Member 3
+Tuesday,Tuesday Sprint,PB19,T4 - Build Public Impact Dashboard,"Build the donor-facing impact page showing anonymized, aggregated outcomes and resource-use information.",3,Member 4
+Tuesday,Tuesday Sprint,PB20,T5 - Build Login Experience,"Implement the login page with validation, error handling, and redirect behavior for authenticated users.",3,Member 1
+Tuesday,Tuesday Sprint,PB15,T6 - Implement Authentication and Password Policy,"Configure ASP.NET Identity auth and enforce the class-required password policy of minimum 14 characters without extra composition requirements.",3,Member 2
+Tuesday,Tuesday Sprint,PB16,T7 - Implement Role-Based Access Control,"Restrict access by role so Admin can create, update, and delete, Employee has limited staff access, and Donor sees only donor-appropriate data.",3,Member 3
+Tuesday,Tuesday Sprint,PB21,T8 - Build Privacy Policy and Cookie Consent,"Publish a tailored privacy policy and implement a functional cookie consent banner aligned with the grading rubric.",2,Member 4
+Wednesday,Wednesday Sprint,PB23,W1 - Build Admin Dashboard,"Implement the staff command-center dashboard with key metrics such as active residents, donation activity, and upcoming conferences.",3,Member 1
+Wednesday,Wednesday Sprint,PB24,W2 - Build Donor and Supporter CRM,"Build the supporter management page with search, detail viewing, and create or update functionality for staff and admins.",5,Member 2
+Wednesday,Wednesday Sprint,PB25,W3 - Build Contribution Tracking,"Support recording and reviewing contributions across monetary and other contribution types tied to supporter records.",5,Member 3
+Wednesday,Wednesday Sprint,PB26,W4 - Build Donation Allocation Tracking,"Add the ability to view or manage how donations are allocated across safehouses and program areas.",3,Member 4
+Wednesday,Wednesday Sprint,PB28,W5 - Build Resident Intake and Profile Management,"Create or expand resident profiles with core demographic, case, and admission data needed for case management.",5,Member 1
+Wednesday,Wednesday Sprint,PB29,W6 - Build Searchable Caseload Inventory,"Implement filtering and search for residents by status, safehouse, case category, and assigned social worker.",5,Member 2
+Wednesday,Wednesday Sprint,PB47,W7 - Deploy Database, API, and Frontend,"Deploy one working end-to-end slice to the cloud and verify that submitted data persists in the live database.",5,Member 3
+Wednesday,Wednesday Sprint,PB49,W8 - Gather User Feedback and Iterate,"Show the current product to a real user, capture five specific pieces of feedback, and document what should be changed next.",2,Member 4
+Thursday,Thursday Sprint,PB30,TH1 - Build Process Recording Module,"Implement chronological counseling note entry and review, including emotional state, interventions, narrative, and follow-up fields.",5,Member 1
+Thursday,Thursday Sprint,PB31,TH2 - Build Home Visitation Module,"Build the workflow for recording home visit details, observations, family cooperation, safety concerns, and follow-up actions.",5,Member 2
+Thursday,Thursday Sprint,PB32,TH3 - Build Case Conference Tracking,"Add resident case conference history and upcoming conference tracking to support planning and follow-up.",3,Member 3
+Thursday,Thursday Sprint,PB33,TH4 - Build Reports and Analytics,"Create reports for donations, resident outcomes, safehouse performance, and reintegration-related trends.",5,Member 4
+Thursday,Thursday Sprint,PB34,TH5 - Add OKR Metric to the App,"Choose one meaningful product success metric, display it in the app, and document why it matters most.",2,Member 1
+Thursday,Thursday Sprint,PB36/PB37/PB38/PB39,TH6 - Complete ML Pipeline and App Integration,"Finalize notebooks, export predictions, import them through the API, and display the results in the ML Insights or Action Center pages.",5,Member 2
+Thursday,Thursday Sprint,PB44/PB45/PB46,TH7 - Improve Quality, Accessibility, and Responsiveness,"Fix accessibility issues, improve mobile layouts, and test the main user flows across public, admin, employee, and donor experiences.",5,Member 3
+Thursday,Thursday Sprint,PB42/PB43/PB48/PB50,TH8 - Final Security Proof and Submission Prep,"Verify secrets handling, HTTPS and redirect behavior, collect screenshots and evidence for the video, and complete the retrospective and final submission checklist.",4,Member 4
