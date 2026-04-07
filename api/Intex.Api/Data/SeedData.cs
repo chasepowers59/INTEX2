@@ -14,17 +14,7 @@ public static class SeedData
         await using var scope = services.CreateAsyncScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SeedData");
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        // Prefer migrations, but allow running without them (fast competition setup).
-        try
-        {
-            await db.Database.MigrateAsync();
-        }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("migration", StringComparison.OrdinalIgnoreCase))
-        {
-            await db.Database.EnsureCreatedAsync();
-        }
-
-        await EnsureSchemaAsync(db);
+        // Schema is applied by EF MigrateAsync in Program.cs. Seeding only adds roles/users/demo rows.
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         foreach (var role in new[] { AppRoles.Admin, AppRoles.Employee, AppRoles.Donor })
@@ -123,34 +113,6 @@ public static class SeedData
                 string.IsNullOrWhiteSpace(x.DisplayName) ? x.Email.Trim() : x.DisplayName.Trim(),
                 role);
         }
-    }
-
-    private static async Task EnsureSchemaAsync(AppDbContext db)
-    {
-        // Competition-friendly schema patching for environments without EF migrations.
-        // Adds tables in-place (idempotent) so Azure SQL can evolve without dropping the DB.
-        await db.Database.ExecuteSqlRawAsync("""
-IF OBJECT_ID(N'[dbo].[ImpactAllocations]', N'U') IS NULL
-BEGIN
-    CREATE TABLE [dbo].[ImpactAllocations](
-        [ImpactAllocationId] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-        [SupporterId] INT NOT NULL,
-        [SnapshotId] INT NULL,
-        [AllocationDate] DATE NOT NULL,
-        [Category] NVARCHAR(60) NOT NULL,
-        [Amount] DECIMAL(18,2) NOT NULL,
-        [Currency] NVARCHAR(10) NOT NULL CONSTRAINT [DF_ImpactAllocations_Currency] DEFAULT N'PHP',
-        [Notes] NVARCHAR(MAX) NULL,
-        [CreatedAtUtc] DATETIME2 NOT NULL CONSTRAINT [DF_ImpactAllocations_CreatedAtUtc] DEFAULT SYSUTCDATETIME()
-    );
-
-    CREATE INDEX [IX_ImpactAllocations_SupporterId_AllocationDate]
-        ON [dbo].[ImpactAllocations]([SupporterId], [AllocationDate]);
-
-    CREATE INDEX [IX_ImpactAllocations_SnapshotId_Category]
-        ON [dbo].[ImpactAllocations]([SnapshotId], [Category]);
-END
-""");
     }
 
     private static async Task EnsureUserAsync(

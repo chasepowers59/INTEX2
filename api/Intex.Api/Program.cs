@@ -285,13 +285,47 @@ app.MapControllers();
 
 if (app.Configuration.GetValue("Database:AutoMigrate", true))
 {
+    await using (var migrateScope = app.Services.CreateAsyncScope())
+    {
+        var migrateLog = migrateScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Migrations");
+        var db = migrateScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        try
+        {
+            var pending = await db.Database.GetPendingMigrationsAsync();
+            migrateLog.LogInformation(
+                "Applying EF Core migrations. Pending: {Count} ({Names})",
+                pending.Count(),
+                string.Join(", ", pending));
+            await db.Database.MigrateAsync();
+            migrateLog.LogInformation("EF Core migrations completed.");
+        }
+        catch (Exception ex)
+        {
+            var pendingNames = "";
+            try
+            {
+                pendingNames = string.Join(", ", await db.Database.GetPendingMigrationsAsync());
+            }
+            catch
+            {
+                pendingNames = "(could not read pending list)";
+            }
+
+            migrateLog.LogError(
+                ex,
+                "MigrateAsync failed. If the DB only had __EFMigrationsHistory + ImpactAllocations, run the cleanup SQL in docs/azure-deploy.md then restart the app. Pending migrations: {Pending}",
+                pendingNames);
+            throw;
+        }
+    }
+
     try
     {
         await SeedData.EnsureSeededAsync(app.Services, app.Configuration);
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Database migration/seed failed. API will start in degraded mode.");
+        app.Logger.LogError(ex, "Database seed failed (roles/users/demo). API may be partially usable.");
     }
 }
 

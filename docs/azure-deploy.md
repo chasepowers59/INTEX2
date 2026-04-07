@@ -11,6 +11,29 @@ Region guidance (team decision):
    - Allow Azure services if needed for App Service connectivity.
 3. Copy the connection string and set it on the API as `ConnectionStrings__AppDb`.
 
+### Stuck with only two tables? (`__EFMigrationsHistory` + `ImpactAllocations`)
+
+An older build created a **minimal** `ImpactAllocations` table with raw SQL **before** EF migrations finished. SQL Server then blocked the real migration (table already exists), so you never got `AspNetUsers`, `Supporters`, etc.
+
+**Fix (empty / school DB only — deletes that patch table and migration history):**
+
+1. In **Azure Portal → your SQL database → Query editor** (or SSMS), connect and run:
+
+```sql
+IF OBJECT_ID(N'dbo.ImpactAllocations', N'U') IS NOT NULL
+    DROP TABLE dbo.ImpactAllocations;
+IF OBJECT_ID(N'dbo.__EFMigrationsHistory', N'U') IS NOT NULL
+    DROP TABLE dbo.__EFMigrationsHistory;
+```
+
+2. **Restart** the App Service. On startup it will run **`MigrateAsync`** and create the full schema.
+
+3. Confirm with `GET https://<your-api>/health/schema` (expect `AspNetUsers`: true, etc.).
+
+Alternatively, from your PC (firewall allowing your IP):
+
+`dotnet ef database update --project api/Intex.Api/Intex.Api.csproj --connection "<same as ConnectionStrings__AppDb>"`
+
 ## 2) API — Azure App Service
 
 1. Create an **App Service** (Linux or Windows is fine) for the API.
