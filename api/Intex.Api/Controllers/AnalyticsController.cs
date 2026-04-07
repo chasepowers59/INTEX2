@@ -78,84 +78,92 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var checkinCutoff = today.AddDays(-30);
         var counselingCutoff = today.AddDays(-14);
-
-        var lastVisitByResident = db.HomeVisitations.AsNoTracking()
-            .GroupBy(x => x.ResidentId)
-            .Select(g => new { ResidentId = g.Key, LastVisitDate = (DateOnly?)g.Max(v => v.VisitDate) });
-
-        var lastRecordingByResident = db.ProcessRecordings.AsNoTracking()
-            .GroupBy(x => x.ResidentId)
-            .Select(g => new { ResidentId = g.Key, LastSessionDate = (DateOnly?)g.Max(v => v.SessionDate) });
-
-        var latestRiskCreatedAt = await db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == "resident_incident_30d" && x.EntityType == "Resident")
-            .MaxAsync(x => (DateTime?)x.CreatedAtUtc);
-
-        var currentRiskByResident = db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == "resident_incident_30d" && x.EntityType == "Resident")
-            .Where(x => latestRiskCreatedAt != null && x.CreatedAtUtc == latestRiskCreatedAt)
-            .Select(x => new { x.EntityId, x.Score, x.Label });
-
-        var items = await db.Residents.AsNoTracking()
-            .Where(x => x.CaseStatus == "Active")
-            .GroupJoin(
-                lastVisitByResident,
-                r => r.ResidentId,
-                v => v.ResidentId,
-                (r, v) => new { r, lastVisit = v.Select(x => x.LastVisitDate).FirstOrDefault() }
-            )
-            .GroupJoin(
-                lastRecordingByResident,
-                x => x.r.ResidentId,
-                p => p.ResidentId,
-                (x, p) => new { x.r, x.lastVisit, lastSession = p.Select(y => y.LastSessionDate).FirstOrDefault() }
-            )
-            .GroupJoin(
-                currentRiskByResident,
-                x => x.r.ResidentId,
-                p => p.EntityId,
-                (x, p) => new
-                {
-                    x.r.ResidentId,
-                    x.r.DisplayName,
-                    x.r.SafehouseId,
-                    x.r.AssignedSocialWorker,
-                    x.lastVisit,
-                    x.lastSession,
-                    riskScore = p.Select(y => (decimal?)y.Score).FirstOrDefault(),
-                    riskBand = p.Select(y => y.Label).FirstOrDefault()
-                }
-            )
-            .ToListAsync();
-
-        var alerts = items
-            .Select(x =>
-            {
-                var reasons = new List<string>();
-                if (x.lastVisit == null || x.lastVisit < checkinCutoff) reasons.Add("Home/field check-in due");
-                if (x.lastSession == null || x.lastSession < counselingCutoff) reasons.Add("Counseling session note overdue");
-                if (string.Equals(x.riskBand, "High", StringComparison.OrdinalIgnoreCase)) reasons.Add("High incident risk (30d)");
-                return new
+        try
+        {
+            // Keep each query simple to avoid provider translation edge-cases.
+            var residents = await db.Residents.AsNoTracking()
+                .Where(x => x.CaseStatus == "Active")
+                .Select(x => new
                 {
                     x.ResidentId,
                     x.DisplayName,
                     x.SafehouseId,
-                    x.AssignedSocialWorker,
-                    lastHomeVisitDate = x.lastVisit,
-                    lastProcessRecordingDate = x.lastSession,
-                    x.riskScore,
-                    x.riskBand,
-                    reasons
-                };
-            })
-            .Where(x => x.reasons.Count > 0)
-            .OrderByDescending(x => x.reasons.Contains("High incident risk (30d)"))
-            .ThenBy(x => x.lastHomeVisitDate ?? DateOnly.MinValue)
-            .ThenBy(x => x.lastProcessRecordingDate ?? DateOnly.MinValue)
-            .Take(take)
-            .ToList();
+                    x.AssignedSocialWorker
+                })
+                .ToListAsync();
 
-        return Ok(new { asOfUtc = DateTime.UtcNow, items = alerts });
+            var lastVisitByResident = await db.HomeVisitations.AsNoTracking()
+                .GroupBy(x => x.ResidentId)
+                .Select(g => new { ResidentId = g.Key, LastVisitDate = (DateOnly?)g.Max(v => v.VisitDate) })
+                .ToDictionaryAsync(x => x.ResidentId, x => x.LastVisitDate);
+
+            var lastRecordingByResident = await db.ProcessRecordings.AsNoTracking()
+                .GroupBy(x => x.ResidentId)
+                .Select(g => new { ResidentId = g.Key, LastSessionDate = (DateOnly?)g.Max(v => v.SessionDate) })
+                .ToDictionaryAsync(x => x.ResidentId, x => x.LastSessionDate);
+
+            var latestRiskCreatedAt = await db.MlPredictions.AsNoTracking()
+                .Where(x => x.PredictionType == "resident_incident_30d" && x.EntityType == "Resident")
+                .MaxAsync(x => (DateTime?)x.CreatedAtUtc);
+
+            var riskByResident = new Dictionary<int, (decimal score, string? label)>();
+            if (latestRiskCreatedAt is not null)
+            {
+                riskByResident = await db.MlPredictions.AsNoTracking()
+                    .Where(x =>
+                        x.PredictionType == "resident_incident_30d"
+                        && x.EntityType == "Resident"
+                        && x.CreatedAtUtc == latestRiskCreatedAt)
+                    .GroupBy(x => x.EntityId)
+                    .Select(g => new
+                    {
+                        ResidentId = g.Key,
+                        Score = g.Select(v => v.Score).FirstOrDefault(),
+                        Label = g.Select(v => v.Label).FirstOrDefault()
+                    })
+                    .ToDictionaryAsync(x => x.ResidentId, x => (x.Score, x.Label));
+            }
+
+            var alerts = residents
+                .Select(x =>
+                {
+                    lastVisitByResident.TryGetValue(x.ResidentId, out var lastVisit);
+                    lastRecordingByResident.TryGetValue(x.ResidentId, out var lastSession);
+                    riskByResident.TryGetValue(x.ResidentId, out var risk);
+
+                    var reasons = new List<string>();
+                    if (lastVisit == null || lastVisit < checkinCutoff) reasons.Add("Home/field check-in due");
+                    if (lastSession == null || lastSession < counselingCutoff) reasons.Add("Counseling session note overdue");
+                    if (string.Equals(risk.label, "High", StringComparison.OrdinalIgnoreCase)) reasons.Add("High incident risk (30d)");
+
+                    return new
+                    {
+                        x.ResidentId,
+                        x.DisplayName,
+                        x.SafehouseId,
+                        x.AssignedSocialWorker,
+                        lastHomeVisitDate = lastVisit,
+                        lastProcessRecordingDate = lastSession,
+                        riskScore = risk.score == 0m && risk.label is null ? (decimal?)null : risk.score,
+                        riskBand = risk.label,
+                        reasons
+                    };
+                })
+                .Where(x => x.reasons.Count > 0)
+                .OrderByDescending(x => x.reasons.Contains("High incident risk (30d)"))
+                .ThenBy(x => x.lastHomeVisitDate ?? DateOnly.MinValue)
+                .ThenBy(x => x.lastProcessRecordingDate ?? DateOnly.MinValue)
+                .Take(take)
+                .ToList();
+
+            return Ok(new { asOfUtc = DateTime.UtcNow, items = alerts });
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<AnalyticsController>>()
+                .LogError(ex, "ops-alerts query failed.");
+            return Ok(new { asOfUtc = DateTime.UtcNow, items = Array.Empty<object>(), degraded = true });
+        }
     }
 
     private async Task<object> GetCurrentBandCountsAsync(string predictionType, string entityType)

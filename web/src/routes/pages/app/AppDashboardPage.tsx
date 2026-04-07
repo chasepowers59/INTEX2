@@ -64,17 +64,22 @@ export function AppDashboardPage() {
   useEffect(() => {
     if (!auth.token || !staff) return;
     (async () => {
-      try {
-        const [res, ops, prog] = await Promise.all([
-          apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined }),
-          apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token: auth.token ?? undefined }),
-          apiFetch<ProgramInsights>("/api/analytics/program-insights", { token: auth.token ?? undefined }),
-        ]);
-        setData(res);
-        setAlerts(ops);
-        setInsights(prog);
-      } catch (e) {
-        setError((e as Error).message);
+      const [res, ops, prog] = await Promise.allSettled([
+        apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined }),
+        apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token: auth.token ?? undefined }),
+        apiFetch<ProgramInsights>("/api/analytics/program-insights", { token: auth.token ?? undefined }),
+      ]);
+
+      if (res.status === "fulfilled") setData(res.value);
+      if (ops.status === "fulfilled") setAlerts(ops.value);
+      if (prog.status === "fulfilled") setInsights(prog.value);
+
+      const errs: string[] = [];
+      if (res.status === "rejected") errs.push(`Overview: ${(res.reason as Error)?.message ?? "failed"}`);
+      if (ops.status === "rejected") errs.push(`Operational alerts: ${(ops.reason as Error)?.message ?? "failed"}`);
+      if (prog.status === "rejected") errs.push(`Program insights: ${(prog.reason as Error)?.message ?? "failed"}`);
+      if (errs.length > 0) {
+        setError(errs.join(" | "));
       }
     })();
   }, [auth.token, staff]);
