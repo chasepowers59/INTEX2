@@ -1,6 +1,7 @@
 using System.Text;
 using Intex.Api.Auth;
 using Intex.Api.Data;
+using Intex.Api.Diagnostics;
 using Intex.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -238,7 +239,12 @@ app.MapGet("/health/migrations", async (IServiceProvider sp) =>
         applied = appliedList,
         pending = pendingList,
         pendingCount = pendingList.Length,
-        ready = pendingList.Length == 0
+        ready = pendingList.Length == 0,
+        startupMigrate = new
+        {
+            outcome = StartupMigrationDiagnostics.Outcome,
+            error = StartupMigrationDiagnostics.ErrorMessage
+        }
     });
 });
 
@@ -298,6 +304,8 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
                 string.Join(", ", pending));
             await db.Database.MigrateAsync();
             migrateLog.LogInformation("EF Core migrations completed.");
+            StartupMigrationDiagnostics.Outcome = StartupMigrationDiagnostics.OutcomeOk;
+            StartupMigrationDiagnostics.ErrorMessage = null;
         }
         catch (Exception ex)
         {
@@ -310,6 +318,8 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
             {
                 pendingNames = "(could not read pending list)";
             }
+
+            StartupMigrationDiagnostics.SetFailed(ex);
 
             // Do not rethrow: a failed MigrateAsync would stop the host entirely (Azure HTTP 500.30) and hide /health endpoints.
             migrateLog.LogCritical(
@@ -327,6 +337,11 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
     {
         app.Logger.LogError(ex, "Database seed failed (roles/users/demo). API may be partially usable.");
     }
+}
+else
+{
+    StartupMigrationDiagnostics.Outcome = StartupMigrationDiagnostics.OutcomeSkipped;
+    StartupMigrationDiagnostics.ErrorMessage = null;
 }
 
 app.Run();

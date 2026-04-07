@@ -28,7 +28,7 @@ IF OBJECT_ID(N'dbo.__EFMigrationsHistory', N'U') IS NOT NULL
 
 2. **Restart** the App Service. On startup it will run **`MigrateAsync`** and create the full schema.
 
-   If migrations still fail, the API **still starts** (so you are not stuck on HTTP 500.30). Check **Log stream** for `MigrateAsync failed` and `GET /health/migrations` for a non-empty `pending` list until the cleanup + restart fixes it.
+   If migrations still fail, the API **still starts** (so you are not stuck on HTTP 500.30). Open **`GET /health/migrations`**: field **`startupMigrate.outcome`** is **`failed`** when `MigrateAsync` errored, and **`startupMigrate.error`** has the SQL error text (e.g. object already exists). Also check **Log stream** for `MigrateAsync failed`. After cleanup + restart, **`pending`** should drain and **`/health/schema`** should flip core tables to **`true`**.
 
 3. Confirm with `GET https://<your-api>/health/schema` (expect `AspNetUsers`: true, etc.).
 
@@ -56,7 +56,7 @@ Alternatively, from your PC (firewall allowing your IP):
    - API `GET /health` should return `{ "status": "ok" }`
    - API `GET /health/db` should return `200` when SQL is reachable (and `503` when not)
    - `GET /health/info` — shows `jwtKeyUtf8Bytes` / `jwtKeyConfigured` (not the secret) and CORS origins
-   - `GET /health/migrations` — **`pending` must be empty** after deploy; if not, run `dotnet ef database update` against this SQL database
+   - `GET /health/migrations` — **`pending` must be empty** after deploy; if not, run `dotnet ef database update` against this SQL database. If **`startupMigrate.outcome`** is **`failed`**, read **`startupMigrate.error`** and fix the database (often the two-table cleanup above), then restart.
    - `GET /health/schema` — **`AspNetUsers` / `Supporters` should be `true`**; if false, migrations never applied to this DB
 
 5. Seed users (all use the same startup path in `SeedData`):
