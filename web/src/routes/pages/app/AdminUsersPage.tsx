@@ -24,12 +24,17 @@ export function AdminUsersPage() {
   const [busy, setBusy] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [createEmail, setCreateEmail] = useState("");
   const [createDisplayName, setCreateDisplayName] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [createRole, setCreateRole] = useState<"Admin" | "Employee" | "Donor">("Employee");
   const [createSupporterId, setCreateSupporterId] = useState<string>("");
+  const [resetTargetEmail, setResetTargetEmail] = useState<string>("");
+  const [resetPasswordValue, setResetPasswordValue] = useState<string>("");
+  const [linkTargetEmail, setLinkTargetEmail] = useState<string>("");
+  const [linkSupporterIdValue, setLinkSupporterIdValue] = useState<string>("");
 
   const canAdmin = useMemo(() => auth.hasRole("Admin"), [auth]);
 
@@ -59,6 +64,11 @@ export function AdminUsersPage() {
           {error ? (
             <div className="badge danger" style={{ marginTop: 10 }}>
               {error}
+            </div>
+          ) : null}
+          {notice ? (
+            <div className="badge ok" style={{ marginTop: 10 }}>
+              {notice}
             </div>
           ) : null}
 
@@ -207,6 +217,81 @@ export function AdminUsersPage() {
               Bulk disable ({selectedEmails.length})
             </button>
           </div>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <label style={{ display: "grid", gap: 6, minWidth: 300, flex: 1 }}>
+              <span className="muted">Reset password for selected user</span>
+              <input
+                className="input"
+                type="password"
+                placeholder={resetTargetEmail ? `New password for ${resetTargetEmail}` : "Select a user below first"}
+                value={resetPasswordValue}
+                onChange={(e) => setResetPasswordValue(e.target.value)}
+              />
+            </label>
+            <button
+              className="btn"
+              disabled={!resetTargetEmail || !resetPasswordValue || busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                setNotice(null);
+                try {
+                  await apiFetch("/api/admin/users/reset-password", {
+                    method: "POST",
+                    token: auth.token ?? undefined,
+                    body: JSON.stringify({ email: resetTargetEmail, newPassword: resetPasswordValue }),
+                  });
+                  setNotice(`Password reset for ${resetTargetEmail}.`);
+                  setResetPasswordValue("");
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Apply reset
+            </button>
+          </div>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <label style={{ display: "grid", gap: 6, minWidth: 260 }}>
+              <span className="muted">Link donor user</span>
+              <input className="input" value={linkTargetEmail} readOnly placeholder="Select a user below first" />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+              <span className="muted">SupporterId</span>
+              <input className="input" value={linkSupporterIdValue} onChange={(e) => setLinkSupporterIdValue(e.target.value)} />
+            </label>
+            <button
+              className="btn"
+              disabled={!linkTargetEmail || !linkSupporterIdValue || busy}
+              onClick={async () => {
+                const supporterId = Number(linkSupporterIdValue);
+                if (!Number.isFinite(supporterId)) {
+                  setError("SupporterId must be a number.");
+                  return;
+                }
+                setBusy(true);
+                setError(null);
+                setNotice(null);
+                try {
+                  await apiFetch("/api/admin/users/link-donor", {
+                    method: "POST",
+                    token: auth.token ?? undefined,
+                    body: JSON.stringify({ email: linkTargetEmail, supporterId }),
+                  });
+                  setNotice(`Linked ${linkTargetEmail} to supporter ${supporterId}.`);
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Apply link
+            </button>
+          </div>
           <div className="table-wrap" style={{ marginTop: 10 }}>
             <table className="table">
               <thead>
@@ -261,23 +346,9 @@ export function AdminUsersPage() {
                           <button
                             className="btn"
                             disabled={busy}
-                            onClick={async () => {
-                              const newPass = prompt("New password (will be hashed):");
-                              if (!newPass) return;
-                              setBusy(true);
-                              setError(null);
-                              try {
-                                await apiFetch("/api/admin/users/reset-password", {
-                                  method: "POST",
-                                  token: auth.token ?? undefined,
-                                  body: JSON.stringify({ email: u.email, newPassword: newPass }),
-                                });
-                                alert("Password reset.");
-                              } catch (e) {
-                                setError((e as Error).message);
-                              } finally {
-                                setBusy(false);
-                              }
+                            onClick={() => {
+                              setResetTargetEmail(u.email);
+                              setNotice(`Ready to reset password for ${u.email}. Enter the new password above.`);
                             }}
                           >
                             Reset password
@@ -307,28 +378,10 @@ export function AdminUsersPage() {
                           <button
                             className="btn"
                             disabled={busy}
-                            onClick={async () => {
-                              const sid = prompt("Link to SupporterId (number):", u.supporterId?.toString() ?? "");
-                              if (!sid) return;
-                              const supporterId = Number(sid);
-                              if (!Number.isFinite(supporterId)) {
-                                setError("SupporterId must be a number.");
-                                return;
-                              }
-                              setBusy(true);
-                              setError(null);
-                              try {
-                                await apiFetch("/api/admin/users/link-donor", {
-                                  method: "POST",
-                                  token: auth.token ?? undefined,
-                                  body: JSON.stringify({ email: u.email, supporterId }),
-                                });
-                                await load();
-                              } catch (e) {
-                                setError((e as Error).message);
-                              } finally {
-                                setBusy(false);
-                              }
+                            onClick={() => {
+                              setLinkTargetEmail(u.email);
+                              setLinkSupporterIdValue(u.supporterId?.toString() ?? "");
+                              setNotice(`Ready to link donor for ${u.email}. Set SupporterId above and apply.`);
                             }}
                           >
                             Link donor

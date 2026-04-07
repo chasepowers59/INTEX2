@@ -34,6 +34,8 @@ export function ResidentProcessRecordingsPage() {
   const [data, setData] = useState<Paged<Recording> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editSummary, setEditSummary] = useState("");
   const [form, setForm] = useState({
     sessionDate: new Date().toISOString().slice(0, 10),
     socialWorkerName: "",
@@ -247,25 +249,10 @@ export function ResidentProcessRecordingsPage() {
                   <td data-label="Actions">
                     <RequireRole role="Admin">
                       <div className="row">
-                        <button
-                          className="btn"
-                          onClick={async () => {
-                            const next = prompt("Update summary?", x.narrativeSummary);
-                            if (!next) return;
-                            try {
-                              await apiFetch<void>(`/api/process-recordings/${x.processRecordingId}`, {
-                                method: "PUT",
-                                token: auth.token ?? undefined,
-                                body: JSON.stringify({ ...x, narrativeSummary: next }),
-                              });
-                              await load();
-                            } catch (e) {
-                              setError((e as Error).message);
-                            }
-                          }}
-                        >
-                          Edit
-                        </button>
+                        <button className="btn" onClick={() => {
+                          setEditingId(x.processRecordingId);
+                          setEditSummary(x.narrativeSummary);
+                        }}>Edit</button>
                         <button
                           className="btn danger"
                           onClick={async () => {
@@ -288,6 +275,36 @@ export function ResidentProcessRecordingsPage() {
                   </td>
                 </tr>
               ))}
+              {editingId !== null ? (
+                <tr>
+                  <td className="muted">Editing</td>
+                  <td className="muted">—</td>
+                  <td className="muted">—</td>
+                  <td>
+                    <input className="input" value={editSummary} onChange={(e) => setEditSummary(e.target.value)} />
+                  </td>
+                  <td>
+                    <div className="row">
+                      <button className="btn primary" onClick={async () => {
+                        const original = data?.items.find((r) => r.processRecordingId === editingId);
+                        if (!original) return;
+                        try {
+                          await apiFetch<void>(`/api/process-recordings/${editingId}`, {
+                            method: "PUT",
+                            token: auth.token ?? undefined,
+                            body: JSON.stringify({ ...original, narrativeSummary: editSummary }),
+                          });
+                          setEditingId(null);
+                          await load();
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}>Save</button>
+                      <button className="btn" onClick={() => setEditingId(null)}>Cancel</button>
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
               {data && rows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="muted">

@@ -45,6 +45,11 @@ export function ResidentHomeVisitsPage() {
   const [error, setError] = useState<string | null>(null);
   const [visitPage, setVisitPage] = useState(1);
   const [confPage, setConfPage] = useState(1);
+  const [conferenceForm, setConferenceForm] = useState({
+    scheduledAtUtc: "",
+    topic: "",
+    notes: "",
+  });
   const [visitForm, setVisitForm] = useState({
     visitDate: new Date().toISOString().slice(0, 10),
     visitType: "RoutineFollowUp",
@@ -299,26 +304,37 @@ export function ResidentHomeVisitsPage() {
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ marginTop: 0, marginBottom: 0 }}>Case conferences</h2>
-          <RequireRole role="Admin">
+        </div>
+        <RequireRole role="Admin">
+          <div className="row" style={{ marginTop: 8 }}>
+            <input
+              className="input"
+              placeholder="Scheduled UTC (e.g., 2026-04-10T14:00:00Z)"
+              value={conferenceForm.scheduledAtUtc}
+              onChange={(e) => setConferenceForm((p) => ({ ...p, scheduledAtUtc: e.target.value }))}
+            />
+            <input className="input" placeholder="Topic" value={conferenceForm.topic} onChange={(e) => setConferenceForm((p) => ({ ...p, topic: e.target.value }))} />
+            <input className="input" placeholder="Notes (optional)" value={conferenceForm.notes} onChange={(e) => setConferenceForm((p) => ({ ...p, notes: e.target.value }))} />
             <button
               className="btn primary"
               onClick={async () => {
-                const topic = prompt("Conference topic?");
-                if (!topic) return;
-                const when = prompt("Scheduled time (UTC ISO, e.g. 2026-04-10T14:00:00Z)?");
-                if (!when) return;
+                if (!conferenceForm.scheduledAtUtc.trim() || !conferenceForm.topic.trim()) {
+                  setError("Conference time and topic are required.");
+                  return;
+                }
                 try {
                   await apiFetch<void>("/api/case-conferences", {
                     method: "POST",
                     token: auth.token ?? undefined,
                     body: JSON.stringify({
                       residentId,
-                      scheduledAtUtc: when,
-                      topic,
-                      notes: null,
+                      scheduledAtUtc: conferenceForm.scheduledAtUtc.trim(),
+                      topic: conferenceForm.topic.trim(),
+                      notes: conferenceForm.notes.trim() || null,
                       isCompleted: false,
                     }),
                   });
+                  setConferenceForm({ scheduledAtUtc: "", topic: "", notes: "" });
                   await load();
                 } catch (e) {
                   setError((e as Error).message);
@@ -327,8 +343,8 @@ export function ResidentHomeVisitsPage() {
             >
               Schedule conference
             </button>
-          </RequireRole>
-        </div>
+          </div>
+        </RequireRole>
 
         <div className="table-wrap">
           <table className="table" style={{ marginTop: 10 }}>

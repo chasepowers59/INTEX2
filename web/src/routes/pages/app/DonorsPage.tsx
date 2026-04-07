@@ -13,6 +13,17 @@ type Supporter = {
 };
 
 type Paged<T> = { page: number; pageSize: number; total: number; items: T[] };
+type Contribution = {
+  contributionId: number;
+  contributionType: string;
+  amount: number | null;
+  estimatedValue?: number | null;
+  impactUnit?: string | null;
+  currency: string;
+  contributionDate: string;
+  campaignName: string | null;
+  notes: string | null;
+};
 type DonorStewardship = {
   watchlist: {
     supporterId: number;
@@ -37,11 +48,24 @@ export function DonorsPage() {
   const [q, setQ] = useState("");
   const [data, setData] = useState<Paged<Supporter> | null>(null);
   const [selectedSupporter, setSelectedSupporter] = useState<Supporter | null>(null);
-  const [contribs, setContribs] = useState<Paged<any> | null>(null);
+  const [contribs, setContribs] = useState<Paged<Contribution> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stewardship, setStewardship] = useState<DonorStewardship | null>(null);
   const [supporterPage, setSupporterPage] = useState(1);
   const [contribPage, setContribPage] = useState(1);
+  const [newSupporter, setNewSupporter] = useState({ fullName: "", email: "", supporterType: "Monetary" });
+  const [editingSupporterId, setEditingSupporterId] = useState<number | null>(null);
+  const [editingSupporterName, setEditingSupporterName] = useState("");
+  const [newContribution, setNewContribution] = useState({
+    contributionType: "Monetary",
+    amount: "",
+    estimatedValue: "",
+    impactUnit: "",
+    campaignName: "",
+    notes: "",
+    inKindItemName: "",
+    inKindQuantity: "1",
+  });
 
   const load = async () => {
     setError(null);
@@ -52,7 +76,7 @@ export function DonorsPage() {
   };
 
   const loadContribs = async (supporterId: number) => {
-    const res = await apiFetch<Paged<any>>(`/api/contributions?supporterId=${supporterId}`, {
+    const res = await apiFetch<Paged<Contribution>>(`/api/contributions?supporterId=${supporterId}`, {
       token: auth.token ?? undefined,
     });
     setContribs(res);
@@ -90,19 +114,19 @@ export function DonorsPage() {
             <button
               className="btn primary"
               onClick={async () => {
-                const fullName = prompt("Supporter full name?");
-                if (!fullName) return;
+                if (!newSupporter.fullName.trim()) return setError("Supporter full name is required.");
                 try {
                   await apiFetch<Supporter>("/api/supporters", {
                     method: "POST",
                     token: auth.token ?? undefined,
                     body: JSON.stringify({
-                      fullName,
-                      email: null,
-                      supporterType: "Monetary",
+                      fullName: newSupporter.fullName.trim(),
+                      email: newSupporter.email.trim() || null,
+                      supporterType: newSupporter.supporterType,
                       isActive: true,
                     }),
                   });
+                  setNewSupporter({ fullName: "", email: "", supporterType: "Monetary" });
                   await load();
                 } catch (e) {
                   setError((e as Error).message);
@@ -113,6 +137,19 @@ export function DonorsPage() {
             </button>
           </RequireRole>
         </div>
+        <RequireRole role="Admin">
+          <div className="row" style={{ marginTop: 10 }}>
+            <input className="input" placeholder="Full name" value={newSupporter.fullName} onChange={(e) => setNewSupporter((p) => ({ ...p, fullName: e.target.value }))} />
+            <input className="input" placeholder="Email (optional)" value={newSupporter.email} onChange={(e) => setNewSupporter((p) => ({ ...p, email: e.target.value }))} />
+            <select className="input" value={newSupporter.supporterType} onChange={(e) => setNewSupporter((p) => ({ ...p, supporterType: e.target.value }))}>
+              <option value="Monetary">Monetary</option>
+              <option value="InKind">In-kind</option>
+              <option value="Time">Time</option>
+              <option value="Skills">Skills</option>
+              <option value="Advocacy">Advocacy</option>
+            </select>
+          </div>
+        </RequireRole>
       </div>
 
       {stewardship ? (
@@ -187,25 +224,10 @@ export function DonorsPage() {
                   <td data-label="Actions">
                     <RequireRole role="Admin">
                       <div className="row">
-                        <button
-                          className="btn"
-                          onClick={async () => {
-                            const nextName = prompt("New full name?", x.fullName);
-                            if (!nextName) return;
-                            try {
-                              await apiFetch<void>(`/api/supporters/${x.supporterId}`, {
-                                method: "PUT",
-                                token: auth.token ?? undefined,
-                                body: JSON.stringify({ ...x, fullName: nextName }),
-                              });
-                              await load();
-                            } catch (e) {
-                              setError((e as Error).message);
-                            }
-                          }}
-                        >
-                          Edit
-                        </button>
+                        <button className="btn" onClick={() => {
+                          setEditingSupporterId(x.supporterId);
+                          setEditingSupporterName(x.fullName);
+                        }}>Edit</button>
                         <button
                           className="btn danger"
                           onClick={async () => {
@@ -229,6 +251,34 @@ export function DonorsPage() {
                   </td>
                 </tr>
               ))}
+              {editingSupporterId !== null ? (
+                <tr>
+                  <td><input className="input" value={editingSupporterName} onChange={(e) => setEditingSupporterName(e.target.value)} /></td>
+                  <td className="muted">—</td>
+                  <td className="muted">—</td>
+                  <td className="muted">—</td>
+                  <td>
+                    <div className="row">
+                      <button className="btn primary" onClick={async () => {
+                        const original = data?.items.find((s) => s.supporterId === editingSupporterId);
+                        if (!original) return;
+                        try {
+                          await apiFetch<void>(`/api/supporters/${editingSupporterId}`, {
+                            method: "PUT",
+                            token: auth.token ?? undefined,
+                            body: JSON.stringify({ ...original, fullName: editingSupporterName.trim() || original.fullName }),
+                          });
+                          setEditingSupporterId(null);
+                          await load();
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}>Save</button>
+                      <button className="btn" onClick={() => setEditingSupporterId(null)}>Cancel</button>
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
               {data && supporterRows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="muted">
@@ -264,37 +314,46 @@ export function DonorsPage() {
                 <button
                   className="btn primary"
                   onClick={async () => {
-                    const contributionType = prompt("Contribution type? Monetary | InKind | Time | Skills | Advocacy", "Monetary") ?? "Monetary";
-                    const amountStr = prompt("Amount (for Monetary) or leave blank", "");
-                    const estimatedValueStr = prompt("Estimated value (for non-monetary) or leave blank", "");
-                    const amount = amountStr ? Number(amountStr) : null;
-                    const estimatedValue = estimatedValueStr ? Number(estimatedValueStr) : null;
+                    const amount = newContribution.amount.trim() ? Number(newContribution.amount) : null;
+                    const estimatedValue = newContribution.estimatedValue.trim() ? Number(newContribution.estimatedValue) : null;
                     try {
                       const created = await apiFetch<any>("/api/contributions", {
                         method: "POST",
                         token: auth.token ?? undefined,
                         body: JSON.stringify({
                           supporterId: selectedSupporter.supporterId,
-                          contributionType,
+                          contributionType: newContribution.contributionType,
                           amount,
                           estimatedValue,
-                          impactUnit: contributionType === "Time" ? "hours" : contributionType === "Advocacy" ? "posts" : null,
+                          impactUnit: newContribution.impactUnit.trim() || null,
                           currency: "PHP",
                           contributionDate: new Date().toISOString().slice(0, 10),
-                          campaignName: null,
-                          notes: null,
+                          campaignName: newContribution.campaignName.trim() || null,
+                          notes: newContribution.notes.trim() || null,
                         }),
                       });
-                      if (contributionType === "InKind") {
-                        const itemName = prompt("In-kind item name?", "Care kit");
-                        if (itemName) {
-                          await apiFetch<void>(`/api/contributions/${created.contributionId}/in-kind-items`, {
-                            method: "POST",
-                            token: auth.token ?? undefined,
-                            body: JSON.stringify({ itemName, itemCategory: "General", quantity: 1, unitOfMeasure: "item" }),
-                          });
-                        }
+                      if (newContribution.contributionType === "InKind" && newContribution.inKindItemName.trim()) {
+                        await apiFetch<void>(`/api/contributions/${created.contributionId}/in-kind-items`, {
+                          method: "POST",
+                          token: auth.token ?? undefined,
+                          body: JSON.stringify({
+                            itemName: newContribution.inKindItemName.trim(),
+                            itemCategory: "General",
+                            quantity: Number(newContribution.inKindQuantity) || 1,
+                            unitOfMeasure: "item",
+                          }),
+                        });
                       }
+                      setNewContribution({
+                        contributionType: "Monetary",
+                        amount: "",
+                        estimatedValue: "",
+                        impactUnit: "",
+                        campaignName: "",
+                        notes: "",
+                        inKindItemName: "",
+                        inKindQuantity: "1",
+                      });
                       await loadContribs(selectedSupporter.supporterId);
                     } catch (e) {
                       setError((e as Error).message);
@@ -305,6 +364,28 @@ export function DonorsPage() {
                 </button>
               </RequireRole>
             </div>
+            <RequireRole role="Admin">
+              <div className="row" style={{ marginTop: 10 }}>
+                <select className="input" value={newContribution.contributionType} onChange={(e) => setNewContribution((p) => ({ ...p, contributionType: e.target.value }))}>
+                  <option value="Monetary">Monetary</option>
+                  <option value="InKind">InKind</option>
+                  <option value="Time">Time</option>
+                  <option value="Skills">Skills</option>
+                  <option value="Advocacy">Advocacy</option>
+                </select>
+                <input className="input" placeholder="Amount" value={newContribution.amount} onChange={(e) => setNewContribution((p) => ({ ...p, amount: e.target.value }))} />
+                <input className="input" placeholder="Estimated value" value={newContribution.estimatedValue} onChange={(e) => setNewContribution((p) => ({ ...p, estimatedValue: e.target.value }))} />
+                <input className="input" placeholder="Impact unit" value={newContribution.impactUnit} onChange={(e) => setNewContribution((p) => ({ ...p, impactUnit: e.target.value }))} />
+                <input className="input" placeholder="Campaign" value={newContribution.campaignName} onChange={(e) => setNewContribution((p) => ({ ...p, campaignName: e.target.value }))} />
+                <input className="input" placeholder="Notes" value={newContribution.notes} onChange={(e) => setNewContribution((p) => ({ ...p, notes: e.target.value }))} />
+              </div>
+              {newContribution.contributionType === "InKind" ? (
+                <div className="row" style={{ marginTop: 8 }}>
+                  <input className="input" placeholder="In-kind item name" value={newContribution.inKindItemName} onChange={(e) => setNewContribution((p) => ({ ...p, inKindItemName: e.target.value }))} />
+                  <input className="input" placeholder="In-kind quantity" value={newContribution.inKindQuantity} onChange={(e) => setNewContribution((p) => ({ ...p, inKindQuantity: e.target.value }))} />
+                </div>
+              ) : null}
+            </RequireRole>
 
             <div className="table-wrap">
               <table className="table" style={{ marginTop: 10 }}>
@@ -318,7 +399,7 @@ export function DonorsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {contribRows.map((c: any) => (
+                  {contribRows.map((c) => (
                     <tr key={c.contributionId}>
                       <td data-label="Date" className="muted">
                         {c.contributionDate}
