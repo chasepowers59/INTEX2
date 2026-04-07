@@ -64,6 +64,9 @@ export function PublicLayout() {
             <Link className="nav-pill" to="/contact">
               Contact
             </Link>
+            <Link className="nav-pill" to="/roles">
+              Roles
+            </Link>
             <div className="nav-dropdown">
               <span className="nav-pill">Programs</span>
               <div className="nav-dropdown-menu" role="menu" aria-label="Programs">
@@ -193,6 +196,12 @@ export function AppLayout() {
 
             <div className="sidebar-section-label">Machine Learning</div>
             <nav className="nav">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/social-media">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 12h16M12 4v16" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Social strategy
+              </NavLink>
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/action-center">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
                   <path

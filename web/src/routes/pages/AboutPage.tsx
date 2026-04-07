@@ -40,6 +40,9 @@ export function AboutPage() {
           <Link className="btn" to="/impact">
             View public impact
           </Link>
+          <Link className="btn" to="/roles">
+            View role guide
+          </Link>
         </div>
       </div>
     </div>
