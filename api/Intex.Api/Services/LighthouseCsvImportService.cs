@@ -77,7 +77,7 @@ public sealed class LighthouseCsvImportService(
         {
             await tx.RollbackAsync(ct);
             logger.LogError(ex, "Lighthouse CSV import failed.");
-            return new ImportResult(false, ex.Message, []);
+            return new ImportResult(false, FlattenException(ex), []);
         }
     }
 
@@ -159,6 +159,59 @@ public sealed class LighthouseCsvImportService(
         return null;
     }
 
+    private static string FlattenException(Exception ex)
+    {
+        var parts = new List<string>();
+        for (var cur = ex; cur is not null; cur = cur.InnerException)
+        {
+            if (string.IsNullOrWhiteSpace(cur.Message)) continue;
+            if (parts.Count > 0 && string.Equals(parts[^1], cur.Message, StringComparison.Ordinal)) continue;
+            parts.Add(cur.Message.Trim());
+        }
+
+        return parts.Count == 0
+            ? "Unknown import error."
+            : string.Join(" | ", parts);
+    }
+
+    private async Task SaveRowsWithIdentityInsertAsync<TEntity>(
+        DbSet<TEntity> set,
+        string logLabel,
+        List<TEntity> rows,
+        List<string> log,
+        CancellationToken ct) where TEntity : class
+    {
+        if (rows.Count == 0)
+        {
+            log.Add($"{logLabel}: 0");
+            return;
+        }
+
+        await set.AddRangeAsync(rows, ct);
+        var et = db.Model.FindEntityType(typeof(TEntity));
+        var table = et?.GetTableName();
+        var schema = et?.GetSchema() ?? "dbo";
+        if (!string.IsNullOrWhiteSpace(table))
+        {
+            await db.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{schema}].[{table}] ON", cancellationToken: ct);
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(table))
+            {
+                await db.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{schema}].[{table}] OFF", cancellationToken: ct);
+            }
+        }
+
+        db.ChangeTracker.Clear();
+        log.Add($"{logLabel}: {rows.Count}");
+    }
+
     private async Task ImportSafehousesAsync(string dir, List<string> log, CancellationToken ct)
     {
         var path = PathFor(dir, "safehouses");
@@ -192,14 +245,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.Safehouses.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"safehouses: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.Safehouses, "safehouses", rows, log, ct);
     }
 
     private async Task ImportPartnersAsync(string dir, List<string> log, CancellationToken ct)
@@ -232,14 +278,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.Partners.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"partners: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.Partners, "partners", rows, log, ct);
     }
 
     private async Task ImportPartnerAssignmentsAsync(string dir, List<string> log, CancellationToken ct)
@@ -269,14 +308,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.PartnerAssignments.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"partner_assignments: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.PartnerAssignments, "partner_assignments", rows, log, ct);
     }
 
     private async Task ImportSupportersAsync(string dir, List<string> log, CancellationToken ct)
@@ -323,14 +355,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.Supporters.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"supporters: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.Supporters, "supporters", rows, log, ct);
     }
 
     private async Task ImportSocialMediaPostsAsync(string dir, List<string> log, CancellationToken ct)
@@ -386,14 +411,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.SocialMediaPosts.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"social_media_posts: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.SocialMediaPosts, "social_media_posts", rows, log, ct);
     }
 
     private async Task ImportContributionsAsync(string dir, List<string> log, CancellationToken ct)
@@ -428,14 +446,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.Contributions.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"donations→Contributions: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.Contributions, "donations→Contributions", rows, log, ct);
     }
 
     private async Task ImportInKindItemsAsync(string dir, List<string> log, CancellationToken ct)
@@ -465,14 +476,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.InKindDonationItems.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"in_kind_donation_items: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.InKindDonationItems, "in_kind_donation_items", rows, log, ct);
     }
 
     private async Task ImportDonationAllocationsAsync(string dir, List<string> log, CancellationToken ct)
@@ -500,14 +504,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.DonationAllocations.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"donation_allocations: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.DonationAllocations, "donation_allocations", rows, log, ct);
     }
 
     private async Task ImportResidentsAsync(string dir, List<string> log, CancellationToken ct)
@@ -579,14 +576,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.Residents.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"residents: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.Residents, "residents", rows, log, ct);
     }
 
     private async Task ImportProcessRecordingsAsync(string dir, List<string> log, CancellationToken ct)
@@ -622,14 +612,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.ProcessRecordings.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"process_recordings: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.ProcessRecordings, "process_recordings", rows, log, ct);
     }
 
     private async Task ImportHomeVisitationsAsync(string dir, List<string> log, CancellationToken ct)
@@ -664,14 +647,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.HomeVisitations.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"home_visitations: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.HomeVisitations, "home_visitations", rows, log, ct);
     }
 
     private async Task ImportEducationRecordsAsync(string dir, List<string> log, CancellationToken ct)
@@ -704,14 +680,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.EducationRecords.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"education_records: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.EducationRecords, "education_records", rows, log, ct);
     }
 
     private async Task ImportHealthRecordsAsync(string dir, List<string> log, CancellationToken ct)
@@ -746,14 +715,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.HealthWellbeingRecords.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"health_wellbeing_records: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.HealthWellbeingRecords, "health_wellbeing_records", rows, log, ct);
     }
 
     private async Task ImportInterventionPlansAsync(string dir, List<string> log, CancellationToken ct)
@@ -785,14 +747,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.InterventionPlans.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"intervention_plans: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.InterventionPlans, "intervention_plans", rows, log, ct);
     }
 
     private async Task ImportIncidentReportsAsync(string dir, List<string> log, CancellationToken ct)
@@ -825,14 +780,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.IncidentReports.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"incident_reports: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.IncidentReports, "incident_reports", rows, log, ct);
     }
 
     private async Task ImportSafehouseMonthlyMetricsAsync(string dir, List<string> log, CancellationToken ct)
@@ -864,14 +812,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.SafehouseMonthlyMetrics.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"safehouse_monthly_metrics: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.SafehouseMonthlyMetrics, "safehouse_monthly_metrics", rows, log, ct);
     }
 
     private async Task ImportPublicImpactSnapshotsAsync(string dir, List<string> log, CancellationToken ct)
@@ -899,14 +840,7 @@ public sealed class LighthouseCsvImportService(
             }
         }
 
-        if (rows.Count > 0)
-        {
-            await db.PublicImpactSnapshots.AddRangeAsync(rows, ct);
-            await db.SaveChangesAsync(ct);
-            db.ChangeTracker.Clear();
-        }
-
-        log.Add($"public_impact_snapshots: {rows.Count}");
+        await SaveRowsWithIdentityInsertAsync(db.PublicImpactSnapshots, "public_impact_snapshots", rows, log, ct);
     }
 
     private static string? CombineLoc(string? city, string? prov)
