@@ -23,4 +23,16 @@ internal static class StartupMigrationDiagnostics
             msg = msg[..maxLen] + "…";
         ErrorMessage = msg;
     }
+
+    /// <summary>
+    /// When startup EF migrate failed (e.g. Azure SQL cold start) but the live DB now has no pending migrations, clear the stale failure so imports and ops behave as if migrate succeeded.
+    /// </summary>
+    public static void ReconcileStaleFailureIfNoPendingMigrations(int pendingCount)
+    {
+        if (pendingCount != 0 || Outcome != OutcomeFailed)
+            return;
+
+        Outcome = OutcomeOk;
+        ErrorMessage = null;
+    }
 }

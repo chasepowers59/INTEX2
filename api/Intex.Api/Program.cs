@@ -28,6 +28,7 @@ builder.Services.AddOpenApi();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<LighthouseCsvImportService>();
+builder.Services.AddHostedService<LighthousePostStartupHostedService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -276,6 +277,7 @@ app.MapGet("/health/migrations", async (IServiceProvider sp) =>
     var pending = await db.Database.GetPendingMigrationsAsync();
     var appliedList = applied.ToArray();
     var pendingList = pending.ToArray();
+    StartupMigrationDiagnostics.ReconcileStaleFailureIfNoPendingMigrations(pendingList.Length);
     return Results.Ok(new
     {
         status = "ok",
@@ -354,10 +356,37 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
                 "Applying EF Core migrations. Pending: {Count} ({Names})",
                 pending.Count(),
                 string.Join(", ", pending));
-            await db.Database.MigrateAsync();
-            migrateLog.LogInformation("EF Core migrations completed.");
-            StartupMigrationDiagnostics.Outcome = StartupMigrationDiagnostics.OutcomeOk;
-            StartupMigrationDiagnostics.ErrorMessage = null;
+            var (migratedOk, migrateErr) = await EFMigrationRetry.TryMigrateAsync(
+                db.Database,
+                migrateLog,
+                maxAttempts: app.Configuration.GetValue("Database:MigrateMaxAttempts", 7),
+                cancellationToken: default);
+            if (migratedOk)
+            {
+                migrateLog.LogInformation("EF Core migrations completed.");
+                StartupMigrationDiagnostics.Outcome = StartupMigrationDiagnostics.OutcomeOk;
+                StartupMigrationDiagnostics.ErrorMessage = null;
+            }
+            else if (migrateErr is not null)
+            {
+                var pendingNames = "";
+                try
+                {
+                    pendingNames = string.Join(", ", await db.Database.GetPendingMigrationsAsync());
+                }
+                catch
+                {
+                    pendingNames = "(could not read pending list)";
+                }
+
+                StartupMigrationDiagnostics.SetFailed(migrateErr);
+
+                // Do not rethrow: a failed MigrateAsync would stop the host entirely (Azure HTTP 500.30) and hide /health endpoints.
+                migrateLog.LogCritical(
+                    migrateErr,
+                    "MigrateAsync failed — API is starting without a guaranteed schema. Run cleanup SQL in docs/azure-deploy.md if you see only __EFMigrationsHistory + ImpactAllocations, then restart. Pending migrations: {Pending}",
+                    pendingNames);
+            }
         }
         catch (Exception ex)
         {
@@ -373,7 +402,6 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
 
             StartupMigrationDiagnostics.SetFailed(ex);
 
-            // Do not rethrow: a failed MigrateAsync would stop the host entirely (Azure HTTP 500.30) and hide /health endpoints.
             migrateLog.LogCritical(
                 ex,
                 "MigrateAsync failed — API is starting without a guaranteed schema. Run cleanup SQL in docs/azure-deploy.md if you see only __EFMigrationsHistory + ImpactAllocations, then restart. Pending migrations: {Pending}",
@@ -387,18 +415,7 @@ else
     StartupMigrationDiagnostics.ErrorMessage = null;
 }
 
-if (StartupMigrationDiagnostics.Outcome == StartupMigrationDiagnostics.OutcomeOk
-    || StartupMigrationDiagnostics.Outcome == StartupMigrationDiagnostics.OutcomeSkipped)
-{
-    try
-    {
-        await LighthouseStartupImport.TryAutoImportIfEmptyAsync(app.Services, app.Configuration, app.Logger);
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "Lighthouse CSV auto-import failed with an unexpected error.");
-    }
-}
+// Lighthouse CSV import runs in LighthousePostStartupHostedService after the server listens (avoids Azure 503 during long import).
 
 if (app.Configuration.GetValue("Database:AutoMigrate", true))
 {

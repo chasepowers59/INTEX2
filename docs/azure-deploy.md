@@ -91,7 +91,7 @@ Alternatively, from your PC (firewall allowing your IP):
    **Donor portal demo:** If `Seed__DonorEmail` / `Seed__DonorPassword` are set and `Seed__DemoData` is `true`, the API creates a `Supporters` row (matching that email), links `AspNetUsers.SupporterId`, and inserts sample contributions and impact allocations so `/app/donor` shows data without manual steps.
 
 6. **Lighthouse CSV data (Supporters, Residents, donations, etc.)**  
-   The API ships **bundled CSVs** under `LighthouseSeedCsv/lighthouse_csv_v7` in the published output. On startup, if **`Supporters` has no rows** and **`LighthouseImport:AutoImportIfEmpty`** is `true` (default), the API runs a **replace** import (clears **operational** tables only—not `AspNetUsers` / roles—then loads CSVs).  
+   The API ships **bundled CSVs** under `LighthouseSeedCsv/lighthouse_csv_v7` in the published output. After the web server is listening, if **`Supporters` has no rows** and **`LighthouseImport:AutoImportIfEmpty`** is `true` (default), a background job runs a **replace** import (clears **operational** tables only—not `AspNetUsers` / roles—then loads CSVs). That ordering avoids Azure reporting **HTTP 503** while a long import blocks startup. **`/health`** can return **200** for a short time before the import finishes; staff APIs that need CSV-backed rows may be empty until logs show the import completed.  
    - Set **`LighthouseImport__AutoImportIfEmpty`** = `false` if you manage data only via **`POST /api/admin/lighthouse-import`** or manual SQL.  
    - If auto-import already ran once, **`Supporters` is non-empty** and startup will **skip** (no duplicate load). To reload CSVs, use the admin API with **`Replace: true`** or clear operational tables.  
    - Optional **`LighthouseImport__SourceDirectory`**: absolute path on the App Service (e.g. extracted zip) **instead of** bundled CSVs.
@@ -102,6 +102,8 @@ Alternatively, from your PC (firewall allowing your IP):
    - **`POST /api/admin/lighthouse-import`** (Admin role) or **`/app/admin/lighthouse-import`**: use when you need a manual reload; pass **`Replace: true`** for a clean operational load. You can set **`LighthouseImport__SourceDirectory`** to an absolute path on the App Service (e.g. after uploading via Kudu) if you are not using the bundled CSVs.
 
 ## Debugging (when something breaks)
+
+**HTTP 503 “Service Unavailable” (IIS-style HTML):** Usually the platform has no healthy worker yet—common causes are **app crash on startup**, **stopped slot**, or **startup taking too long** (migrations + heavy work before the process listens). After deploy, check **Log stream** and **`GET /health`**. If migrations succeed but CSV import is large, this repo runs Lighthouse import **after** the server listens so probes should not wait on import.
 
 App Service (API) troubleshooting checklist:
 - Turn on **Application logging (Filesystem)** temporarily and use **Log stream**.
