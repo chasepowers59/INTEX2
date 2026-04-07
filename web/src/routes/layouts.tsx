@@ -27,6 +27,12 @@ export function PublicLayout() {
 
   return (
     <>
+      <div className="public-top-strip">
+        <div className="container public-top-strip-inner muted">
+          <span>South Korea Victim Support Line: +82 02-555-0147</span>
+          <span>Email: support@stepsofhope.org · Donor Relations: donors@stepsofhope.org</span>
+        </div>
+      </div>
       <header className="public-header">
         <div className="container public-header-inner">
           <Link to="/" className="public-brand">
@@ -37,6 +43,15 @@ export function PublicLayout() {
             </span>
           </Link>
           <nav className="nav-pills" aria-label="Primary">
+            <Link className="nav-pill" to="/">
+              Home
+            </Link>
+            <Link className="nav-pill" to="/about">
+              About
+            </Link>
+            <Link className="nav-pill" to="/contact">
+              Contact
+            </Link>
             <Link className="nav-pill" to="/impact">
               Impact
             </Link>

@@ -77,6 +77,7 @@ High-level:
 3. Deploy `web/` to Azure Static Web Apps and set `VITE_API_BASE_URL` to your App Service URL.
 
 Step-by-step: `docs/azure-deploy.md`
+Operational validation checklist: `docs/operational-readiness.md`
 
 **Deployed frontend + API (CORS):** The API only allows origins listed under `Cors:AllowedOrigins`. In Azure App Service set `Cors__AllowedOrigins__0` to your **exact** Static Web Apps URL (e.g. `https://nice-coast-0c9d7ab10.2.azurestaticapps.net`). If it is missing or still set to only `http://localhost:5173`, the browser blocks `fetch` with a CORS error. Confirm with `GET /health/info` (`corsAllowedOrigins` in the JSON).
 

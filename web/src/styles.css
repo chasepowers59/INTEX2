@@ -402,6 +402,22 @@ a {
   backdrop-filter: blur(12px);
 }
 
+.public-top-strip {
+  border-bottom: 1px solid var(--border);
+  background: rgba(7, 10, 20, 0.85);
+}
+
+.public-top-strip-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 12px;
+}
+
 .public-header-inner {
   display: flex;
   align-items: center;

@@ -9,6 +9,8 @@ import { GivePage } from "./pages/GivePage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterDonorPage } from "./pages/RegisterDonorPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
+import { AboutPage } from "./pages/AboutPage";
+import { ContactPage } from "./pages/ContactPage";
 import { AppDashboardPage } from "./pages/app/AppDashboardPage";
 import { DonorsPage } from "./pages/app/DonorsPage";
 import { CaseloadPage } from "./pages/app/CaseloadPage";
@@ -34,6 +36,8 @@ export function App() {
             <Route path="/give" element={<GivePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterDonorPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
           </Route>
 
