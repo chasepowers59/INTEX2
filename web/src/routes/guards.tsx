@@ -32,7 +32,7 @@ export function RequireStaff() {
     <div className="card" style={{ maxWidth: 520 }}>
       <h2 style={{ marginTop: 0 }}>Staff access only</h2>
       <p className="muted">
-        This area is for program leadership and social workers. Supporters can create a{" "}
+        This area is for program staff and social workers. Supporters can create a{" "}
         <strong>donor account</strong> (free) to give and track personal impact—no resident data is ever exposed.
       </p>
       <div className="row" style={{ marginTop: 14 }}>
@@ -63,7 +63,7 @@ export function RequireRole(props: { role: string; children: React.ReactNode }) 
         <h2 style={{ marginTop: 0 }}>You’re signed in as staff</h2>
         <p className="muted">
           The donor portal is for supporter accounts with the <strong>Donor</strong> role. Your staff login uses the
-          leadership dashboard instead.
+          operations dashboard instead.
         </p>
         <div className="row" style={{ marginTop: 14 }}>
           <Link className="btn primary" to="/app/dashboard">

@@ -83,7 +83,7 @@ export function ImpactPage() {
 
       <div className="photo-grid">
         <div className="photo-placeholder" role="img" aria-label="Safehouse community support session">
-          <img src="/reference/south-korea-safehouse-support.jpg" alt="Safehouse recovery and support environment." />
+          <img src="/reference/hero-ribbon.png" alt="Safehouse recovery and support environment." />
           <div className="caption">Safehouse recovery support</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Social workers documenting program outcomes">

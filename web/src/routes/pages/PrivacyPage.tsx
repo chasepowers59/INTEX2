@@ -22,7 +22,7 @@ export function PrivacyPage() {
 
       <h2>How we use data</h2>
       <ul className="muted" style={{ lineHeight: 1.6 }}>
-        <li>Run the leadership dashboard and reporting features</li>
+        <li>Run the operations dashboard and reporting features</li>
         <li>Support internal case management workflows</li>
         <li>Publish anonymized, aggregated impact snapshots on the public dashboard</li>
       </ul>

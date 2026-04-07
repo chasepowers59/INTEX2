@@ -15,7 +15,7 @@ export function AboutPage() {
 
       <div className="photo-grid">
         <div className="photo-placeholder" role="img" aria-label="Coordinated safehouse support team">
-          <img src="/reference/south-korea-safehouse-support.jpg" alt="Coordinated safehouse support team." />
+          <img src="/reference/hero-ribbon.png" alt="Coordinated safehouse support team." />
           <div className="caption">Coordinated safehouse support team</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Counseling and recovery support session">
@@ -33,7 +33,7 @@ export function AboutPage() {
         <ul className="muted trust-list">
           <li>Role-based access keeps sensitive resident workflows in staff-only views.</li>
           <li>Donors get clear contribution and allocation visibility without exposing identities.</li>
-          <li>Leadership sees operational alerts and analytics for faster intervention decisions.</li>
+          <li>Staff teams see operational alerts and analytics for faster intervention decisions.</li>
           <li>Public impact pages provide aggregate outcomes suitable for accountability reporting.</li>
         </ul>
         <div className="row" style={{ marginTop: 12 }}>

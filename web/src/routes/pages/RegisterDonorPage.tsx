@@ -27,19 +27,16 @@ export function RegisterDonorPage() {
 
   return (
     <div className="auth-split">
-      <div className="auth-aside auth-dark-shell">
+      <div className="auth-aside">
         <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
           Free donor account · Donor role · South Korea victim support
         </div>
         <h2>Give and see your impact—in about a minute</h2>
         <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
-          We assign the <strong>Donor</strong> role automatically so only <em>your</em> receipts and anonymized allocation
-          summaries are visible. Your giving supports South Korean victims while resident identities stay inside the
-          staff portal.
+          We assign the <strong>Donor</strong> role automatically. You can give, view receipts, and track anonymized impact.
         </p>
         <ul className="muted" style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
           <li>Use the <strong>same email</strong> as your supporter record after CSV import to link history.</li>
-          <li>Or start fresh—we’ll create a supporter profile for you.</li>
           <li>Password must be <strong>12+</strong> characters with upper, lower, number, and a symbol.</li>
         </ul>
         <div className="row" style={{ marginTop: 18 }}>
@@ -50,12 +47,9 @@ export function RegisterDonorPage() {
             Public impact
           </Link>
         </div>
-        <div className="image-frame" style={{ marginTop: 12, maxHeight: 260 }}>
-          <img src="/reference/auth-layout-ref.png" alt="Registration and auth style inspiration." />
-        </div>
       </div>
 
-      <div className="card auth-panel glow-donor auth-dark-panel">
+      <div className="card auth-panel glow-donor">
         <div className="step-track">
           <span className="step-pill active">1 · Email</span>
           <span className="step-pill active">2 · Password</span>
@@ -66,7 +60,7 @@ export function RegisterDonorPage() {
           One short form. You’ll be signed in immediately with the Donor role.
         </p>
 
-        <div className="photo-placeholder" role="img" aria-label="Donors joining support efforts for South Korean victims" style={{ marginBottom: 14 }}>
+        <div className="photo-placeholder" role="img" aria-label="Donors joining support efforts for South Korean victims" style={{ marginBottom: 12 }}>
           <img src="/reference/donor-impact-community.jpg" alt="Donors joining survivor support efforts." />
           <div className="caption">Donors joining South Korean victim support efforts</div>
         </div>
@@ -153,7 +147,7 @@ export function RegisterDonorPage() {
 
         <div className="row" style={{ marginTop: 18, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <button
-            className="btn auth-action-primary"
+            className="btn primary"
             disabled={loading}
             onClick={async () => {
               setError(null);

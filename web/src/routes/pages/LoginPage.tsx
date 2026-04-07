@@ -21,12 +21,10 @@ export function LoginPage() {
 
   return (
     <div className="auth-split">
-      <div className="auth-aside auth-dark-shell">
+      <div className="auth-aside">
         <h2>Welcome back</h2>
-        <p className="muted" style={{ margin: 0, lineHeight: 1.65 }}>
-          <strong>Staff</strong> use work email here for the leadership dashboard. <strong>Donors</strong> use the email
-          from registration—the same one as your supporter record if we imported legacy operational data for
-          South Korean victim support.
+        <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
+          <strong>Staff</strong> sign in for operations tools. <strong>Donors</strong> sign in for giving history and impact.
         </p>
         <div className="badge" style={{ marginTop: 16, borderColor: "rgba(124,108,255,0.4)", background: "rgba(124,108,255,0.08)" }}>
           Role-based access: Admin · Employee · Donor
@@ -39,19 +37,13 @@ export function LoginPage() {
             Public impact
           </Link>
         </div>
-        <div className="image-frame" style={{ marginTop: 12, maxHeight: 260 }}>
-          <img src="/reference/auth-layout-ref.png" alt="Authentication mobile design inspiration." />
-        </div>
       </div>
 
-      <div className="card auth-panel auth-dark-panel">
+      <div className="card auth-panel">
         <h1 style={{ marginTop: 0, fontSize: 26, letterSpacing: "-0.02em" }}>Sign in</h1>
         <p className="muted" style={{ marginTop: 0 }}>
           Email and password for your Steps of Hope account.
         </p>
-        <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
-          Mission focus: resources and care pathways for South Korean victims.
-        </div>
 
         <label className="field-stack" style={{ marginTop: 18 }}>
           <span className="field-label">Email</span>
@@ -90,7 +82,7 @@ export function LoginPage() {
 
         <div className="row" style={{ marginTop: 20, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <button
-            className="btn auth-action-primary"
+            className="btn primary"
             disabled={loading}
             onClick={async () => {
               setError(null);

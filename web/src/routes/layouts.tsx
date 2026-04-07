@@ -37,20 +37,11 @@ export function PublicLayout() {
         <div className="container public-header-inner">
           <Link to="/" className="public-brand">
             <span className="public-brand-mark" aria-hidden>
-              <svg viewBox="0 0 48 48" fill="none">
-                <circle cx="24" cy="24" r="24" fill="url(#lg)" />
-                <path d="M13 30h22M17 30V19l7-5 7 5v11M21 30V24h6v6" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                <defs>
-                  <linearGradient id="lg" x1="6" y1="6" x2="42" y2="42">
-                    <stop stopColor="#2dd4bf" />
-                    <stop offset="1" stopColor="#7c6cff" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              <img src="/logo-steps-of-hope.svg" alt="Steps of Hope logo" />
             </span>
             <span className="public-brand-text">
               <span className="public-brand-title">Steps of Hope</span>
-              <span className="public-brand-sub">Support for South Korean victims · donor and leadership portal</span>
+              <span className="public-brand-sub">Support for South Korean victims · donor and staff portal</span>
               <span className="public-slogan">Safety · Healing · Justice · Empowerment</span>
             </span>
           </Link>
@@ -76,8 +67,8 @@ export function PublicLayout() {
                 <Link className="nav-dropdown-item" to="/impact">
                   Healing and reintegration
                 </Link>
-                <Link className="nav-dropdown-item" to="/app/ml">
-                  Predictive prevention insights
+                <Link className="nav-dropdown-item" to="/about">
+                  Education and wellbeing support
                 </Link>
                 <Link className="nav-dropdown-item" to="/give">
                   Donor funding pathways

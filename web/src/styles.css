@@ -467,6 +467,12 @@ a {
   height: 100%;
 }
 
+.public-brand-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .public-brand-text {
   display: grid;
   gap: 2px;
@@ -621,35 +627,6 @@ a {
   letter-spacing: -0.02em;
 }
 
-.auth-dark-shell {
-  background: radial-gradient(circle at 50% 0%, rgba(184, 255, 42, 0.24), transparent 55%), #050807;
-  border-color: rgba(184, 255, 42, 0.25);
-}
-
-.auth-dark-shell h2 {
-  color: #f8ffe8;
-}
-
-.auth-dark-shell .muted {
-  color: rgba(242, 255, 210, 0.72);
-}
-
-.auth-dark-panel {
-  background: linear-gradient(180deg, rgba(7, 10, 12, 0.96), rgba(7, 10, 12, 0.9));
-  border-color: rgba(184, 255, 42, 0.2);
-}
-
-.auth-action-primary {
-  background: linear-gradient(90deg, #c9f64b, #dcff7a);
-  color: #111;
-  border-color: transparent;
-  font-weight: 800;
-}
-
-.auth-action-primary:hover {
-  filter: brightness(1.02);
-}
-
 .auth-inline-row {
   display: flex;
   align-items: center;
@@ -660,7 +637,7 @@ a {
 .auth-link-subtle {
   font-size: 12px;
   text-decoration: underline;
-  color: rgba(220, 255, 122, 0.92);
+  color: var(--brand);
 }
 
 .auth-aside {
@@ -888,13 +865,14 @@ details.optional-block[open] summary {
   left: 10px;
   right: 10px;
   bottom: 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text);
-  background: rgba(7, 10, 20, 0.48);
-  border: 1px solid rgba(238, 242, 255, 0.2);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  background: rgba(7, 10, 20, 0.72);
+  border: 1px solid rgba(238, 242, 255, 0.35);
   border-radius: 10px;
-  padding: 6px 8px;
+  padding: 7px 9px;
 }
 
 .trust-list {

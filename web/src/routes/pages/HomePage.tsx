@@ -70,7 +70,7 @@ export function HomePage() {
           <div className="caption">Trauma-informed counseling support</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Donor-supported recovery and shelter access">
-          <img src="/reference/south-korea-safehouse-support.jpg" alt="Safehouse support and recovery environment." />
+          <img src="/reference/hero-ribbon.png" alt="Safehouse support and recovery environment." />
           <div className="caption">Donor-funded shelter and recovery</div>
         </div>
       </div>
@@ -117,7 +117,7 @@ export function HomePage() {
           </Link>
         </div>
         <div className="card" style={{ flex: 1, minWidth: 260, padding: 20, background: "var(--panel2)" }}>
-          <div style={{ fontWeight: 800, fontSize: 18 }}>For leadership & staff</div>
+          <div style={{ fontWeight: 800, fontSize: 18 }}>For staff teams</div>
           <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
             Caseload, ML insights, and admin tools stay behind <strong>Admin</strong> and <strong>Employee</strong> roles—
             never mixed with donor-facing views.
@@ -217,7 +217,7 @@ export function HomePage() {
           </div>
           <div className="program-card">
             <div className="program-photo">
-              <img src="/reference/south-korea-safehouse-support.jpg" alt="Biological needs support through safe shelter and care access." />
+              <img src="/reference/hero-ribbon.png" alt="Biological needs support through safe shelter and care access." />
             </div>
             <div className="program-name">Biological Needs</div>
           </div>
@@ -261,7 +261,7 @@ export function HomePage() {
       <div className="card">
         <h2 style={{ marginTop: 0, textAlign: "center", fontSize: 46 }}>Board of Directors</h2>
         <div className="avatar-row">
-          <div className="avatar-bubble"><img src="/reference/south-korea-safehouse-support.jpg" alt="Board member profile visual 1." /></div>
+          <div className="avatar-bubble"><img src="/reference/hero-ribbon.png" alt="Board member profile visual 1." /></div>
           <div className="avatar-bubble"><img src="/reference/trauma-informed-counseling.jpg" alt="Board member profile visual 2." /></div>
           <div className="avatar-bubble"><img src="/reference/donor-impact-community.jpg" alt="Board member profile visual 3." /></div>
           <div className="avatar-bubble"><img src="/reference/education-reintegration-support.jpg" alt="Board member profile visual 4." /></div>

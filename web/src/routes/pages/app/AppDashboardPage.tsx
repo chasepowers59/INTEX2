@@ -103,7 +103,7 @@ export function AppDashboardPage() {
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Leadership Dashboard</h1>
+        <h1 style={{ marginTop: 0 }}>Operations Dashboard</h1>
         <p className="muted">
           High-signal, privacy-first view of operations supporting South Korean victims: follow-up health, donor momentum,
           and safety-critical alerts.
@@ -149,7 +149,7 @@ export function AppDashboardPage() {
       <div className="card" style={{ background: "var(--panel2)" }}>
         <div style={{ fontWeight: 800 }}>Executive note</div>
         <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-          Use this dashboard to brief leadership and partners on outcomes, risks, and stewardship while preserving survivor
+          Use this dashboard to brief staff and partners on outcomes, risks, and stewardship while preserving survivor
           privacy. Data shown here is operational and staff-only.
         </p>
         <div className="row" style={{ marginTop: 10 }}>
@@ -183,7 +183,7 @@ export function AppDashboardPage() {
           <h2 style={{ marginTop: 0 }}>Program outcomes &amp; stewardship signals</h2>
           <p className="muted" style={{ marginTop: 6 }}>
             Pulled from intervention plans, allocations, education/health records, incidents, and social posts—use this to
-            brief leadership and tune campaigns. Updated {new Date(insights.asOfUtc).toLocaleString()}.
+            brief teams and tune campaigns. Updated {new Date(insights.asOfUtc).toLocaleString()}.
           </p>
 
           <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>

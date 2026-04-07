@@ -55,7 +55,7 @@ export function GivePage() {
 
       <div className="photo-grid">
         <div className="photo-placeholder" role="img" aria-label="Donor welcome image for Korean victim support">
-          <img src="/reference/south-korea-safehouse-support.jpg" alt="Community welcome and safehouse support." />
+          <img src="/reference/hero-ribbon.png" alt="Community welcome and safehouse support." />
           <div className="caption">Donor welcome for Korean victim support</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Care package preparation">

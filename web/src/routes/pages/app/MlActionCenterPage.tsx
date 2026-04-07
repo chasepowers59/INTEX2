@@ -50,7 +50,7 @@ export function MlActionCenterPage() {
       <div className="card">
         <h1 style={{ marginTop: 0 }}>Action Center (ML)</h1>
         <p className="muted">
-          Two leadership views that align with the project goal: retain/grow donations and prevent residents from
+          Two staff views that align with the project goal: retain/grow donations and prevent residents from
           falling through the cracks.
         </p>
         {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
