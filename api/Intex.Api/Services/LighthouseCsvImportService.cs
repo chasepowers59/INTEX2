@@ -168,7 +168,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new Safehouse
@@ -211,7 +211,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new Partner
@@ -251,7 +251,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new PartnerAssignment
@@ -288,7 +288,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 var display = ToStr(d, "display_name");
@@ -342,7 +342,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new SocialMediaPost
@@ -405,7 +405,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new Contribution
@@ -447,7 +447,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new InKindDonationItem
@@ -484,7 +484,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new DonationAllocation
@@ -519,7 +519,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 var internalCode = ToStr(d, "internal_code");
@@ -598,7 +598,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new ProcessRecording
@@ -641,7 +641,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new HomeVisitation
@@ -683,7 +683,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new EducationRecord
@@ -723,7 +723,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new HealthWellbeingRecord
@@ -765,7 +765,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new InterventionPlan
@@ -804,7 +804,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new IncidentReport
@@ -844,7 +844,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new SafehouseMonthlyMetric
@@ -883,7 +883,7 @@ public sealed class LighthouseCsvImportService(
         using (var reader = new StreamReader(path))
         using (var csv = new CsvReader(reader, CsvConfig))
         {
-            foreach (ExpandoObject r in csv.GetRecords<ExpandoObject>())
+            foreach (dynamic r in csv.GetRecords<dynamic>())
             {
                 var d = (IDictionary<string, object>)r;
                 rows.Add(new PublicImpactSnapshot
