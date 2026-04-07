@@ -70,7 +70,7 @@ Alternatively, from your PC (firewall allowing your IP):
 4. Verify connectivity:
    - API `GET /health` should return `{ "status": "ok" }`
    - API `GET /health/db` should return `200` when SQL is reachable (and `503` when not)
-   - `GET /health/info` — shows `jwtKeyUtf8Bytes` / `jwtKeyConfigured` (not the secret), CORS origins, **`aspNetUserCount`**, **`seedAdminConfiguredButNoUsers`** (if `true`, `Seed__AdminPassword` failed Identity rules or seed errored — use `identityPasswordRequiredLength` and a strong password, then restart), and **`seed*CredentialsConfigured`**
+   - `GET /health/info` — shows `jwtKeyUtf8Bytes` / `jwtKeyConfigured` (not the secret), CORS origins, **`aspNetUserCount`**, **`seedAdminConfiguredButNoUsers`**, **`lighthouseAutoImportIfEmpty`**, **`identityPasswordRequiredLength`**, and **`seed*CredentialsConfigured`**
    - `GET /health/migrations` — **`pending` must be empty** after deploy; if not, run `dotnet ef database update` against this SQL database. If **`startupMigrate.outcome`** is **`failed`**, read **`startupMigrate.error`** and fix the database (often the two-table cleanup above), then restart.
    - `GET /health/schema` — **`AspNetUsers` / `Supporters` should be `true`**; if false, migrations never applied to this DB. Check **`aspNetUserCount`**: if `0`, seed users were not created (fix `Seed__*` settings and restart, or register a donor)
 
@@ -90,12 +90,16 @@ Alternatively, from your PC (firewall allowing your IP):
 
    **Donor portal demo:** If `Seed__DonorEmail` / `Seed__DonorPassword` are set and `Seed__DemoData` is `true`, the API creates a `Supporters` row (matching that email), links `AspNetUsers.SupporterId`, and inserts sample contributions and impact allocations so `/app/donor` shows data without manual steps.
 
-6. Other useful settings:
+6. **Lighthouse CSV data (Supporters, Residents, donations, etc.)**  
+   The API ships **bundled CSVs** under `LighthouseSeedCsv/lighthouse_csv_v7` in the published output. On startup, if **`Supporters` has no rows** and **`LighthouseImport:AutoImportIfEmpty`** is `true` (default), the API runs a **replace** import (clears **operational** tables only—not `AspNetUsers` / roles—then loads CSVs).  
+   - Set **`LighthouseImport__AutoImportIfEmpty`** = `false` if you manage data only via **`POST /api/admin/lighthouse-import`** or manual SQL.  
+   - If auto-import already ran once, **`Supporters` is non-empty** and startup will **skip** (no duplicate load). To reload CSVs, use the admin API with **`Replace: true`** or clear operational tables.  
+   - Optional **`LighthouseImport__SourceDirectory`**: absolute path on the App Service (e.g. extracted zip) **instead of** bundled CSVs.
+
+7. Other useful settings:
 
    - `Database__AutoMigrate` = `true` (set `false` later if you do not want automatic migrations on startup)
-   - `LighthouseImport__SourceDirectory` = absolute path on the App Service VM where CSVs live (e.g. after uploading via Kudu). Admins can also pass `sourceDirectory` in `POST /api/admin/lighthouse-import`. Use the web page **`/app/admin/lighthouse-import`** (Admin role) for the same operation.
-
-7. **Lighthouse / full case data:** After deploy, ensure migrations ran, upload CSVs to the folder referenced by `LighthouseImport__SourceDirectory` (or use the request body path), then run import with **`replace: true`** once for a clean load. Identity users are not deleted; operational tables are cleared when replacing.
+   - **`POST /api/admin/lighthouse-import`** (Admin role) or **`/app/admin/lighthouse-import`**: use when you need a manual reload; pass **`Replace: true`** for a clean operational load. You can set **`LighthouseImport__SourceDirectory`** to an absolute path on the App Service (e.g. after uploading via Kudu) if you are not using the bundled CSVs.
 
 ## Debugging (when something breaks)
 

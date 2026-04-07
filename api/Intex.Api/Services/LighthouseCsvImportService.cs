@@ -94,6 +94,11 @@ public sealed class LighthouseCsvImportService(
         if (!string.IsNullOrWhiteSpace(configured) && Directory.Exists(configured))
             return Path.GetFullPath(configured);
 
+        // Shipped with the published API (commit-friendly copy under LighthouseSeedCsv).
+        var bundled = Path.GetFullPath(Path.Combine(env.ContentRootPath, "LighthouseSeedCsv", "lighthouse_csv_v7"));
+        if (Directory.Exists(bundled))
+            return bundled;
+
         // Repo layout: api/Intex.Api -> ../../data/raw
         var guess1 = Path.GetFullPath(Path.Combine(env.ContentRootPath, "..", "..", "data", "raw"));
         if (Directory.Exists(guess1))

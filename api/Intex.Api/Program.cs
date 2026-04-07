@@ -229,6 +229,7 @@ app.MapGet("/health/info", async (IConfiguration config, IServiceProvider sp) =>
         aspNetUserCount,
         seedAdminConfiguredButNoUsers = seedAdminOk && aspNetUserCount == 0,
         identityPasswordRequiredLength = config.GetValue("Identity:Password:RequiredLength", 12),
+        lighthouseAutoImportIfEmpty = config.GetValue("LighthouseImport:AutoImportIfEmpty", true),
         nowUtc = DateTime.UtcNow
     });
 });
@@ -379,7 +380,28 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
                 pendingNames);
         }
     }
+}
+else
+{
+    StartupMigrationDiagnostics.Outcome = StartupMigrationDiagnostics.OutcomeSkipped;
+    StartupMigrationDiagnostics.ErrorMessage = null;
+}
 
+if (StartupMigrationDiagnostics.Outcome == StartupMigrationDiagnostics.OutcomeOk
+    || StartupMigrationDiagnostics.Outcome == StartupMigrationDiagnostics.OutcomeSkipped)
+{
+    try
+    {
+        await LighthouseStartupImport.TryAutoImportIfEmptyAsync(app.Services, app.Configuration, app.Logger);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Lighthouse CSV auto-import failed with an unexpected error.");
+    }
+}
+
+if (app.Configuration.GetValue("Database:AutoMigrate", true))
+{
     try
     {
         await SeedData.EnsureSeededAsync(app.Services, app.Configuration);
@@ -388,11 +410,6 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
     {
         app.Logger.LogError(ex, "Database seed failed (roles/users/demo). API may be partially usable.");
     }
-}
-else
-{
-    StartupMigrationDiagnostics.Outcome = StartupMigrationDiagnostics.OutcomeSkipped;
-    StartupMigrationDiagnostics.ErrorMessage = null;
 }
 
 app.Run();

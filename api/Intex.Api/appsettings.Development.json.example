@@ -19,6 +19,10 @@
     "Issuer": "intex-w26",
     "Audience": "intex-w26-web"
   },
+  "LighthouseImport": {
+    "AutoImportIfEmpty": true,
+    "SourceDirectory": ""
+  },
   "Seed": {
     "DemoData": true,
     "SyncPasswords": false,
