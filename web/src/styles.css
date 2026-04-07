@@ -36,7 +36,7 @@ html[data-theme="light"] {
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+  font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
     "Segoe UI Emoji";
   background: radial-gradient(1200px 800px at 15% -10%, rgba(124, 108, 255, 0.35), transparent 55%),
     radial-gradient(900px 600px at 90% 5%, rgba(48, 201, 255, 0.18), transparent 60%),
@@ -390,4 +390,288 @@ a {
   .btn {
     width: 100%;
   }
+}
+
+/* —— Public marketing & auth —— */
+.public-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.public-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.public-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.public-brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  box-shadow: 0 8px 24px rgba(124, 108, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.public-brand-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.public-brand-title {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.public-brand-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.nav-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.nav-pill {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.nav-pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(124, 108, 255, 0.45);
+  background: rgba(124, 108, 255, 0.08);
+}
+
+.nav-pill-accent {
+  border-color: rgba(45, 212, 191, 0.45);
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.nav-pill-glow {
+  border-color: rgba(124, 108, 255, 0.55);
+  background: linear-gradient(90deg, rgba(124, 108, 255, 0.2), rgba(48, 201, 255, 0.12));
+}
+
+.nav-pill-primary {
+  background: linear-gradient(90deg, var(--brand), var(--brand2));
+  border-color: transparent;
+  color: #fff;
+}
+
+.nav-pill-primary:hover {
+  filter: brightness(1.06);
+}
+
+.public-main {
+  padding-top: 28px;
+  padding-bottom: 40px;
+}
+
+.auth-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.auth-aside {
+  border-radius: 18px;
+  padding: 22px 22px;
+  border: 1px solid var(--border);
+  background: linear-gradient(155deg, rgba(124, 108, 255, 0.2), rgba(48, 201, 255, 0.06));
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-aside::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -40% auto;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 65%);
+  pointer-events: none;
+}
+
+.auth-aside h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-panel {
+  border-radius: 18px;
+  padding: 22px 22px 20px;
+}
+
+.step-track {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.step-pill {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.step-pill.active {
+  border-color: rgba(124, 108, 255, 0.5);
+  color: var(--text);
+  background: rgba(124, 108, 255, 0.12);
+}
+
+.field-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.password-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+details.optional-block {
+  margin-top: 14px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+details.optional-block summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+details.optional-block[open] summary {
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.glow-donor {
+  border-color: rgba(45, 212, 191, 0.35);
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(124, 108, 255, 0.06));
+}
+
+.donor-role-badge {
+  border-color: rgba(45, 212, 191, 0.55) !important;
+  background: rgba(45, 212, 191, 0.12) !important;
+  color: var(--text) !important;
+}
+
+.role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.role-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-chip--admin {
+  border-color: rgba(124, 108, 255, 0.55);
+  background: rgba(124, 108, 255, 0.14);
+}
+
+.role-chip--employee {
+  border-color: rgba(48, 201, 255, 0.45);
+  background: rgba(48, 201, 255, 0.1);
+}
+
+.role-chip--donor {
+  border-color: rgba(45, 212, 191, 0.5);
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.hero-home {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-home::before {
+  content: "";
+  position: absolute;
+  inset: -20% 40% auto -20%;
+  height: 70%;
+  background: radial-gradient(ellipse, rgba(124, 108, 255, 0.28), transparent 70%);
+  pointer-events: none;
+}
+
+.donor-hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.metric-tile {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  background: var(--panel2);
+}
+
+.metric-tile strong {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 4px;
 }

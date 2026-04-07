@@ -27,64 +27,84 @@ export function GivePage() {
   };
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div className="card">
-        <h1 style={{ marginTop: 0 }}>Give</h1>
-        <p className="muted">
-          Anyone can visit this page. To protect donor records and receipts, donors must sign in before making a donation
-          or viewing personal donation history.
+    <div style={{ display: "grid", gap: 16 }}>
+      <div className="card glow-donor" style={{ padding: 26 }}>
+        <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
+          Secure giving · Donor role after sign-in
+        </div>
+        <h1 style={{ marginTop: 0, fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 800, letterSpacing: "-0.03em" }}>
+          Give with confidence
+        </h1>
+        <p className="muted" style={{ fontSize: 16, lineHeight: 1.6, maxWidth: 760, margin: 0 }}>
+          Your gift is recorded against your supporter profile. Create a <strong>donor account</strong> in one minute—we
+          assign the <strong>Donor</strong> role automatically so you can donate here and open <em>your</em> portal
+          (receipts + anonymized allocations). No resident-level data.
         </p>
-        <p className="muted" style={{ marginTop: 10 }}>
-          Exploring impact first? See the{" "}
-          <Link to="/impact" style={{ textDecoration: "underline" }}>
+        <div className="row" style={{ marginTop: 18, flexWrap: "wrap" }}>
+          <Link className="btn primary" to="/register" state={{ from: loc.pathname }}>
+            Create donor account
+          </Link>
+          <button className="btn" type="button" onClick={signInToDonate}>
+            Sign in to donate
+          </button>
+          <Link className="btn" to="/impact">
+            Public impact first
+          </Link>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 18 }}>
+        <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>
+          Curious how programs are doing overall? The{" "}
+          <Link to="/impact" style={{ textDecoration: "underline", fontWeight: 600 }}>
             public impact dashboard
           </Link>{" "}
-          for anonymized safehouse, program, and outreach metrics drawn from the same operational data your gift supports.
+          shows aggregated safehouse and program metrics—same mission, privacy-safe summaries.
         </p>
         {error ? (
-          <div className="badge danger" style={{ marginTop: 10 }}>
+          <div className="badge danger" style={{ marginTop: 12 }}>
             {error}
           </div>
         ) : null}
         {successId ? (
-          <div className="badge ok" style={{ marginTop: 10 }}>
+          <div className="badge ok" style={{ marginTop: 12 }}>
             Donation recorded. Contribution ID: {successId}
           </div>
         ) : null}
       </div>
 
       {!auth.isAuthenticated ? (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Sign in required</h2>
+        <div className="card auth-panel" style={{ borderStyle: "dashed" }}>
+          <h2 style={{ marginTop: 0 }}>Next step: sign in or register</h2>
           <p className="muted">
-            Sign in to donate and open your donor portal (history + allocations). New supporters can register—use the same
-            email as your supporter record if we already imported it from our CRM.
+            Donating requires an account with the <strong>Donor</strong> role. Registration is free and takes about a
+            minute—use the same email as your supporter record if we imported Lighthouse data.
           </p>
-          <div className="row" style={{ marginTop: 10 }}>
-            <button className="btn primary" onClick={signInToDonate}>
-              Sign in to donate
-            </button>
-            <Link className="btn" to="/register" state={{ from: loc.pathname }}>
+          <div className="row" style={{ marginTop: 14 }}>
+            <Link className="btn primary" to="/register" state={{ from: loc.pathname }}>
               Create donor account
             </Link>
-            <Link className="btn" to="/impact">
-              View public impact
-            </Link>
+            <button className="btn" type="button" onClick={signInToDonate}>
+              I already have an account
+            </button>
           </div>
         </div>
       ) : !auth.hasRole("Donor") ? (
         <div className="card">
-          <h2 style={{ marginTop: 0 }}>Donor access needed</h2>
+          <h2 style={{ marginTop: 0 }}>Donor role needed for this page</h2>
           <p className="muted">
-            You’re signed in, but this account doesn’t have Donor access. Ask an admin to assign the Donor role and link
-            your account to a supporter record.
+            You’re signed in as staff. To test giving as a supporter, use a login that has the <strong>Donor</strong> role,
+            or ask an admin to add Donor to a test account linked to a supporter.
           </p>
-          <div className="row" style={{ marginTop: 10 }}>
+          <div className="row" style={{ marginTop: 14 }}>
+            <Link className="btn primary" to="/register">
+              Register a donor test account
+            </Link>
             <Link className="btn" to="/app/dashboard">
-              Go to dashboard
+              Staff dashboard
             </Link>
             <Link className="btn" to="/impact">
-              View public impact
+              Public impact
             </Link>
           </div>
         </div>

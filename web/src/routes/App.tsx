@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../lib/auth";
 import { AppLayout, PublicLayout } from "./layouts";
-import { RequireAuth } from "./guards";
+import { RequireAuth, RequireStaff } from "./guards";
 import { HomePage } from "./pages/HomePage";
 import { ImpactPage } from "./pages/ImpactPage";
 import { GivePage } from "./pages/GivePage";
@@ -39,18 +39,20 @@ export function App() {
 
           <Route element={<RequireAuth />}>
             <Route element={<AppLayout />}>
-              <Route path="/app/dashboard" element={<AppDashboardPage />} />
-              <Route path="/app/donors" element={<DonorsPage />} />
-              <Route path="/app/cases" element={<CaseloadPage />} />
-              <Route path="/app/residents/:residentId/process-recordings" element={<ResidentProcessRecordingsPage />} />
-              <Route path="/app/residents/:residentId/home-visits" element={<ResidentHomeVisitsPage />} />
-              <Route path="/app/reports" element={<ReportsPage />} />
               <Route path="/app/donor" element={<DonorPortalPage />} />
-              <Route path="/app/ml" element={<MlInsightsPage />} />
-              <Route path="/app/action-center" element={<MlActionCenterPage />} />
-              <Route path="/app/admin/users" element={<AdminUsersPage />} />
-              <Route path="/app/admin/allocations" element={<AdminAllocationsPage />} />
-              <Route path="/app/admin/lighthouse-import" element={<AdminLighthouseImportPage />} />
+              <Route element={<RequireStaff />}>
+                <Route path="/app/dashboard" element={<AppDashboardPage />} />
+                <Route path="/app/donors" element={<DonorsPage />} />
+                <Route path="/app/cases" element={<CaseloadPage />} />
+                <Route path="/app/residents/:residentId/process-recordings" element={<ResidentProcessRecordingsPage />} />
+                <Route path="/app/residents/:residentId/home-visits" element={<ResidentHomeVisitsPage />} />
+                <Route path="/app/reports" element={<ReportsPage />} />
+                <Route path="/app/ml" element={<MlInsightsPage />} />
+                <Route path="/app/action-center" element={<MlActionCenterPage />} />
+                <Route path="/app/admin/users" element={<AdminUsersPage />} />
+                <Route path="/app/admin/allocations" element={<AdminAllocationsPage />} />
+                <Route path="/app/admin/lighthouse-import" element={<AdminLighthouseImportPage />} />
+              </Route>
             </Route>
           </Route>
 

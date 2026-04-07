@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { Link } from "react-router-dom";
 import { RequireRole } from "../../guards";
 import { InlineBarChart } from "../../../components/ui/InlineBarChart";
 
@@ -45,16 +46,57 @@ export function DonorPortalPage() {
     })();
   }, [auth.token]);
 
+  const totalPhp = useMemo(
+    () => (data?.items ?? []).reduce((sum, x) => sum + (Number.isFinite(x.amount) ? x.amount : 0), 0),
+    [data],
+  );
+  const allocationPhp = useMemo(() => allocations.reduce((s, x) => s + x.totalAmount, 0), [allocations]);
+
   return (
     <RequireRole role="Donor">
-      <div style={{ display: "grid", gap: 12 }}>
-        <div className="card">
-          <h1 style={{ marginTop: 0 }}>Donor Portal</h1>
-          <p className="muted">
-            Your donation history and anonymized impact summaries. Resident-level data is never shown here.
+      <div style={{ display: "grid", gap: 14 }}>
+        <div className="card glow-donor" style={{ padding: 24 }}>
+          <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
+            Donor role · Your personal view
+          </div>
+          <h1 style={{ marginTop: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em" }}>
+            Hello{auth.displayName ? `, ${auth.displayName.split(" ")[0]}` : ""}
+          </h1>
+          <p className="muted" style={{ margin: 0, fontSize: 15, lineHeight: 1.55, maxWidth: 640 }}>
+            Your receipts and where funds were applied—always aggregated. Resident identities stay in the staff-only
+            portal.
           </p>
+          <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
+            <Link className="btn primary" to="/give">
+              Give again
+            </Link>
+            <Link className="btn" to="/impact">
+              Public impact
+            </Link>
+          </div>
+
+          <div className="donor-hero-metrics">
+            <div className="metric-tile">
+              <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>
+                Contributions (total rows)
+              </span>
+              <strong>{data ? data.total : "—"}</strong>
+            </div>
+            <div className="metric-tile">
+              <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>
+                Listed gift total (PHP)
+              </span>
+              <strong>{data ? `₱${totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}</strong>
+            </div>
+            <div className="metric-tile">
+              <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>
+                Allocation window (12 mo)
+              </span>
+              <strong>{allocations.length ? `₱${allocationPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}</strong>
+            </div>
+          </div>
           {error ? (
-            <div className="badge danger" style={{ marginTop: 10 }}>
+            <div className="badge danger" style={{ marginTop: 14 }}>
               {error}
             </div>
           ) : null}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./api";
 
 type LoginResponse = {
@@ -51,6 +51,25 @@ function loadInitial(): AuthState {
 
 export function AuthProvider(props: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(() => loadInitial());
+
+  useEffect(() => {
+    const t = sessionStorage.getItem(TOKEN_KEY);
+    if (!t) return;
+    (async () => {
+      try {
+        const me = await apiFetch<MeResponse>("/api/auth/me", { token: t });
+        setState({
+          token: t,
+          username: me.username,
+          displayName: me.displayName,
+          roles: me.roles,
+        });
+      } catch {
+        sessionStorage.removeItem(TOKEN_KEY);
+        setState({ token: null, username: null, displayName: null, roles: [] });
+      }
+    })();
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => {
     const isAuthenticated = !!state.token;

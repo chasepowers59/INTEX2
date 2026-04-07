@@ -80,7 +80,7 @@ Alternatively, from your PC (firewall allowing your IP):
    | --- | --- |
    | `Seed__AdminEmail`, `Seed__AdminPassword` | Admin account (recommended for first login). Password must meet **Identity** rules (default: 12+ chars with upper, lower, digit, and symbol) or **no user is created** — check `/health/info` for `seedAdminConfiguredButNoUsers` |
    | `Seed__EmployeeEmail`, `Seed__EmployeePassword` | Optional convenience employee |
-   | `Seed__DonorEmail`, `Seed__DonorPassword` | Optional convenience donor (link `SupporterId` in `/app/admin/users`) |
+   | `Seed__DonorEmail`, `Seed__DonorPassword` | Optional seeded donor login with the **Donor** role (for demos/grading). Same password rules as admin. With `Seed__DemoData` = `true`, sample contributions and allocations are created for `/app/donor` |
    | `Seed__SyncPasswords` = `true` or `false` | When `true`, **overwrites** passwords for **existing** users that match configured seed emails (use after changing App Service passwords or fixing a stale hash). **Turn off** in production unless you intend this. |
    | `Seed__ClearLockouts` = `true` or `false` | When `true`, clears Identity lockout and failed-attempt count for each configured seed email on startup (use if login fails after too many bad attempts). |
 

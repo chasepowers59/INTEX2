@@ -15,36 +15,53 @@ function applyThemeFromCookie() {
 }
 
 export function PublicLayout() {
+  const auth = useAuth();
+
   useEffect(() => {
     applyThemeFromCookie();
   }, []);
 
+  const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
+  const portalTo =
+    staff ? "/app/dashboard" : auth.hasRole("Donor") ? "/app/donor" : "/app/dashboard";
+
   return (
     <>
-      <header
-        className="container"
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}
-      >
-        <Link to="/" style={{ fontWeight: 800 }}>
-          Steps of Hope Leadership Portal
-        </Link>
-        <nav className="row">
-          <Link className="btn" to="/give">
-            Give
+      <header className="public-header">
+        <div className="container public-header-inner">
+          <Link to="/" className="public-brand">
+            <span className="public-brand-mark" aria-hidden />
+            <span className="public-brand-text">
+              <span className="public-brand-title">Steps of Hope</span>
+              <span className="public-brand-sub">Leadership & donor portal</span>
+            </span>
           </Link>
-          <Link className="btn" to="/impact">
-            Impact
-          </Link>
-          <Link className="btn" to="/register">
-            Register
-          </Link>
-          <Link className="btn primary" to="/login">
-            Sign in
-          </Link>
-        </nav>
+          <nav className="nav-pills" aria-label="Primary">
+            <Link className="nav-pill" to="/impact">
+              Impact
+            </Link>
+            <Link className="nav-pill nav-pill-accent" to="/give">
+              Give
+            </Link>
+            {auth.isAuthenticated ? (
+              <Link className="nav-pill nav-pill-primary" to={portalTo}>
+                My portal
+              </Link>
+            ) : (
+              <>
+                <Link className="nav-pill nav-pill-glow" to="/register">
+                  Join as donor
+                </Link>
+                <Link className="nav-pill nav-pill-primary" to="/login">
+                  Sign in
+                </Link>
+              </>
+            )}
+          </nav>
+        </div>
       </header>
 
-      <main className="container">
+      <main className="container public-main">
         <Outlet />
       </main>
 
@@ -222,8 +239,22 @@ export function AppLayout() {
           </button>
         </div>
 
-        <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
-          Roles: {auth.roles.join(", ") || "—"}
+        <div className="role-chips" style={{ marginTop: 12 }} aria-label="Your roles">
+          {auth.roles.length > 0 ? (
+            auth.roles.map((r) => (
+              <span key={r} className={`role-chip role-chip--${r.toLowerCase()}`}>
+                {r}
+              </span>
+            ))
+          ) : auth.token ? (
+            <span className="muted" style={{ fontSize: 12 }}>
+              Loading roles…
+            </span>
+          ) : (
+            <span className="muted" style={{ fontSize: 12 }}>
+              —
+            </span>
+          )}
         </div>
       </aside>
 

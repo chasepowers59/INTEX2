@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth";
 import { apiFetch } from "../../../lib/api";
 import { StatCard } from "../../../components/ui/StatCard";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 type Overview = {
   asOfUtc: string;
@@ -78,10 +78,6 @@ export function AppDashboardPage() {
       }
     })();
   }, [auth.token, staff]);
-
-  if (auth.hasRole("Donor") && !staff) {
-    return <Navigate to="/app/donor" replace />;
-  }
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
