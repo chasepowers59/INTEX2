@@ -311,11 +311,11 @@ if (app.Configuration.GetValue("Database:AutoMigrate", true))
                 pendingNames = "(could not read pending list)";
             }
 
-            migrateLog.LogError(
+            // Do not rethrow: a failed MigrateAsync would stop the host entirely (Azure HTTP 500.30) and hide /health endpoints.
+            migrateLog.LogCritical(
                 ex,
-                "MigrateAsync failed. If the DB only had __EFMigrationsHistory + ImpactAllocations, run the cleanup SQL in docs/azure-deploy.md then restart the app. Pending migrations: {Pending}",
+                "MigrateAsync failed — API is starting without a guaranteed schema. Run cleanup SQL in docs/azure-deploy.md if you see only __EFMigrationsHistory + ImpactAllocations, then restart. Pending migrations: {Pending}",
                 pendingNames);
-            throw;
         }
     }
 

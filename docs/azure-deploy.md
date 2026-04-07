@@ -28,6 +28,8 @@ IF OBJECT_ID(N'dbo.__EFMigrationsHistory', N'U') IS NOT NULL
 
 2. **Restart** the App Service. On startup it will run **`MigrateAsync`** and create the full schema.
 
+   If migrations still fail, the API **still starts** (so you are not stuck on HTTP 500.30). Check **Log stream** for `MigrateAsync failed` and `GET /health/migrations` for a non-empty `pending` list until the cleanup + restart fixes it.
+
 3. Confirm with `GET https://<your-api>/health/schema` (expect `AspNetUsers`: true, etc.).
 
 Alternatively, from your PC (firewall allowing your IP):
