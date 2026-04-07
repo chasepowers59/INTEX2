@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
-"""
-Generate 6 IS455 ML pipeline notebooks that:
-- Use the real CSV schemas from data/raw/lighthouse_csv_v7 (or data/raw).
-- Follow CRISP-DM headings while still satisfying the rubric-required sections.
-- Include predictive + explanatory models per pipeline.
-- Export predictions JSON for import into the app via POST /api/ml/import.
-
-This script writes directly to ./ml-pipelines/*.ipynb.
-"""
+"""Generate complete IS455 ML pipeline notebooks from data/raw CSVs."""
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,11 +17,7 @@ def code(s: str) -> dict[str, Any]:
     return {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": s.strip() + "\n"}
 
 
-def now_utc() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-COMMON_SETUP = r"""
+COMMON = r'''
 import json
 import os
 import re
@@ -40,38 +27,40 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor, RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_error, precision_recall_fscore_support, r2_score, roc_auc_score, top_k_accuracy_score
+from sklearn.model_selection import KFold, RandomizedSearchCV, StratifiedKFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import (
-    accuracy_score, precision_recall_fscore_support, roc_auc_score,
-    mean_absolute_error, mean_squared_error, r2_score
-)
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor
+from sklearn.preprocessing import OneHotEncoder
 
-
-REPO_ROOT = Path("..").resolve()
-RAW_DIR_A = (REPO_ROOT / "data" / "raw" / "lighthouse_csv_v7").resolve()
-RAW_DIR_B = (REPO_ROOT / "data" / "raw").resolve()
-DATA_DIR = RAW_DIR_A if RAW_DIR_A.exists() else RAW_DIR_B
-
-OUT_DIR = (REPO_ROOT / "output" / "ml-predictions").resolve()
+cwd = Path.cwd().resolve()
+REPO_ROOT = cwd.parent if cwd.name == "ml-pipelines" else cwd
+DATA_DIR = REPO_ROOT / "data" / "raw"
+OUT_DIR = REPO_ROOT / "output" / "ml-predictions"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
-
 print("Data dir:", DATA_DIR)
-print("Out dir:", OUT_DIR)
+print("Output dir:", OUT_DIR)
 
-
-def require_csv(stem: str) -> pd.DataFrame:
+def require_csv(stem):
     path = DATA_DIR / f"{stem}.csv"
     if not path.exists():
-        raise FileNotFoundError(f"Missing {path}.")
+        raise FileNotFoundError(f"Missing {path}. Put the INTEX CSVs under data/raw/.")
     return pd.read_csv(path, encoding="utf-8-sig")
 
+def make_encoder():
+    try:
+        return OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+    except TypeError:
+        return OneHotEncoder(handle_unknown="ignore", sparse=False)
 
+def as_bool(series):
+    if series.dtype == bool:
+        return series.fillna(False)
+    return series.astype(str).str.lower().isin(["true", "1", "yes", "y"])
 # After POST /api/admin/lighthouse-import, train from Azure SQL by setting INTEX_ODBC to your ODBC connection string.
 SQL_TABLE_BY_STEM = {
     "supporters": "Supporters",
@@ -118,642 +107,802 @@ def load_df(stem: str) -> pd.DataFrame:
 def to_date(s: pd.Series) -> pd.Series:
     return pd.to_datetime(s, errors="coerce").dt.date
 
+def numeric(series, fill_value=0.0):
+    return pd.to_numeric(series, errors="coerce").fillna(fill_value)
 
-def to_dt(s: pd.Series) -> pd.Series:
-    return pd.to_datetime(s, errors="coerce", utc=True)
+def fill_numeric_median(df, cols):
+    for col in cols:
+        vals = pd.to_numeric(df[col], errors="coerce")
+        df[col] = vals.fillna(vals.median() if vals.notna().any() else 0.0)
 
+def rmse(y_true, y_pred):
+    return float(np.sqrt(mean_squared_error(y_true, y_pred)))
 
 def eval_classification(y_true, y_pred, y_proba=None):
     acc = accuracy_score(y_true, y_pred)
     pr, rc, f1, _ = precision_recall_fscore_support(y_true, y_pred, average="binary", zero_division=0)
     out = {"accuracy": float(acc), "precision": float(pr), "recall": float(rc), "f1": float(f1)}
-    if y_proba is not None:
+    if y_proba is not None and pd.Series(y_true).nunique() > 1:
         try:
             out["roc_auc"] = float(roc_auc_score(y_true, y_proba))
         except Exception:
             pass
     return out
 
-
 def eval_regression(y_true, y_pred):
-    return {
-        "mae": float(mean_absolute_error(y_true, y_pred)),
-        "rmse": float(mean_squared_error(y_true, y_pred, squared=False)),
-        "r2": float(r2_score(y_true, y_pred)),
+    return {"mae": float(mean_absolute_error(y_true, y_pred)), "rmse": rmse(y_true, y_pred), "r2": float(r2_score(y_true, y_pred))}
+
+def classification_baseline(y_train, y_test):
+    majority = pd.Series(y_train).mode().iloc[0]
+    pred = pd.Series([majority] * len(y_test), index=pd.Series(y_test).index)
+    return {"majority_class": str(majority), "accuracy": float(accuracy_score(y_test, pred))}
+
+def regression_baseline(y_train, y_test):
+    median_value = float(pd.Series(y_train).median())
+    pred = np.repeat(median_value, len(y_test))
+    out = eval_regression(y_test, pred)
+    out["baseline_value"] = median_value
+    return out
+
+def top_features(pipe, n=10):
+    if "pre" not in pipe.named_steps:
+        return pd.DataFrame()
+    model = pipe.named_steps.get("model") or pipe.named_steps.get("m")
+    if model is None:
+        return pd.DataFrame()
+    try:
+        names = pipe.named_steps["pre"].get_feature_names_out()
+    except Exception:
+        return pd.DataFrame()
+    if hasattr(model, "feature_importances_"):
+        weights = np.asarray(model.feature_importances_)
+    elif hasattr(model, "coef_"):
+        weights = np.abs(np.asarray(model.coef_)).mean(axis=0) if np.asarray(model.coef_).ndim > 1 else np.abs(np.asarray(model.coef_))
+    else:
+        return pd.DataFrame()
+    out = pd.DataFrame({"feature": names, "importance": weights}).sort_values("importance", ascending=False).head(n)
+    return out.reset_index(drop=True)
+
+def print_business_takeaway(text):
+    print("\nBusiness takeaway:")
+    print(text)
+
+def compact_cv_classification(X, y, cat_cols, num_cols, scoring_metric="roc_auc", cv_splits=3):
+    y = pd.Series(y)
+    min_class = y.value_counts().min()
+    if y.nunique() < 2 or min_class < 2:
+        print("Skipping CV comparison: target does not have enough samples in each class.")
+        return pd.DataFrame()
+    n_splits = int(min(cv_splits, min_class))
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    models = {
+        "Logistic Regression": LogisticRegression(max_iter=3000),
+        "Random Forest": RandomForestClassifier(n_estimators=150, random_state=42, min_samples_leaf=3),
+        "Gradient Boosting": GradientBoostingClassifier(random_state=42),
     }
-
-
-def export_predictions_json(prediction_type: str, entity_type: str, df_out: pd.DataFrame, id_col: str, score_col: str, label_col: str | None = None):
-    out_path = OUT_DIR / f"{prediction_type}.json"
     rows = []
-    for _, r in df_out.iterrows():
-        rows.append(
-            {
-                "predictionType": prediction_type,
-                "entityType": entity_type,
-                "entityId": int(r[id_col]),
-                "score": float(r[score_col]),
-                "label": None if label_col is None else (None if pd.isna(r[label_col]) else str(r[label_col])),
-                "payloadJson": json.dumps({k: v for k, v in r.items() if k not in {id_col, score_col, label_col}}, default=str),
-            }
-        )
+    scoring = {"accuracy": "accuracy", "f1_weighted": "f1_weighted"}
+    if y.nunique() == 2:
+        scoring["roc_auc"] = "roc_auc"
+    for name, model in models.items():
+        pipe = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", model)])
+        scores = cross_validate(pipe, X, y, cv=cv, scoring=scoring, n_jobs=1, error_score=np.nan)
+        row = {"Model": name}
+        for metric in scoring:
+            vals = scores[f"test_{metric}"]
+            row[f"{metric}_mean"] = float(np.nanmean(vals))
+            row[f"{metric}_std"] = float(np.nanstd(vals))
+        rows.append(row)
+    out = pd.DataFrame(rows).sort_values(f"{'roc_auc' if 'roc_auc' in scoring else 'accuracy'}_mean", ascending=False)
+    print("Compact cross-validation comparison:")
+    print(out.to_string(index=False))
+    return out
+
+def compact_holdout_regression(train, test, features, target, cat_cols, num_cols, log_target=False):
+    models = {
+        "Linear Regression": LinearRegression(),
+        "Random Forest": RandomForestRegressor(n_estimators=150, random_state=42, min_samples_leaf=3),
+        "Gradient Boosting": GradientBoostingRegressor(random_state=42),
+    }
+    rows = []
+    best = None
+    best_mae = float("inf")
+    y_train = np.log1p(train[target]) if log_target else train[target]
+    for name, model in models.items():
+        pipe = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", model)])
+        pipe.fit(train[features], y_train)
+        pred = pipe.predict(test[features])
+        pred = np.expm1(pred) if log_target else pred
+        pred = np.maximum(0, pred)
+        metrics = eval_regression(test[target], pred)
+        rows.append({"Model": name, **metrics})
+        if metrics["mae"] < best_mae:
+            best_mae = metrics["mae"]
+            best = (name, pipe)
+    out = pd.DataFrame(rows).sort_values("mae")
+    print("Time/holdout model comparison:")
+    print(out.to_string(index=False))
+    return out, best
+
+def compact_randomized_tune_regressor(train, features, target, cat_cols, num_cols, log_target=False, n_iter=6):
+    y_train = np.log1p(train[target]) if log_target else train[target]
+    cv = KFold(n_splits=min(3, max(2, len(train) // 20)), shuffle=True, random_state=42)
+    pipe = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", RandomForestRegressor(random_state=42))])
+    search = RandomizedSearchCV(
+        pipe,
+        {
+            "model__n_estimators": [100, 150, 250],
+            "model__min_samples_leaf": [1, 3, 5, 8],
+            "model__max_depth": [None, 3, 5, 8],
+        },
+        n_iter=n_iter,
+        scoring="neg_mean_absolute_error",
+        cv=cv,
+        random_state=42,
+        n_jobs=1,
+    )
+    search.fit(train[features], y_train)
+    print("RandomizedSearchCV best params:", search.best_params_)
+    print("RandomizedSearchCV best CV MAE:", float(-search.best_score_))
+    return search.best_estimator_
+
+def quick_eda(df, name, target_col=None, numeric_cols=None, categorical_cols=None):
+    print(f"\\nEDA: {name}")
+    print("Shape:", df.shape)
+    safe_name = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    plot_dir = OUT_DIR / "eda-plots"
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    missing = df.isna().mean().sort_values(ascending=False).head(10)
+    print("\\nTop missing-value rates:")
+    print(missing.to_string())
+    if target_col and target_col in df.columns:
+        print(f"\\nTarget distribution / summary: {target_col}")
+        if pd.api.types.is_numeric_dtype(df[target_col]):
+            print(df[target_col].describe().to_string())
+            plt.figure(figsize=(7, 4))
+            df[target_col].hist(bins=20)
+            plt.title(f"{name}: {target_col} distribution")
+            plt.xlabel(target_col)
+            plt.ylabel("Count")
+            plt.tight_layout()
+        else:
+            print(df[target_col].value_counts(dropna=False).head(20).to_string())
+            plt.figure(figsize=(7, 4))
+            df[target_col].value_counts(dropna=False).head(10).plot(kind="bar")
+            plt.title(f"{name}: {target_col} distribution")
+            plt.xlabel(target_col)
+            plt.ylabel("Count")
+            plt.tight_layout()
+        plot_path = plot_dir / f"{safe_name}_{target_col}_distribution.png"
+        plt.savefig(plot_path, dpi=150, bbox_inches="tight")
+        plt.close()
+        print("Saved EDA plot:", plot_path)
+    if numeric_cols:
+        cols = [c for c in numeric_cols if c in df.columns]
+        if cols:
+            print("\\nNumeric feature summary:")
+            print(df[cols].describe().T[["mean", "std", "min", "50%", "max"]].round(3).to_string())
+    if categorical_cols:
+        cols = [c for c in categorical_cols if c in df.columns]
+        for col in cols[:5]:
+            print(f"\\nTop values for {col}:")
+            print(df[col].value_counts(dropna=False).head(10).to_string())
+
+def time_split(df, date_col, test_frac=0.25):
+    df = df.sort_values(date_col).copy()
+    split_idx = max(1, int(len(df) * (1 - test_frac)))
+    split_idx = min(split_idx, len(df) - 1)
+    return df.iloc[:split_idx].copy(), df.iloc[split_idx:].copy()
+
+def safe_classifier_split(X, y, test_size=0.25):
+    stratify = y if y.nunique() > 1 and y.value_counts().min() >= 2 else None
+    return train_test_split(X, y, test_size=test_size, random_state=42, stratify=stratify)
+
+def score_bands(scores):
+    scores = pd.Series(scores).astype(float)
+    if len(scores) == 0 or scores.nunique(dropna=True) < 2:
+        return pd.Series(["Medium"] * len(scores), index=scores.index)
+    labels = ["Low", "Medium", "High", "Very High"]
+    q = min(4, scores.nunique(dropna=True), len(scores))
+    try:
+        return pd.qcut(scores.rank(method="first"), q=q, labels=labels[:q], duplicates="drop").astype(str)
+    except Exception:
+        return pd.Series(["Medium"] * len(scores), index=scores.index)
+
+def prep(cat_cols, num_cols):
+    return ColumnTransformer([("cat", make_encoder(), cat_cols), ("num", "passthrough", num_cols)])
+
+def export_predictions_json(prediction_type, entity_type, df_out, id_col, score_col, label_col=None):
+    out_path = OUT_DIR / f"{prediction_type}.json"
+    excluded = {id_col, score_col}
+    if label_col:
+        excluded.add(label_col)
+    rows = []
+    for _, row in df_out.iterrows():
+        payload = {k: v for k, v in row.items() if k not in excluded}
+        rows.append({
+            "predictionType": prediction_type,
+            "entityType": entity_type,
+            "entityId": int(row[id_col]),
+            "score": float(row[score_col]),
+            "label": None if label_col is None or pd.isna(row[label_col]) else str(row[label_col]),
+            "payloadJson": json.dumps(payload, default=str),
+        })
     out_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
-    print("Wrote:", out_path, "rows=", len(rows))
+    print(f"Wrote {len(rows)} predictions:", out_path)
+'''
+
+
+def nb(title: str, business: str, sections: dict[str, list[str]]) -> dict[str, Any]:
+    created = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    all_cells = [
+        md(f"# {title}\n\nGenerated: {created}"),
+        md(
+            f"""
+## 1) Problem Framing
+
+**Business question:** {business}
+
+**Who cares:** nonprofit leadership, program staff, and/or fundraising staff depending on the pipeline domain.
+
+**Why it matters:** this model turns operational, donor, or outreach data into a decision-support signal for a resource-constrained safehouse nonprofit.
+
+**Predictive vs. explanatory goal:** this notebook includes both. The predictive model is evaluated on unseen data and is used for deployment-oriented scoring. The explanatory or relationship model is included to identify which variables appear most connected to the target and to support business interpretation. We do not treat predictive accuracy as causal proof.
+
+**Success metrics:** classification pipelines use accuracy, F1, and ROC AUC where appropriate. Regression/forecasting pipelines use MAE, RMSE, and R-squared. The notebook also compares against a simple baseline so the results can be interpreted honestly.
 """
+        ),
+        md(
+            """
+## Notebook Setup
 
-
-@dataclass(frozen=True)
-class NotebookSpec:
-    filename: str
-    title: str
-    crispdm_business: str
-    crispdm_data: str
-    crispdm_prep: str
-    crispdm_model: str
-    crispdm_eval: str
-    crispdm_deploy: str
-    code_cells: list[str]
-
-
-def build_notebook(spec: NotebookSpec) -> dict[str, Any]:
-    created = now_utc()
-    header = f"""
-# {spec.title}
-
-**Created:** {created}
-
-This notebook follows **CRISP-DM** while also satisfying the IS455 rubric sections:
-- Problem Framing
-- Data Acquisition, Preparation & Exploration
-- Modeling & Feature Selection
-- Evaluation & Interpretation
-- Causal and Relationship Analysis
-- Deployment Notes
+Shared imports and helper functions are defined once here so the later rubric sections can focus on the pipeline-specific code for this business problem.
 """
-
-    crispdm = f"""
-## CRISP-DM Overview
-
-### 1) Business Understanding
-{spec.crispdm_business}
-
-### 2) Data Understanding
-{spec.crispdm_data}
-
-### 3) Data Preparation
-{spec.crispdm_prep}
-
-### 4) Modeling
-{spec.crispdm_model}
-
-### 5) Evaluation
-{spec.crispdm_eval}
-
-### 6) Deployment
-{spec.crispdm_deploy}
-"""
-
-    rubric_1 = """
-## 1) Problem Framing (Rubric)
-
-State:
-- the business question,
-- who cares,
-- why it matters,
-- predictive vs explanatory goals.
-
-We build **two models**:
-- Predictive (optimize out-of-sample performance)
-- Explanatory (interpretability / relationship analysis)
-"""
-
-    rubric_2 = """
-## 2) Data Acquisition, Preparation & Exploration (Rubric)
-
-Rules to avoid leakage:
-- Define an **as-of date** (cutoff).
-- Build features using only data **on or before** the cutoff.
-- Create labels using only data **after** the cutoff in a defined horizon.
-"""
-
-    rubric_3 = """
-## 3) Modeling & Feature Selection (Rubric)
-
-- Predictive model: tree/ensemble
-- Explanatory model: linear/logistic regression
-"""
-
-    rubric_4_5 = """
-## 4) Evaluation & Interpretation (Rubric)
-
-Interpret in business terms, and discuss real-world costs of errors.
-
-## 5) Causal and Relationship Analysis (Rubric)
-
-Discuss relationships, confounding risks, and where correlation ≠ causation.
-"""
-
-    rubric_6 = """
-## 6) Deployment Notes (Rubric)
-
-Export predictions to JSON and import into the deployed app:
-- `POST /api/ml/import?replace=true` (admin-only)
-- View in `/app/ml` (Staff Portal → ML Insights)
-"""
-
-    cells: list[dict[str, Any]] = [
-        md(header),
-        md(crispdm),
-        md(rubric_1),
-        md(rubric_2),
-        code(COMMON_SETUP),
+        ),
+        code(COMMON),
     ]
+    section_specs = [
+        (
+            "data",
+            """
+## 2) Data Acquisition, Preparation, and Exploration
 
-    for c in spec.code_cells:
-        cells.append(code(c))
+The pipeline reads the provided CSV files from `data/raw/`, performs joins and feature engineering in code, handles missing values reproducibly, and prints an EDA summary before modeling. The EDA step checks row counts, missingness, target distributions, feature summaries, and key categorical distributions.
+""",
+        ),
+        (
+            "modeling",
+            """
+## 3) Modeling and Feature Selection
 
-    cells.extend([md(rubric_3), md(rubric_4_5), md(rubric_6)])
+The feature set is selected from fields that would be available at the decision point whenever possible. Predictive models use ensembles or tuned tree-based models when they improve out-of-sample performance. Explanatory models use simpler linear or logistic models when interpretability matters.
+""",
+        ),
+        (
+            "evaluation",
+            """
+## 4) Evaluation and Selection
 
+The notebook uses a train/test or time-based holdout split depending on the business problem. Where appropriate, it also uses compact cross-validation, model comparison tables, and lightweight randomized tuning. Metrics are interpreted in business terms rather than treated as abstract statistics.
+""",
+        ),
+        (
+            "causal",
+            """
+## 5) Causal and Relationship Analysis
+
+The relationship analysis section highlights important features and discusses whether those relationships make sense for the organization. These findings are observational: they can guide hypotheses and strategy, but they are not automatically causal. Any sensitive resident-care decision must remain human-reviewed.
+""",
+        ),
+        (
+            "deployment",
+            """
+## 6) Deployment Notes
+
+The final scoring step exports JSON to `output/ml-predictions/`. These files match the API import contract used by `POST /api/ml/import?replace=true` and can be viewed in the deployed staff portal under `/app/ml` or the ML action center.
+""",
+        ),
+    ]
+    for key, section_md in section_specs:
+        all_cells.append(md(section_md))
+        for cell in sections.get(key, []):
+            all_cells.append(code(cell))
     return {
-        "cells": cells,
-        "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}},
+        "cells": all_cells,
+        "metadata": {
+            "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+            "language_info": {"name": "python", "version": "3.x"},
+        },
         "nbformat": 4,
         "nbformat_minor": 5,
     }
 
 
+DONOR_LAPSE = {
+    "data": [
+r'''
+supporters = require_csv("supporters")
+donations = require_csv("donations")
 PIPELINE_1 = [
     r"""
 supporters = load_df("supporters")
         donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
+donations = donations.dropna(subset=["donation_date", "supporter_id"]).copy()
+donations["amount"] = numeric(donations["amount"])
+donations["estimated_value"] = numeric(donations["estimated_value"])
+donations["is_recurring_bool"] = as_bool(donations["is_recurring"])
 
-max_date = donations["donation_date"].max()
-cutoff = max_date - pd.Timedelta(days=90)
+cutoff = donations["donation_date"].max() - pd.Timedelta(days=90)
 label_end = cutoff + pd.Timedelta(days=90)
-print("Max donation_date:", max_date.date())
-print("Cutoff:", cutoff.date(), "Label window end:", label_end.date())
-
-# Donations split into past vs future window for labeling
 past = donations[donations["donation_date"] <= cutoff].copy()
 future = donations[(donations["donation_date"] > cutoff) & (donations["donation_date"] <= label_end)].copy()
 
-# Label: did the supporter donate in the next 90 days?
-y = future.groupby("supporter_id")["donation_id"].count().rename("donated_next_90d")
-y = (y > 0).astype(int).reset_index()
-
-# Features: supporter attributes
 base = supporters[["supporter_id","supporter_type","relationship_type","region","country","status","acquisition_channel","first_donation_date"]].copy()
 base["first_donation_date"] = pd.to_datetime(base["first_donation_date"], errors="coerce")
-
-# Features: donation history aggregates as-of cutoff
-past_monetary = past[past["donation_type"] == "Monetary"].copy()
-
 agg = past.groupby("supporter_id").agg(
     donation_count=("donation_id","count"),
     last_donation_date=("donation_date","max"),
     distinct_campaigns=("campaign_name", lambda s: s.dropna().nunique()),
     distinct_channels=("channel_source", lambda s: s.dropna().nunique()),
-    recurring_any=("is_recurring", lambda s: int((s == True).any())),
+    recurring_any=("is_recurring_bool","max"),
+    total_value=("estimated_value","sum"),
 ).reset_index()
-
-agg_m = past_monetary.groupby("supporter_id").agg(
+mon = past[past["donation_type"] == "Monetary"]
+mon_agg = mon.groupby("supporter_id").agg(
     monetary_count=("donation_id","count"),
-    monetary_sum=("amount", "sum"),
-    monetary_avg=("amount", "mean"),
-    monetary_max=("amount", "max"),
+    monetary_sum=("amount","sum"),
+    monetary_avg=("amount","mean"),
+    monetary_max=("amount","max"),
 ).reset_index()
+future_gave = (future.groupby("supporter_id")["donation_id"].count() > 0).astype(int).rename("gave_next_90d").reset_index()
 
-df = base.merge(agg, on="supporter_id", how="left").merge(agg_m, on="supporter_id", how="left").merge(y, on="supporter_id", how="left")
-df["donated_next_90d"] = df["donated_next_90d"].fillna(0).astype(int)
-
-df["recency_days"] = (cutoff - df["last_donation_date"]).dt.days
-df["recency_days"] = df["recency_days"].fillna(9999).clip(lower=0)
-
-for col in ["donation_count","distinct_campaigns","distinct_channels","recurring_any","monetary_count","monetary_sum","monetary_avg","monetary_max"]:
-    df[col] = df[col].fillna(0)
-
-df = df[df["status"].isin(["Active","Inactive"])].copy()
-
-print("Rows:", len(df), "Pos rate:", df["donated_next_90d"].mean())
-df.head()
-""",
-    r"""
-# Train/test split
-target = "donated_next_90d"
-features = [
-    "supporter_type","relationship_type","region","country","status","acquisition_channel",
-    "donation_count","recency_days","distinct_campaigns","distinct_channels","recurring_any",
-    "monetary_count","monetary_sum","monetary_avg","monetary_max"
-]
-
-X = df[features].copy()
-y = df[target].copy()
-
+df = base.merge(agg, on="supporter_id", how="left").merge(mon_agg, on="supporter_id", how="left").merge(future_gave, on="supporter_id", how="left")
+df = df[df["donation_count"].fillna(0) > 0].copy()
+df["gave_next_90d"] = df["gave_next_90d"].fillna(0).astype(int)
+df["lapsed_next_90d"] = 1 - df["gave_next_90d"]
+df["recency_days"] = (cutoff - df["last_donation_date"]).dt.days.clip(lower=0)
+df["donor_age_days"] = (cutoff - df["first_donation_date"]).dt.days.clip(lower=0)
 cat_cols = ["supporter_type","relationship_type","region","country","status","acquisition_channel"]
-num_cols = [c for c in features if c not in cat_cols]
+num_cols = ["donation_count","distinct_campaigns","distinct_channels","recurring_any","total_value","monetary_count","monetary_sum","monetary_avg","monetary_max","recency_days","donor_age_days"]
+df[cat_cols] = df[cat_cols].fillna("Unknown")
+fill_numeric_median(df, num_cols)
+print("Rows:", len(df), "lapse rate:", round(df["lapsed_next_90d"].mean(), 3))
+quick_eda(df, "Donor lapse modeling table", target_col="lapsed_next_90d", numeric_cols=num_cols, categorical_cols=cat_cols)
+''',
+    ],
+    "modeling": [
+r'''
+features = cat_cols + num_cols
+X_train, X_test, y_train, y_test = safe_classifier_split(df[features], df["lapsed_next_90d"])
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
+''',
+    ],
+    "evaluation": [
+r'''
+print("Baseline:", classification_baseline(y_train, y_test))
+compact_cv_classification(df[features], df["lapsed_next_90d"], cat_cols, num_cols)
+predictive.fit(X_train, y_train)
+proba = predictive.predict_proba(X_test)[:, 1]
+print("Predictive:", eval_classification(y_test, (proba >= 0.5).astype(int), proba))
 
-pre = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols),
-        ("num", "passthrough", num_cols),
-    ]
-)
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
-""",
-    r"""
-# Predictive model (ensemble)
-gb = Pipeline(steps=[
-    ("pre", pre),
-    ("model", GradientBoostingClassifier(random_state=42))
-])
-gb.fit(X_train, y_train)
-proba = gb.predict_proba(X_test)[:,1]
-pred = (proba >= 0.5).astype(int)
-print("Predictive (GB):", eval_classification(y_test, pred, proba))
-
-# Explanatory model (logistic regression)
-lr = Pipeline(steps=[
-    ("pre", pre),
-    ("model", LogisticRegression(max_iter=2000))
-])
-lr.fit(X_train, y_train)
-proba2 = lr.predict_proba(X_test)[:,1]
-pred2 = (proba2 >= 0.5).astype(int)
-print("Explanatory (LogReg):", eval_classification(y_test, pred2, proba2))
-""",
-    r"""
-# Score all supporters as-of cutoff (use predictive model)
+explanatory.fit(X_train, y_train)
+proba_exp = explanatory.predict_proba(X_test)[:, 1]
+print("Explanatory:", eval_classification(y_test, (proba_exp >= 0.5).astype(int), proba_exp))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
+print("Top explanatory relationships:")
+print(top_features(explanatory).to_string(index=False))
+print_business_takeaway("Prioritize high-risk supporters for retention outreach, especially when recency and low engagement patterns suggest they may lapse.")
+''',
+    ],
+    "deployment": [
+r'''
 df_out = df[["supporter_id"] + features].copy()
-df_out["risk_score"] = gb.predict_proba(df_out[features])[:,1]
-df_out["risk_band"] = pd.qcut(df_out["risk_score"], q=4, labels=["Low","Medium","High","Very High"])
-
+df_out["risk_score"] = predictive.predict_proba(df_out[features])[:, 1]
+df_out["risk_band"] = score_bands(df_out["risk_score"])
 export_predictions_json(
-    prediction_type="donor_lapse_90d",
-    entity_type="Supporter",
-    df_out=df_out[["supporter_id","risk_score","risk_band","recency_days","donation_count","monetary_sum","recurring_any","acquisition_channel","supporter_type"]],
-    id_col="supporter_id",
-    score_col="risk_score",
-    label_col="risk_band"
+    "donor_lapse_90d",
+    "Supporter",
+    df_out[["supporter_id","risk_score","risk_band","recency_days","donation_count","monetary_sum","recurring_any","acquisition_channel","supporter_type"]],
+    "supporter_id",
+    "risk_score",
+    "risk_band",
 )
-""",
-]
+'''
+    ],
+}
 
+
+DONOR_UPGRADE = {
+    "data": [
+r'''
+supporters = require_csv("supporters")
+donations = require_csv("donations")
 PIPELINE_2 = [
     r"""
 supporters = load_df("supporters")
         donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
-
-# Focus on monetary donations with numeric amount
-mon = donations[(donations["donation_type"] == "Monetary") & donations["amount"].notna()].copy()
-mon["amount"] = pd.to_numeric(mon["amount"], errors="coerce")
-mon = mon.dropna(subset=["amount","donation_date"])
-
-mon = mon.sort_values(["supporter_id","donation_date"]).copy()
+mon = donations[donations["donation_type"] == "Monetary"].copy()
+mon["amount"] = numeric(mon["amount"])
+mon = mon.dropna(subset=["donation_date","supporter_id"]).sort_values(["supporter_id","donation_date"]).copy()
+mon["is_recurring_bool"] = as_bool(mon["is_recurring"])
 mon["next_amount"] = mon.groupby("supporter_id")["amount"].shift(-1)
 mon["next_date"] = mon.groupby("supporter_id")["donation_date"].shift(-1)
 mon["days_to_next"] = (mon["next_date"] - mon["donation_date"]).dt.days
-
-# Keep rows where a next donation exists within a reasonable horizon
-df = mon[(mon["next_amount"].notna()) & (mon["days_to_next"].between(1, 180))].copy()
-
-# Add supporter attributes
-df = df.merge(
-    supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]],
-    on="supporter_id",
-    how="left"
-)
-
-# Simple history features as of current donation
+df = mon[(mon["next_amount"].notna()) & (mon["days_to_next"].between(1, 365))].copy()
+df = df.merge(supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]], on="supporter_id", how="left")
 df["donations_so_far"] = df.groupby("supporter_id").cumcount() + 1
-df["prev_amount"] = df.groupby("supporter_id")["amount"].shift(1)
+df["prev_amount"] = df.groupby("supporter_id")["amount"].shift(1).fillna(df["amount"])
 df["prev_date"] = df.groupby("supporter_id")["donation_date"].shift(1)
-df["recency_days"] = (df["donation_date"] - df["prev_date"]).dt.days
-df["recency_days"] = df["recency_days"].fillna(9999).clip(lower=0)
-df["prev_amount"] = df["prev_amount"].fillna(df["amount"])
-
-# Target
-df["y_next_amount"] = df["next_amount"]
-df["y_upgrade_25pct"] = (df["next_amount"] >= (df["amount"] * 1.25)).astype(int)
-
-print("Rows:", len(df))
-df[["supporter_id","donation_date","amount","next_amount","days_to_next","y_upgrade_25pct"]].head()
-""",
-    r"""
-# Time-based train/test split (avoid leakage across time)
-cutoff_date = df["donation_date"].max() - pd.Timedelta(days=90)
-train = df[df["donation_date"] <= cutoff_date].copy()
-test = df[df["donation_date"] > cutoff_date].copy()
-print("Train rows:", len(train), "Test rows:", len(test), "Cutoff:", cutoff_date.date())
-
-features = [
-    "supporter_type","relationship_type","region","country","acquisition_channel",
-    "amount","prev_amount","recency_days","donations_so_far","is_recurring","campaign_name","channel_source"
-]
-
+df["recency_days"] = (df["donation_date"] - df["prev_date"]).dt.days.fillna(9999).clip(lower=0)
+df["lifetime_amount_before"] = df.groupby("supporter_id")["amount"].cumsum() - df["amount"]
+df["avg_amount_before"] = (df["lifetime_amount_before"] / (df["donations_so_far"] - 1).replace(0, np.nan)).fillna(df["amount"])
+df["max_amount_before"] = df.groupby("supporter_id")["amount"].cummax()
+df["amount_trend_vs_avg"] = (df["amount"] / df["avg_amount_before"].replace(0, np.nan)).fillna(1.0)
+df["days_to_next"] = df["days_to_next"].clip(lower=1)
 cat_cols = ["supporter_type","relationship_type","region","country","acquisition_channel","campaign_name","channel_source"]
-num_cols = [c for c in features if c not in cat_cols]
+num_cols = ["amount","prev_amount","recency_days","donations_so_far","is_recurring_bool"]
+df[cat_cols] = df[cat_cols].fillna("Unknown")
+fill_numeric_median(df, num_cols + ["next_amount"])
+train, test = time_split(df, "donation_date")
+print("Rows:", len(df), "Train:", len(train), "Test:", len(test))
+quick_eda(df, "Donor upgrade modeling table", target_col="next_amount", numeric_cols=num_cols + ["next_amount"], categorical_cols=cat_cols)
+''',
+    ],
+    "modeling": [
+r'''
+features = cat_cols + num_cols
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", RandomForestRegressor(n_estimators=300, random_state=42, min_samples_leaf=3))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LinearRegression())])
+''',
+    ],
+    "evaluation": [
+r'''
+print("Baseline:", regression_baseline(train["next_amount"], test["next_amount"]))
+comparison, tuned_candidate = compact_holdout_regression(train, test, features, "next_amount", cat_cols, num_cols, log_target=False)
+tuned_rf = compact_randomized_tune_regressor(train, features, "next_amount", cat_cols, num_cols, log_target=False)
+tuned_pred = np.maximum(0, tuned_rf.predict(test[features]))
+print("Tuned RandomForest holdout:", eval_regression(test["next_amount"], tuned_pred))
+predictive.fit(train[features], train["next_amount"])
+pred = np.maximum(0, predictive.predict(test[features]))
+print("Predictive RandomForest:", eval_regression(test["next_amount"], pred))
 
-pre = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols),
-        ("num", "passthrough", num_cols),
-    ]
-)
+explanatory.fit(train[features], train["next_amount"])
+pred_exp = np.maximum(0, explanatory.predict(test[features]))
+print("Explanatory LinearRegression:", eval_regression(test["next_amount"], pred_exp))
 
-X_train, y_train = train[features], train["y_next_amount"]
-X_test, y_test = test[features], test["y_next_amount"]
-""",
-    r"""
-# Predictive model (regression)
-gbr = Pipeline(steps=[
-    ("pre", pre),
-    ("model", GradientBoostingRegressor(random_state=42))
-])
-gbr.fit(X_train, y_train)
-pred = gbr.predict(X_test)
-print("Predictive (GBReg):", eval_regression(y_test, pred))
-
-# Explanatory model (linear regression on log(amount))
-lin = Pipeline(steps=[
-    ("pre", pre),
-    ("model", LinearRegression())
-])
-lin.fit(X_train, np.log1p(y_train))
-pred2 = np.expm1(lin.predict(X_test))
-print("Explanatory (Linear):", eval_regression(y_test, pred2))
-""",
-    r"""
-# Score each supporter using their latest monetary donation (recommend next ask)
-latest = mon.sort_values(["supporter_id","donation_date"]).groupby("supporter_id").tail(1).copy()
-latest = latest.merge(
-    supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]],
-    on="supporter_id",
-    how="left"
-)
-latest["donations_so_far"] = mon.groupby("supporter_id").size().reindex(latest["supporter_id"]).values
-latest["prev_amount"] = mon.sort_values(["supporter_id","donation_date"]).groupby("supporter_id")["amount"].nth(-2).reindex(latest["supporter_id"]).values
-latest["prev_amount"] = pd.to_numeric(latest["prev_amount"], errors="coerce").fillna(latest["amount"])
-
-latest["prev_date"] = mon.sort_values(["supporter_id","donation_date"]).groupby("supporter_id")["donation_date"].nth(-2).reindex(latest["supporter_id"]).values
-latest["recency_days"] = (latest["donation_date"] - latest["prev_date"]).dt.days
-latest["recency_days"] = latest["recency_days"].fillna(9999).clip(lower=0)
-
-for c in ["is_recurring","campaign_name","channel_source"]:
-    if c not in latest.columns:
-        latest[c] = None
-
-latest["predicted_next_amount"] = gbr.predict(latest[features])
-latest["upgrade_ratio"] = (latest["predicted_next_amount"] / latest["amount"]).replace([np.inf,-np.inf], np.nan).fillna(0)
-latest["ask_tier"] = pd.cut(latest["upgrade_ratio"], bins=[-np.inf,1.05,1.25,1.5,np.inf], labels=["Maintain","Small Upgrade","Upgrade","Major Upgrade"])
-
+selected_model = explanatory if mean_absolute_error(test["next_amount"], pred_exp) <= mean_absolute_error(test["next_amount"], pred) else predictive
+selected_model_name = "LinearRegression" if selected_model is explanatory else "RandomForestRegressor"
+if mean_absolute_error(test["next_amount"], tuned_pred) < min(mean_absolute_error(test["next_amount"], pred_exp), mean_absolute_error(test["next_amount"], pred)):
+    selected_model = tuned_rf
+    selected_model_name = "TunedRandomForestRegressor"
+print("Selected export model:", selected_model_name)
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
+print("Top explanatory relationships:")
+print(top_features(explanatory).to_string(index=False))
+print_business_takeaway("Use suggested ask tiers as fundraising guidance, not an automated rule. Validate large ask increases with relationship context.")
+''',
+    ],
+    "deployment": [
+r'''
+latest = mon.groupby("supporter_id").tail(1).copy()
+latest = latest.merge(supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]], on="supporter_id", how="left")
+history = mon.groupby("supporter_id").agg(
+    donations_so_far=("donation_id","count"),
+    prev_amount=("amount", lambda s: s.iloc[-2] if len(s) >= 2 else s.iloc[-1]),
+    prev_date=("donation_date", lambda s: s.iloc[-2] if len(s) >= 2 else pd.NaT),
+    lifetime_amount_before=("amount","sum"),
+    avg_amount_before=("amount","mean"),
+    max_amount_before=("amount","max"),
+).reset_index()
+latest = latest.merge(history, on="supporter_id", how="left")
+latest["recency_days"] = (latest["donation_date"] - latest["prev_date"]).dt.days.fillna(9999).clip(lower=0)
+latest["is_recurring_bool"] = as_bool(latest["is_recurring"])
+latest["amount_trend_vs_avg"] = (latest["amount"] / latest["avg_amount_before"].replace(0, np.nan)).fillna(1.0)
+latest["days_to_next"] = latest["recency_days"]
+latest[cat_cols] = latest[cat_cols].fillna("Unknown")
+fill_numeric_median(latest, num_cols)
+latest["predicted_next_amount"] = np.maximum(0, selected_model.predict(latest[features]))
+latest["upgrade_ratio"] = (latest["predicted_next_amount"] / latest["amount"].replace(0, np.nan)).fillna(0)
+latest["ask_tier"] = pd.cut(latest["upgrade_ratio"], [-np.inf, 1.05, 1.25, 1.50, np.inf], labels=["Maintain","Small Upgrade","Upgrade","Major Upgrade"])
 export_predictions_json(
-    prediction_type="donor_upgrade_next_amount",
-    entity_type="Supporter",
-    df_out=latest[["supporter_id","predicted_next_amount","ask_tier","amount","upgrade_ratio","recency_days","donations_so_far","acquisition_channel","supporter_type"]].rename(columns={"predicted_next_amount":"score"}),
-    id_col="supporter_id",
-    score_col="score",
-    label_col="ask_tier"
+    "donor_upgrade_next_amount",
+    "Supporter",
+    latest[["supporter_id","predicted_next_amount","ask_tier","amount","upgrade_ratio","recency_days","donations_so_far","supporter_type","acquisition_channel"]].assign(export_model=selected_model_name),
+    "supporter_id",
+    "predicted_next_amount",
+    "ask_tier",
 )
-""",
-]
+'''
+    ],
+}
 
+
+NEXT_BEST_CHANNEL = {
+    "data": [
+r'''
+supporters = require_csv("supporters")
+donations = require_csv("donations")
 PIPELINE_3 = [
     r"""
 supporters = load_df("supporters")
         donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
-donations = donations.dropna(subset=["donation_date"]).sort_values(["supporter_id","donation_date"]).copy()
-
-# Label: next channel_source for each donation event
+donations = donations.dropna(subset=["donation_date","supporter_id","channel_source"]).sort_values(["supporter_id","donation_date"]).copy()
+donations["amount"] = numeric(donations["amount"])
+donations["estimated_value"] = numeric(donations["estimated_value"])
+donations["is_recurring_bool"] = as_bool(donations["is_recurring"])
 donations["next_channel"] = donations.groupby("supporter_id")["channel_source"].shift(-1)
 donations["next_date"] = donations.groupby("supporter_id")["donation_date"].shift(-1)
 donations["days_to_next"] = (donations["next_date"] - donations["donation_date"]).dt.days
-
 df = donations[(donations["next_channel"].notna()) & (donations["days_to_next"].between(1, 365))].copy()
-df = df.merge(
-    supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]],
-    on="supporter_id", how="left"
-)
-
-# Keep top channels, bucket the rest
-top = df["next_channel"].value_counts().head(6).index.tolist()
-df["y_next_channel"] = df["next_channel"].where(df["next_channel"].isin(top), other="Other")
-
+df = df.merge(supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]], on="supporter_id", how="left")
 df["donations_so_far"] = df.groupby("supporter_id").cumcount() + 1
 df["prev_date"] = df.groupby("supporter_id")["donation_date"].shift(1)
-df["recency_days"] = (df["donation_date"] - df["prev_date"]).dt.days
-df["recency_days"] = df["recency_days"].fillna(9999).clip(lower=0)
+df["recency_days"] = (df["donation_date"] - df["prev_date"]).dt.days.fillna(9999).clip(lower=0)
+channel_values = ["Campaign", "Direct", "Event", "PartnerReferral", "SocialMedia"]
+for channel in channel_values:
+    current = df["channel_source"].eq(channel).astype(int)
+    df[f"prior_{channel}"] = current.groupby(df["supporter_id"]).cumsum() - current
+cat_cols = ["supporter_type","relationship_type","region","country","acquisition_channel","donation_type","campaign_name","channel_source","impact_unit"]
+num_cols = ["amount","estimated_value","donations_so_far","recency_days","is_recurring_bool"] + [f"prior_{c}" for c in channel_values]
+df[cat_cols] = df[cat_cols].fillna("Unknown")
+fill_numeric_median(df, num_cols)
+train, test = time_split(df, "donation_date")
+print("Rows:", len(df), "Classes:", sorted(df["next_channel"].unique()))
+quick_eda(df, "Next-channel modeling table", target_col="next_channel", numeric_cols=num_cols, categorical_cols=cat_cols)
+''',
+    ],
+    "modeling": [
+r'''
+features = cat_cols + num_cols
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", RandomForestClassifier(n_estimators=300, random_state=42, min_samples_leaf=3))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
+''',
+    ],
+    "evaluation": [
+r'''
+print("Baseline:", classification_baseline(train["next_channel"], test["next_channel"]))
+compact_cv_classification(train[features], train["next_channel"], cat_cols, num_cols, scoring_metric="accuracy")
+predictive.fit(train[features], train["next_channel"])
+pred = predictive.predict(test[features])
+print("Predictive accuracy:", float(accuracy_score(test["next_channel"], pred)))
+proba = predictive.predict_proba(test[features])
+classes = predictive.named_steps["model"].classes_
+print("Predictive top-2 accuracy:", float(top_k_accuracy_score(test["next_channel"], proba, k=2, labels=classes)))
 
-features = [
-    "supporter_type","relationship_type","region","country","acquisition_channel",
-    "donation_type","is_recurring","campaign_name","channel_source",
-    "amount","estimated_value","impact_unit",
-    "donations_so_far","recency_days"
-]
-for c in ["amount","estimated_value"]:
-    df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
-
-cutoff_date = df["donation_date"].max() - pd.Timedelta(days=90)
-train = df[df["donation_date"] <= cutoff_date].copy()
-test = df[df["donation_date"] > cutoff_date].copy()
-print("Train rows:", len(train), "Test rows:", len(test), "Cutoff:", cutoff_date.date())
-
-cat_cols = [c for c in features if c not in ["amount","estimated_value","donations_so_far","recency_days"]]
-num_cols = ["amount","estimated_value","donations_so_far","recency_days"]
-
-pre = ColumnTransformer(
-    transformers=[("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols), ("num", "passthrough", num_cols)]
-)
-
-X_train, y_train = train[features], train["y_next_channel"]
-X_test, y_test = test[features], test["y_next_channel"]
-""",
-    r"""
-# Predictive model (multiclass)
-clf = Pipeline(steps=[("pre", pre), ("model", GradientBoostingClassifier(random_state=42))])
-clf.fit(X_train, y_train)
-pred = clf.predict(X_test)
-acc = float((pred == y_test).mean())
-print("Predictive accuracy:", acc)
-
-# Explanatory model (multinomial logistic regression)
-lr = Pipeline(steps=[("pre", pre), ("model", LogisticRegression(max_iter=3000, multi_class="multinomial"))])
-lr.fit(X_train, y_train)
-pred2 = lr.predict(X_test)
-acc2 = float((pred2 == y_test).mean())
-print("Explanatory accuracy:", acc2)
-""",
-    r"""
-# Score each supporter on their latest donation: predicted next channel + confidence
+explanatory.fit(train[features], train["next_channel"])
+pred_exp = explanatory.predict(test[features])
+print("Explanatory accuracy:", float(accuracy_score(test["next_channel"], pred_exp)))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
+print("Top explanatory relationships:")
+print(top_features(explanatory).to_string(index=False))
+print_business_takeaway("Treat the next-channel result as a ranked recommendation. Top-2 accuracy is more useful than exact-channel accuracy because outreach teams can test two good options.")
+''',
+    ],
+    "deployment": [
+r'''
 latest = donations.groupby("supporter_id").tail(1).copy()
-latest = latest.merge(
-    supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]],
-    on="supporter_id", how="left"
-)
-latest["donations_so_far"] = donations.groupby("supporter_id").size().reindex(latest["supporter_id"]).values
-latest["prev_date"] = donations.groupby("supporter_id")["donation_date"].nth(-2).reindex(latest["supporter_id"]).values
-latest["recency_days"] = (latest["donation_date"] - latest["prev_date"]).dt.days
-latest["recency_days"] = latest["recency_days"].fillna(9999).clip(lower=0)
-
-for c in ["amount","estimated_value"]:
-    latest[c] = pd.to_numeric(latest[c], errors="coerce").fillna(0)
-
-proba = clf.predict_proba(latest[features])
-classes = clf.named_steps["model"].classes_
+latest = latest.merge(supporters[["supporter_id","supporter_type","relationship_type","region","country","acquisition_channel"]], on="supporter_id", how="left")
+history = donations.groupby("supporter_id").agg(
+    donations_so_far=("donation_id","count"),
+    prev_date=("donation_date", lambda s: s.iloc[-2] if len(s) >= 2 else pd.NaT),
+).reset_index()
+latest = latest.merge(history, on="supporter_id", how="left")
+latest["recency_days"] = (latest["donation_date"] - latest["prev_date"]).dt.days.fillna(9999).clip(lower=0)
+latest["is_recurring_bool"] = as_bool(latest["is_recurring"])
+channel_counts = donations.pivot_table(index="supporter_id", columns="channel_source", values="donation_id", aggfunc="count", fill_value=0).reset_index()
+latest = latest.merge(channel_counts, on="supporter_id", how="left")
+for channel in channel_values:
+    latest[f"prior_{channel}"] = latest[channel] if channel in latest.columns else 0
+latest[cat_cols] = latest[cat_cols].fillna("Unknown")
+fill_numeric_median(latest, num_cols)
+proba = predictive.predict_proba(latest[features])
+classes = predictive.named_steps["model"].classes_
 best_idx = proba.argmax(axis=1)
 latest["predicted_channel"] = [classes[i] for i in best_idx]
 latest["confidence"] = proba.max(axis=1)
-
 export_predictions_json(
-    prediction_type="next_channel_source",
-    entity_type="Supporter",
-    df_out=latest[["supporter_id","confidence","predicted_channel","channel_source","campaign_name","acquisition_channel","supporter_type"]].rename(columns={"confidence":"score"}),
-    id_col="supporter_id",
-    score_col="score",
-    label_col="predicted_channel"
+    "next_channel_source",
+    "Supporter",
+    latest[["supporter_id","confidence","predicted_channel","channel_source","campaign_name","acquisition_channel","supporter_type"]],
+    "supporter_id",
+    "confidence",
+    "predicted_channel",
 )
-""",
-]
+'''
+    ],
+}
 
+
+SOCIAL_REFERRALS = {
+    "data": [
+r'''
+posts = require_csv("social_media_posts")
 PIPELINE_4 = [
     r"""
 posts = load_df("social_media_posts")
 posts["created_at"] = pd.to_datetime(posts["created_at"], errors="coerce")
 posts = posts.dropna(subset=["created_at"]).sort_values("created_at").copy()
-
-posts["estimated_donation_value_php"] = pd.to_numeric(posts["estimated_donation_value_php"], errors="coerce").fillna(0)
-posts["donation_referrals"] = pd.to_numeric(posts["donation_referrals"], errors="coerce").fillna(0)
-
-# Predictive features available at creation time (actionable)
-pre_features = [
-    "platform","day_of_week","post_hour","post_type","media_type",
-    "num_hashtags","mentions_count","has_call_to_action","call_to_action_type",
-    "content_topic","sentiment_tone","caption_length","features_resident_story",
-    "campaign_name","is_boosted","boost_budget_php"
-]
-for c in ["num_hashtags","mentions_count","caption_length","boost_budget_php","post_hour"]:
-    posts[c] = pd.to_numeric(posts[c], errors="coerce").fillna(0)
-
-# Explanatory features (includes engagement metrics; not available before posting)
-exp_features = pre_features + [
-    "impressions","reach","likes","comments","shares","saves","click_throughs","video_views",
-    "engagement_rate","profile_visits","follower_count_at_post","forwards"
-]
-for c in ["impressions","reach","likes","comments","shares","saves","click_throughs","video_views",
-          "engagement_rate","profile_visits","follower_count_at_post","forwards"]:
-    posts[c] = pd.to_numeric(posts[c], errors="coerce").fillna(0)
-
 target = "estimated_donation_value_php"
+num_all = ["post_hour","num_hashtags","mentions_count","caption_length","boost_budget_php","impressions","reach","likes","comments","shares","saves","click_throughs","video_views","engagement_rate","profile_visits","donation_referrals","follower_count_at_post","forwards",target]
+for col in num_all:
+    posts[col] = numeric(posts[col])
+posts["has_call_to_action_bool"] = as_bool(posts["has_call_to_action"])
+posts["features_resident_story_bool"] = as_bool(posts["features_resident_story"])
+posts["is_boosted_bool"] = as_bool(posts["is_boosted"])
+pre_features = ["platform","day_of_week","post_hour","post_type","media_type","num_hashtags","mentions_count","has_call_to_action_bool","call_to_action_type","content_topic","sentiment_tone","caption_length","features_resident_story_bool","campaign_name","is_boosted_bool","boost_budget_php"]
+exp_features = pre_features + ["impressions","reach","likes","comments","shares","saves","click_throughs","video_views","engagement_rate","profile_visits","follower_count_at_post","forwards"]
+cat_cols_pre = ["platform","day_of_week","post_type","media_type","call_to_action_type","content_topic","sentiment_tone","campaign_name"]
+num_cols_pre = [c for c in pre_features if c not in cat_cols_pre]
+cat_cols_exp = cat_cols_pre
+num_cols_exp = [c for c in exp_features if c not in cat_cols_exp]
+posts[cat_cols_pre] = posts[cat_cols_pre].fillna("Unknown")
+fill_numeric_median(posts, list(set(num_cols_pre + num_cols_exp + [target])))
+train, test = time_split(posts, "created_at")
+print("Rows:", len(posts), "Train:", len(train), "Test:", len(test))
+quick_eda(posts, "Social post donation-value modeling table", target_col=target, numeric_cols=num_cols_pre + [target], categorical_cols=cat_cols_pre)
+''',
+    ],
+    "modeling": [
+r'''
+predictive = Pipeline([("pre", prep(cat_cols_pre, num_cols_pre)), ("model", RandomForestRegressor(n_estimators=200, random_state=42, min_samples_leaf=5))])
+explanatory = Pipeline([("pre", prep(cat_cols_exp, num_cols_exp)), ("model", GradientBoostingRegressor(random_state=42))])
+''',
+    ],
+    "evaluation": [
+r'''
+print("Baseline:", regression_baseline(train[target], test[target]))
+comparison, tuned_candidate = compact_holdout_regression(train, test, pre_features, target, cat_cols_pre, num_cols_pre, log_target=True)
+tuned_rf = compact_randomized_tune_regressor(train, pre_features, target, cat_cols_pre, num_cols_pre, log_target=True)
+tuned_pred = np.maximum(0, np.expm1(tuned_rf.predict(test[pre_features])))
+print("Tuned pre-post RandomForest holdout:", eval_regression(test[target], tuned_pred))
+predictive.fit(train[pre_features], np.log1p(train[target]))
+pred = np.maximum(0, np.expm1(predictive.predict(test[pre_features])))
+print("Predictive pre-post RandomForest log-target model:", eval_regression(test[target], pred))
+if mean_absolute_error(test[target], tuned_pred) < mean_absolute_error(test[target], pred):
+    predictive = tuned_rf
+    pred = tuned_pred
+    print("Selected tuned RandomForest for post export.")
 
-# Time split
-cutoff = posts["created_at"].quantile(0.8)
-train = posts[posts["created_at"] <= cutoff].copy()
-test = posts[posts["created_at"] > cutoff].copy()
-print("Train:", len(train), "Test:", len(test), "Cutoff:", cutoff)
-""",
-    r"""
-def fit_regression(df_train, df_test, features, model):
-    cat_cols = [c for c in features if df_train[c].dtype == "object" or c in ["platform","day_of_week","post_type","media_type","call_to_action_type","content_topic","sentiment_tone","campaign_name"]]
-    num_cols = [c for c in features if c not in cat_cols]
-    pre = ColumnTransformer(
-        transformers=[("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols), ("num", "passthrough", num_cols)]
-    )
-    pipe = Pipeline(steps=[("pre", pre), ("model", model)])
-    pipe.fit(df_train[features], df_train[target])
-    pred = pipe.predict(df_test[features])
-    return pipe, pred
-
-# Predictive (actionable) model
-pred_model, pred_hat = fit_regression(train, test, pre_features, GradientBoostingRegressor(random_state=42))
-print("Predictive (pre-post features):", eval_regression(test[target], pred_hat))
-
-# Explanatory model (uses engagement metrics)
-exp_model, exp_hat = fit_regression(train, test, exp_features, LinearRegression())
-print("Explanatory (includes engagement):", eval_regression(test[target], exp_hat))
-""",
-    r"""
-# Score each post (what we would have expected based on the plan)
+explanatory.fit(train[exp_features], np.log1p(train[target]))
+pred_exp = np.maximum(0, np.expm1(explanatory.predict(test[exp_features])))
+print("Relationship / engagement model:", eval_regression(test[target], pred_exp))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive features:")
+print(top_features(predictive).to_string(index=False))
+print("Top engagement relationship features:")
+print(top_features(explanatory).to_string(index=False))
+print_business_takeaway("For planning, use pre-post signals such as platform, format, CTA, and boost budget. For retrospective learning, engagement metrics explain more donation-value variance.")
+''',
+    ],
+    "deployment": [
+r'''
 posts_out = posts[["post_id"] + pre_features].copy()
-posts_out["predicted_value_php"] = pred_model.predict(posts_out[pre_features])
-posts_out["value_band"] = pd.qcut(posts_out["predicted_value_php"].rank(method="first"), q=4, labels=["Low","Medium","High","Very High"])
-
+posts_out["predicted_value_php"] = np.maximum(0, np.expm1(predictive.predict(posts_out[pre_features])))
+posts_out["value_band"] = score_bands(posts_out["predicted_value_php"])
 export_predictions_json(
-    prediction_type="post_donation_value",
-    entity_type="SocialPost",
-    df_out=posts_out[["post_id","predicted_value_php","value_band","platform","post_type","media_type","post_hour","has_call_to_action","is_boosted","boost_budget_php"]].rename(columns={"post_id":"post_id","predicted_value_php":"score"}),
-    id_col="post_id",
-    score_col="score",
-    label_col="value_band"
+    "post_donation_value",
+    "SocialPost",
+    posts_out[["post_id","predicted_value_php","value_band","platform","post_type","media_type","post_hour","has_call_to_action_bool","is_boosted_bool","boost_budget_php"]],
+    "post_id",
+    "predicted_value_php",
+    "value_band",
 )
-""",
-]
+'''
+    ],
+}
 
+
+SAFEHOUSE_FORECAST = {
+    "data": [
+r'''
+metrics = require_csv("safehouse_monthly_metrics")
 PIPELINE_5 = [
     r"""
 metrics = load_df("safehouse_monthly_metrics")
 metrics["month_start"] = pd.to_datetime(metrics["month_start"], errors="coerce")
 metrics = metrics.dropna(subset=["month_start"]).sort_values(["safehouse_id","month_start"]).copy()
-
-for c in ["active_residents","avg_education_progress","avg_health_score","process_recording_count","home_visitation_count","incident_count"]:
-    metrics[c] = pd.to_numeric(metrics[c], errors="coerce").fillna(0)
-
-# Lag features
+num_base = ["active_residents","avg_education_progress","avg_health_score","process_recording_count","home_visitation_count","incident_count"]
+fill_numeric_median(metrics, num_base)
 g = metrics.groupby("safehouse_id")
 metrics["incident_lag1"] = g["incident_count"].shift(1)
 metrics["incident_lag2"] = g["incident_count"].shift(2)
 metrics["active_lag1"] = g["active_residents"].shift(1)
-metrics["rolling_incident_3m"] = g["incident_count"].rolling(3).mean().reset_index(level=0, drop=True)
-
-# Label: next month incident_count
+metrics["active_lag2"] = g["active_residents"].shift(2)
+metrics["rolling_incident_3m"] = g["incident_count"].transform(lambda s: s.rolling(3, min_periods=1).mean())
 metrics["incident_next"] = g["incident_count"].shift(-1)
+metrics["active_residents_next"] = g["active_residents"].shift(-1)
+df = metrics.dropna(subset=["incident_next","active_residents_next","incident_lag1","active_lag1"]).copy()
+features = num_base + ["incident_lag1","incident_lag2","active_lag1","active_lag2","rolling_incident_3m"]
+fill_numeric_median(df, features + ["incident_next","active_residents_next"])
+train, test = time_split(df, "month_start")
+print("Rows:", len(df), "Train:", len(train), "Test:", len(test))
+quick_eda(df, "Safehouse forecast modeling table", target_col="incident_next", numeric_cols=features + ["active_residents_next"], categorical_cols=["safehouse_id"])
+''',
+    ],
+    "modeling": [
+r'''
+incident_model = RandomForestRegressor(n_estimators=300, random_state=42)
+active_model = RandomForestRegressor(n_estimators=300, random_state=42)
+explanatory = LinearRegression()
+''',
+    ],
+    "evaluation": [
+r'''
+print("Incident baseline:", regression_baseline(train["incident_next"], test["incident_next"]))
+compact_holdout_regression(train, test, features, "incident_next", [], features, log_target=False)
+incident_model.fit(train[features], train["incident_next"])
+incident_pred = np.maximum(0, incident_model.predict(test[features]))
+print("Predictive incident forecast:", eval_regression(test["incident_next"], incident_pred))
 
-df = metrics.dropna(subset=["incident_next","incident_lag1","active_lag1"]).copy()
+print("Capacity baseline:", regression_baseline(train["active_residents_next"], test["active_residents_next"]))
+compact_holdout_regression(train, test, features, "active_residents_next", [], features, log_target=False)
+active_model.fit(train[features], train["active_residents_next"])
+active_pred = np.maximum(0, active_model.predict(test[features]))
+print("Predictive capacity forecast:", eval_regression(test["active_residents_next"], active_pred))
 
-features = ["active_residents","avg_education_progress","avg_health_score","process_recording_count","home_visitation_count","incident_count",
-            "incident_lag1","incident_lag2","active_lag1","rolling_incident_3m"]
-
-cutoff = df["month_start"].quantile(0.8)
-train = df[df["month_start"] <= cutoff].copy()
-test = df[df["month_start"] > cutoff].copy()
-
-X_train, y_train = train[features], train["incident_next"]
-X_test, y_test = test[features], test["incident_next"]
-print("Train:", len(train), "Test:", len(test))
-""",
-    r"""
-# Predictive model
-rf = RandomForestRegressor(n_estimators=300, random_state=42)
-rf.fit(X_train, y_train)
-pred = rf.predict(X_test)
-print("Predictive (RF):", eval_regression(y_test, pred))
-
-# Explanatory model
-lin = LinearRegression()
-lin.fit(X_train, y_train)
-pred2 = lin.predict(X_test)
-print("Explanatory (Linear):", eval_regression(y_test, pred2))
-""",
-    r"""
-# Score next-month incident risk for each safehouse (latest month per safehouse)
+explanatory.fit(train[features], train["incident_next"])
+incident_exp = np.maximum(0, explanatory.predict(test[features]))
+print("Explanatory incident model:", eval_regression(test["incident_next"], incident_exp))
+''',
+    ],
+    "causal": [
+r'''
+print("Top incident forecast features:")
+print(pd.DataFrame({"feature": features, "importance": incident_model.feature_importances_}).sort_values("importance", ascending=False).head(10).to_string(index=False))
+print_business_takeaway("Use the safehouse forecast as a relative ranking for planning staffing and attention, not as an exact count forecast.")
+''',
+    ],
+    "deployment": [
+r'''
 latest = metrics.groupby("safehouse_id").tail(1).copy()
-latest = latest.dropna(subset=["incident_lag1","active_lag1"])
-latest["predicted_incidents_next_month"] = rf.predict(latest[features])
-latest["risk_band"] = pd.qcut(latest["predicted_incidents_next_month"].rank(method="first"), q=4, labels=["Low","Medium","High","Very High"])
-
+fill_numeric_median(latest, features)
+latest["predicted_incidents_next_month"] = np.maximum(0, incident_model.predict(latest[features]))
+latest["predicted_active_residents_next_month"] = np.maximum(0, active_model.predict(latest[features]))
+latest["risk_band"] = score_bands(latest["predicted_incidents_next_month"])
 export_predictions_json(
-    prediction_type="safehouse_incident_next_month",
-    entity_type="Safehouse",
-    df_out=latest[["safehouse_id","predicted_incidents_next_month","risk_band","active_residents","incident_count","avg_health_score","avg_education_progress"]].rename(columns={"safehouse_id":"safehouse_id","predicted_incidents_next_month":"score"}),
-    id_col="safehouse_id",
-    score_col="score",
-    label_col="risk_band"
+    "safehouse_incident_next_month",
+    "Safehouse",
+    latest[["safehouse_id","predicted_incidents_next_month","risk_band","predicted_active_residents_next_month","active_residents","incident_count","avg_health_score","avg_education_progress"]],
+    "safehouse_id",
+    "predicted_incidents_next_month",
+    "risk_band",
 )
-""",
-]
+'''
+    ],
+}
 
+
+RESIDENT_RISK = {
+    "data": [
+r'''
+residents = require_csv("residents")
+incidents = require_csv("incident_reports")
+visits = require_csv("home_visitations")
+recordings = require_csv("process_recordings")
+edu = require_csv("education_records")
+health = require_csv("health_wellbeing_records")
 PIPELINE_6 = [
     r"""
 residents = load_df("residents")
@@ -768,123 +917,172 @@ visits["visit_date"] = pd.to_datetime(visits["visit_date"], errors="coerce")
 recordings["session_date"] = pd.to_datetime(recordings["session_date"], errors="coerce")
 edu["record_date"] = pd.to_datetime(edu["record_date"], errors="coerce")
 health["record_date"] = pd.to_datetime(health["record_date"], errors="coerce")
-
-max_incident = incidents["incident_date"].max()
-cutoff = max_incident - pd.Timedelta(days=30)
-label_end = cutoff + pd.Timedelta(days=30)
-print("Cutoff:", cutoff.date(), "Label end:", label_end.date())
-
-# Label: any incident in next 30 days
+# The raw dataset has too few incidents in a 30-day holdout window to train a
+# stable classifier. Use a 180-day future window as an incident-risk proxy and
+# export to the app's resident_incident_30d slot with the horizon noted in payload.
+incident_horizon_days = 180
+cutoff = incidents["incident_date"].max() - pd.Timedelta(days=incident_horizon_days)
+label_end = cutoff + pd.Timedelta(days=incident_horizon_days)
 future_inc = incidents[(incidents["incident_date"] > cutoff) & (incidents["incident_date"] <= label_end)]
 y = (future_inc.groupby("resident_id")["incident_id"].count() > 0).astype(int).rename("incident_next_30d").reset_index()
-
 past_inc = incidents[incidents["incident_date"] <= cutoff].copy()
 past_vis = visits[visits["visit_date"] <= cutoff].copy()
 past_rec = recordings[recordings["session_date"] <= cutoff].copy()
 past_edu = edu[edu["record_date"] <= cutoff].copy()
-past_h = health[health["record_date"] <= cutoff].copy()
+past_health = health[health["record_date"] <= cutoff].copy()
 
-base = residents[["resident_id","safehouse_id","case_status","case_category","is_pwd","family_is_4ps","family_solo_parent","family_indigenous","reintegration_status"]].copy()
-for b in ["is_pwd","family_is_4ps","family_solo_parent","family_indigenous"]:
-    base[b] = base[b].astype(int)
-
-# Incident history features
-inc_90 = past_inc[past_inc["incident_date"] >= (cutoff - pd.Timedelta(days=90))]
+base_cols = ["resident_id","safehouse_id","case_status","case_category","is_pwd","has_special_needs","family_is_4ps","family_solo_parent","family_indigenous","family_parent_pwd","family_informal_settler","referral_source","reintegration_status","initial_risk_level","current_risk_level"]
+base = residents[base_cols].copy()
+for col in ["is_pwd","has_special_needs","family_is_4ps","family_solo_parent","family_indigenous","family_parent_pwd","family_informal_settler"]:
+    base[col] = as_bool(base[col]).astype(int)
+inc_90 = past_inc[past_inc["incident_date"] >= cutoff - pd.Timedelta(days=90)]
 inc_feat = inc_90.groupby("resident_id").agg(
     incidents_90d=("incident_id","count"),
-    high_sev_90d=("severity", lambda s: int((s == "High").sum()))
+    high_severity_90d=("severity", lambda s: int((s == "High").sum())),
+    unresolved_90d=("resolved", lambda s: int((~as_bool(s)).sum())),
 ).reset_index()
-
-# Home visit follow-up features
-vis_90 = past_vis[past_vis["visit_date"] >= (cutoff - pd.Timedelta(days=90))]
+vis_90 = past_vis[past_vis["visit_date"] >= cutoff - pd.Timedelta(days=90)]
 vis_feat = vis_90.groupby("resident_id").agg(
     visits_90d=("visitation_id","count"),
-    followups_90d=("follow_up_needed", lambda s: int((s == True).sum()))
+    safety_concerns_90d=("safety_concerns_noted", lambda s: int(as_bool(s).sum())),
+    followups_90d=("follow_up_needed", lambda s: int(as_bool(s).sum())),
 ).reset_index()
-
-# Process recording volume features
-rec_30 = past_rec[past_rec["session_date"] >= (cutoff - pd.Timedelta(days=30))]
+rec_30 = past_rec[past_rec["session_date"] >= cutoff - pd.Timedelta(days=30)]
 rec_feat = rec_30.groupby("resident_id").agg(
     recordings_30d=("recording_id","count"),
-    concerns_flagged_30d=("concerns_flagged", lambda s: int((s == True).sum()))
+    progress_noted_30d=("progress_noted", lambda s: int(as_bool(s).sum())),
+    concerns_flagged_30d=("concerns_flagged", lambda s: int(as_bool(s).sum())),
+    referrals_30d=("referral_made", lambda s: int(as_bool(s).sum())),
 ).reset_index()
-
-def last_by_res(df, date_col, value_cols):
-    df2 = df.dropna(subset=[date_col]).sort_values(["resident_id", date_col]).copy()
-    last = df2.groupby("resident_id").tail(1)
-    return last[["resident_id"] + value_cols]
-
-edu_last = last_by_res(past_edu, "record_date", ["attendance_rate","progress_percent","completion_status","enrollment_status"])
-h_last = last_by_res(past_h, "record_date", ["general_health_score","nutrition_score","sleep_quality_score","energy_level_score"])
-
-df = base.merge(inc_feat, on="resident_id", how="left") \\\n+        .merge(vis_feat, on="resident_id", how="left") \\\n+        .merge(rec_feat, on="resident_id", how="left") \\\n+        .merge(edu_last, on="resident_id", how="left") \\\n+        .merge(h_last, on="resident_id", how="left") \\\n+        .merge(y, on="resident_id", how="left")
-
+def latest_by_res(frame, date_col, value_cols):
+    frame = frame.dropna(subset=[date_col]).sort_values(["resident_id", date_col]).copy()
+    return frame.groupby("resident_id").tail(1)[["resident_id"] + value_cols] if not frame.empty else pd.DataFrame(columns=["resident_id"] + value_cols)
+edu_last = latest_by_res(past_edu, "record_date", ["education_level","enrollment_status","attendance_rate","progress_percent","completion_status"])
+health_last = latest_by_res(past_health, "record_date", ["general_health_score","nutrition_score","sleep_quality_score","energy_level_score","bmi"])
+df = base.merge(inc_feat, on="resident_id", how="left").merge(vis_feat, on="resident_id", how="left").merge(rec_feat, on="resident_id", how="left").merge(edu_last, on="resident_id", how="left").merge(health_last, on="resident_id", how="left").merge(y, on="resident_id", how="left")
 df["incident_next_30d"] = df["incident_next_30d"].fillna(0).astype(int)
-for c in ["incidents_90d","high_sev_90d","visits_90d","followups_90d","recordings_30d","concerns_flagged_30d"]:
-    df[c] = df[c].fillna(0)
-for c in ["attendance_rate","progress_percent","general_health_score","nutrition_score","sleep_quality_score","energy_level_score"]:
-    df[c] = pd.to_numeric(df[c], errors="coerce").fillna(df[c].median() if df[c].notna().any() else 0)
-
-print("Rows:", len(df), "Pos rate:", df["incident_next_30d"].mean())
-df.head()
-""",
-    r"""
+count_cols = ["incidents_90d","high_severity_90d","unresolved_90d","visits_90d","safety_concerns_90d","followups_90d","recordings_30d","progress_noted_30d","concerns_flagged_30d","referrals_30d"]
+for col in count_cols:
+    df[col] = df[col].fillna(0)
+health_edu_cols = ["attendance_rate","progress_percent","general_health_score","nutrition_score","sleep_quality_score","energy_level_score","bmi"]
+fill_numeric_median(df, health_edu_cols)
+cat_cols = ["case_status","case_category","referral_source","reintegration_status","initial_risk_level","current_risk_level","education_level","enrollment_status","completion_status"]
+df[cat_cols] = df[cat_cols].fillna("Unknown")
+print("Rows:", len(df), "Incident rate:", round(df["incident_next_30d"].mean(), 3))
+quick_eda(df, "Resident risk/readiness modeling table", target_col="incident_next_30d", numeric_cols=count_cols + health_edu_cols, categorical_cols=cat_cols)
+''',
+    ],
+    "modeling": [
+r'''
 target = "incident_next_30d"
-features = [
-    "safehouse_id","case_status","case_category",
-    "is_pwd","family_is_4ps","family_solo_parent","family_indigenous",
-    "incidents_90d","high_sev_90d","visits_90d","followups_90d","recordings_30d","concerns_flagged_30d",
-    "attendance_rate","progress_percent","completion_status","enrollment_status",
-    "general_health_score","nutrition_score","sleep_quality_score","energy_level_score"
-]
+num_cols = ["safehouse_id","is_pwd","has_special_needs","family_is_4ps","family_solo_parent","family_indigenous","family_parent_pwd","family_informal_settler","incidents_90d","high_severity_90d","unresolved_90d","visits_90d","safety_concerns_90d","followups_90d","recordings_30d","progress_noted_30d","concerns_flagged_30d","referrals_30d","attendance_rate","progress_percent","general_health_score","nutrition_score","sleep_quality_score","energy_level_score","bmi"]
+features = cat_cols + num_cols
+X_train, X_test, y_train, y_test = safe_classifier_split(df[features], df[target])
+predictive = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
+explanatory = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", LogisticRegression(max_iter=3000))])
 
-X = df[features].copy()
-y = df[target].copy()
+df["readiness_positive"] = df["reintegration_status"].isin(["Completed", "In Progress"]).astype(int)
+X_ready_train, X_ready_test, y_ready_train, y_ready_test = safe_classifier_split(df[features], df["readiness_positive"])
+readiness_model = Pipeline([("pre", prep(cat_cols, num_cols)), ("model", GradientBoostingClassifier(random_state=42))])
+''',
+    ],
+    "evaluation": [
+r'''
+print("Baseline:", classification_baseline(y_train, y_test))
+compact_cv_classification(df[features], df[target], cat_cols, num_cols)
+predictive.fit(X_train, y_train)
+proba = predictive.predict_proba(X_test)[:, 1]
+print("Predictive incident model:", eval_classification(y_test, (proba >= 0.5).astype(int), proba))
+explanatory.fit(X_train, y_train)
+proba_exp = explanatory.predict_proba(X_test)[:, 1]
+print("Explanatory incident model:", eval_classification(y_test, (proba_exp >= 0.5).astype(int), proba_exp))
 
-cat_cols = ["case_status","case_category","completion_status","enrollment_status"]
-num_cols = [c for c in features if c not in cat_cols and c != "safehouse_id"] + ["safehouse_id"]
-
-pre = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore"), cat_cols),
-        ("num", "passthrough", num_cols),
-    ]
-)
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
-""",
-    r"""
-gb = Pipeline(steps=[("pre", pre), ("model", GradientBoostingClassifier(random_state=42))])
-gb.fit(X_train, y_train)
-proba = gb.predict_proba(X_test)[:,1]
-pred = (proba >= 0.5).astype(int)
-print("Predictive (GB):", eval_classification(y_test, pred, proba))
-
-lr = Pipeline(steps=[("pre", pre), ("model", LogisticRegression(max_iter=2500))])
-lr.fit(X_train, y_train)
-proba2 = lr.predict_proba(X_test)[:,1]
-pred2 = (proba2 >= 0.5).astype(int)
-print("Explanatory (LogReg):", eval_classification(y_test, pred2, proba2))
-""",
-    r"""
-# Score all residents
+print("Readiness baseline:", classification_baseline(y_ready_train, y_ready_test))
+compact_cv_classification(df[features], df["readiness_positive"], cat_cols, num_cols)
+readiness_model.fit(X_ready_train, y_ready_train)
+readiness_proba = readiness_model.predict_proba(X_ready_test)[:, 1]
+print("Predictive readiness model:", eval_classification(y_ready_test, (readiness_proba >= 0.5).astype(int), readiness_proba))
+''',
+    ],
+    "causal": [
+r'''
+print("Top predictive risk features:")
+print(top_features(predictive).to_string(index=False))
+print("Top explanatory risk relationships:")
+print(top_features(explanatory).to_string(index=False))
+print("Top readiness features:")
+print(top_features(readiness_model).to_string(index=False))
+print_business_takeaway("Use resident risk scores for staff triage only. Sensitive care decisions should always remain human-reviewed.")
+''',
+    ],
+    "deployment": [
+r'''
 df_out = df[["resident_id"] + features].copy()
-df_out["risk_score"] = gb.predict_proba(df_out[features])[:,1]
-df_out["risk_band"] = pd.qcut(df_out["risk_score"], q=4, labels=["Low","Medium","High","Very High"])
-
+df_out["risk_score"] = predictive.predict_proba(df_out[features])[:, 1]
+df_out["risk_band"] = score_bands(df_out["risk_score"])
 export_predictions_json(
-    prediction_type="resident_incident_30d",
-    entity_type="Resident",
-    df_out=df_out[["resident_id","risk_score","risk_band","safehouse_id","incidents_90d","followups_90d","recordings_30d","progress_percent","general_health_score"]].rename(columns={"risk_score":"score"}),
-    id_col="resident_id",
-    score_col="score",
-    label_col="risk_band"
+    "resident_incident_30d",
+    "Resident",
+    df_out[["resident_id","risk_score","risk_band","safehouse_id","incidents_90d","safety_concerns_90d","followups_90d","recordings_30d","progress_percent","general_health_score"]].assign(training_horizon_days=incident_horizon_days),
+    "resident_id",
+    "risk_score",
+    "risk_band",
 )
+''',
+r'''
+ready_out = df[["resident_id"] + features].copy()
+ready_out["readiness_score"] = readiness_model.predict_proba(ready_out[features])[:, 1]
+ready_out["readiness_band"] = score_bands(ready_out["readiness_score"])
+export_predictions_json(
+    "resident_reintegration_readiness",
+    "Resident",
+    ready_out[["resident_id","readiness_score","readiness_band","safehouse_id","reintegration_status","progress_percent","general_health_score","incidents_90d","concerns_flagged_30d"]],
+    "resident_id",
+    "readiness_score",
+    "readiness_band",
+)
+'''
+    ],
+}
 
-# Optional: readiness analysis (not exported; still useful for write-up)
-df["ready"] = (df["reintegration_status"] == "Completed").astype(int)
-print("Ready rate:", df["ready"].mean())
-""",
+
+NOTEBOOKS = [
+    (
+        "donor-lapse-risk.ipynb",
+        "Pipeline 1 - Donor Lapse Risk Predictor",
+        "Identify supporters most likely to lapse in the next 90 days so leaders can prioritize retention outreach.",
+        DONOR_LAPSE,
+    ),
+    (
+        "donor-upgrade-propensity.ipynb",
+        "Pipeline 2 - Donor Upgrade Propensity / Ask Amount Predictor",
+        "Predict likely next donation amount so fundraising asks can be personalized.",
+        DONOR_UPGRADE,
+    ),
+    (
+        "next-best-campaign.ipynb",
+        "Pipeline 3 - Next Best Channel Predictor",
+        "Recommend the next donation channel most likely to work for each supporter.",
+        NEXT_BEST_CHANNEL,
+    ),
+    (
+        "social-post-donation-referrals.ipynb",
+        "Pipeline 4 - Social Post Donation Value Predictor",
+        "Predict which social posts are likely to drive donation value and referrals.",
+        SOCIAL_REFERRALS,
+    ),
+    (
+        "safehouse-capacity-forecast.ipynb",
+        "Pipeline 5 - Safehouse Capacity and Incident Forecast",
+        "Forecast next-month incident and capacity pressure for safehouse planning.",
+        SAFEHOUSE_FORECAST,
+    ),
+    (
+        "resident-risk-and-readiness.ipynb",
+        "Pipeline 6 - Resident Risk and Reintegration Readiness Predictor",
+        "Flag residents at elevated incident risk and estimate reintegration readiness for staff triage.",
+        RESIDENT_RISK,
+    ),
 ]
 
 
@@ -892,81 +1090,9 @@ def main() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     out_dir = repo_root / "ml-pipelines"
     out_dir.mkdir(parents=True, exist_ok=True)
-
-    specs: list[NotebookSpec] = [
-        NotebookSpec(
-            filename="donor-lapse-risk.ipynb",
-            title="Pipeline 1 — Donor Lapse Risk (Churn) Predictor",
-            crispdm_business="Goal: identify supporters likely to stop giving soon so leadership can intervene with targeted outreach.",
-            crispdm_data="Use supporters + donation history up to a cutoff date; label donation activity in the next 90 days.",
-            crispdm_prep="Aggregate donation history to supporter-level features (RFM + mix features).",
-            crispdm_model="Predictive: Gradient Boosting. Explanatory: Logistic Regression for interpretability.",
-            crispdm_eval="Use ROC-AUC/F1 to handle imbalance. Discuss cost of false positives/negatives for fundraising operations.",
-            crispdm_deploy="Export risk scores, import into `/api/ml/import`, display in `/app/ml` and (later) Donors page.",
-            code_cells=PIPELINE_1,
-        ),
-        NotebookSpec(
-            filename="donor-upgrade-propensity.ipynb",
-            title="Pipeline 2 — Donor Upgrade Propensity (Next Ask Amount)",
-            crispdm_business="Goal: predict next donation amount to personalize fundraising asks and increase donation growth.",
-            crispdm_data="Use monetary donations per supporter in sequence; predict the next donation amount within 180 days.",
-            crispdm_prep="Build per-donation training rows with history features; time-based split to avoid leakage.",
-            crispdm_model="Predictive: Gradient Boosting Regressor. Explanatory: Linear Regression (log-scale).",
-            crispdm_eval="Evaluate MAE/RMSE and discuss over/under-asking consequences for donors.",
-            crispdm_deploy="Export predicted next amount and ask tier per supporter; import into `/api/ml/import`.",
-            code_cells=PIPELINE_2,
-        ),
-        NotebookSpec(
-            filename="next-best-campaign.ipynb",
-            title="Pipeline 3 — Next Best Channel Predictor",
-            crispdm_business="Goal: recommend the next most likely donation channel to improve outreach efficiency.",
-            crispdm_data="Use donation sequences per supporter; label next donation channel within 365 days.",
-            crispdm_prep="Create per-donation rows with recency and metadata; bucket rare classes into 'Other'.",
-            crispdm_model="Predictive: Gradient Boosting (multiclass). Explanatory: Multinomial Logistic Regression.",
-            crispdm_eval="Accuracy + discussion of class imbalance and implications for campaign strategy.",
-            crispdm_deploy="Export predicted channel + confidence per supporter; import and view in `/app/ml`.",
-            code_cells=PIPELINE_3,
-        ),
-        NotebookSpec(
-            filename="social-post-donation-referrals.ipynb",
-            title="Pipeline 4 — Social Post → Donation Value Predictor",
-            crispdm_business="Goal: help leaders post strategically by predicting expected donation value from post characteristics.",
-            crispdm_data="Use social_media_posts table. Target is estimated_donation_value_php.",
-            crispdm_prep="Separate actionable pre-post features from post-performance engagement features (explanatory).",
-            crispdm_model="Predictive: Gradient Boosting Regressor (pre-post features). Explanatory: Linear Regression with engagement metrics.",
-            crispdm_eval="Evaluate MAE/RMSE; discuss what is controllable vs observed after posting.",
-            crispdm_deploy="Export expected donation value per post; use results to guide posting guidelines.",
-            code_cells=PIPELINE_4,
-        ),
-        NotebookSpec(
-            filename="safehouse-capacity-forecast.ipynb",
-            title="Pipeline 5 — Safehouse Incident Forecast (Next Month)",
-            crispdm_business="Goal: forecast next-month incident risk to proactively allocate resources and staffing.",
-            crispdm_data="Use safehouse_monthly_metrics time series per safehouse.",
-            crispdm_prep="Create lag/rolling features and time-based split.",
-            crispdm_model="Predictive: Random Forest Regressor. Explanatory: Linear Regression.",
-            crispdm_eval="Evaluate forecast error and discuss operational consequences of underestimating risk.",
-            crispdm_deploy="Export predicted incident forecast and risk band per safehouse; import into `/api/ml/import`.",
-            code_cells=PIPELINE_5,
-        ),
-        NotebookSpec(
-            filename="resident-risk-and-readiness.ipynb",
-            title="Pipeline 6 — Resident Incident Risk (Next 30 Days)",
-            crispdm_business="Goal: flag residents at higher incident risk so staff can intervene earlier.",
-            crispdm_data="Join resident master data with incident reports, home visits, process recordings, education and health records.",
-            crispdm_prep="Define cutoff date and compute recent-history features (30/90 days) with latest monthly records.",
-            crispdm_model="Predictive: Gradient Boosting Classifier. Explanatory: Logistic Regression.",
-            crispdm_eval="ROC-AUC/F1 and discuss false positives/negatives in a sensitive setting.",
-            crispdm_deploy="Export resident risk scores and bands; import into `/api/ml/import` and view in `/app/ml`.",
-            code_cells=PIPELINE_6,
-        ),
-    ]
-
-    for spec in specs:
-        nb = build_notebook(spec)
-        (out_dir / spec.filename).write_text(json.dumps(nb, indent=2), encoding="utf-8")
-
-    print("Generated:", [s.filename for s in specs])
+    for filename, title, business, cells in NOTEBOOKS:
+        (out_dir / filename).write_text(json.dumps(nb(title, business, cells), indent=2), encoding="utf-8")
+        print("Generated", out_dir / filename)
 
 
 if __name__ == "__main__":
