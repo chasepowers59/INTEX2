@@ -170,17 +170,22 @@ app.UseAuthorization();
 
 app.MapGet("/health", (HttpContext ctx) =>
     Results.Ok(new { status = "ok", traceId = ctx.TraceIdentifier }));
-app.MapGet("/health/info", () =>
+app.MapGet("/health/info", (IConfiguration config) =>
 {
-    var conn = app.Configuration.GetConnectionString("AppDb");
+    var conn = config.GetConnectionString("AppDb");
     var hasConn = !string.IsNullOrWhiteSpace(conn);
-    var corsOrigins = app.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+    var corsOrigins = config.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+    var jwtKey = config["Jwt:Key"] ?? "";
+    var jwtKeyUtf8Bytes = Encoding.UTF8.GetByteCount(jwtKey);
     return Results.Ok(new
     {
         status = "ok",
         environment = app.Environment.EnvironmentName,
         hasConnectionString = hasConn,
         corsAllowedOrigins = corsOrigins,
+        jwtKeyUtf8Bytes,
+        jwtKeyConfigured = jwtKeyUtf8Bytes >= 32,
+        databaseAutoMigrate = config.GetValue("Database:AutoMigrate", true),
         nowUtc = DateTime.UtcNow
     });
 });
@@ -216,6 +221,63 @@ app.MapGet("/health/db", async (IServiceProvider services) =>
             statusCode: StatusCodes.Status503ServiceUnavailable,
             extensions: new Dictionary<string, object?> { ["traceId"] = traceId }
         );
+    }
+});
+
+app.MapGet("/health/migrations", async (IServiceProvider sp) =>
+{
+    await using var scope = sp.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var applied = await db.Database.GetAppliedMigrationsAsync();
+    var pending = await db.Database.GetPendingMigrationsAsync();
+    var appliedList = applied.ToArray();
+    var pendingList = pending.ToArray();
+    return Results.Ok(new
+    {
+        status = "ok",
+        applied = appliedList,
+        pending = pendingList,
+        pendingCount = pendingList.Length,
+        ready = pendingList.Length == 0
+    });
+});
+
+app.MapGet("/health/schema", async (IServiceProvider sp) =>
+{
+    string[] tables =
+    [
+        "AspNetUsers", "AspNetRoles", "AspNetUserRoles", "AspNetRoleClaims", "AspNetUserClaims",
+        "AspNetUserLogins", "AspNetUserTokens", "Supporters", "Residents", "Contributions", "Safehouses"
+    ];
+    await using var scope = sp.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var conn = db.Database.GetDbConnection();
+    await conn.OpenAsync();
+    try
+    {
+        var dict = new Dictionary<string, bool>(StringComparer.Ordinal);
+        foreach (var t in tables)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT CASE WHEN OBJECT_ID(@fqn, N'U') IS NOT NULL THEN 1 ELSE 0 END";
+            var p = cmd.CreateParameter();
+            p.ParameterName = "@fqn";
+            p.Value = $"dbo.{t}";
+            cmd.Parameters.Add(p);
+            var n = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            dict[t] = n == 1;
+        }
+
+        return Results.Ok(new
+        {
+            status = "ok",
+            tables = dict,
+            allCoreTablesPresent = dict["AspNetUsers"] && dict["AspNetRoles"] && dict["Supporters"]
+        });
+    }
+    finally
+    {
+        await conn.CloseAsync();
     }
 });
 

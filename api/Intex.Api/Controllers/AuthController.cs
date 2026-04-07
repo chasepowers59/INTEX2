@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Intex.Api.Auth;
 using Intex.Api.Data;
 using Intex.Api.Dtos;
@@ -23,22 +24,37 @@ public sealed class AuthController(
     [AllowAnonymous]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
-        var user = await userManager.FindByNameAsync(request.Username)
-                   ?? await userManager.FindByEmailAsync(request.Username);
-
-        if (user is null)
+        try
         {
-            return Unauthorized(new { message = "Invalid username or password." });
-        }
+            var user = await userManager.FindByNameAsync(request.Username)
+                       ?? await userManager.FindByEmailAsync(request.Username);
 
-        var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (!result.Succeeded)
+            if (user is null)
+            {
+                return Unauthorized(new { message = "Invalid username or password." });
+            }
+
+            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (!result.Succeeded)
+            {
+                return Unauthorized(new { message = "Invalid username or password." });
+            }
+
+            var roles = await userManager.GetRolesAsync(user);
+            return TryIssueToken(user, roles);
+        }
+        catch (DbException ex)
         {
-            return Unauthorized(new { message = "Invalid username or password." });
+            logger.LogError(ex, "Database error during login (often missing EF migrations / AspNet* tables).");
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new
+                {
+                    message =
+                        "Database error while signing in. Open GET /health/migrations — if \"pending\" is not empty, apply migrations to this database (dotnet ef database update). Also check GET /health/schema.",
+                    traceId = HttpContext.TraceIdentifier
+                });
         }
-
-        var roles = await userManager.GetRolesAsync(user);
-        return TryIssueToken(user, roles);
     }
 
     [HttpGet("me")]
