@@ -65,6 +65,16 @@ export function AdminUsersPage() {
               Search
             </button>
           </div>
+          <div className="row" style={{ marginTop: 10 }}>
+            <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 260px" }}>
+              <div style={{ fontWeight: 800 }}>Simple admin flow</div>
+              <ol className="trust-list muted">
+                <li>Create user with role and optional supporter link.</li>
+                <li>Use Actions to reset password or enable and disable access.</li>
+                <li>Use Link donor when donor account and supporter row must be connected.</li>
+              </ol>
+            </div>
+          </div>
         </div>
 
         <div className="card">

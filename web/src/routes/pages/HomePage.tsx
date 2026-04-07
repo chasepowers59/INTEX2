@@ -132,6 +132,127 @@ export function HomePage() {
           </ul>
         </div>
       </div>
+
+      <div className="card">
+        <div className="sub-kicker">What we do</div>
+        <h2 className="section-title">Provide Safety, Healing, Justice, and Empowerment</h2>
+        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 360 }}>
+          <img src="/reference/what-we-do.png" alt="Reference section showing safety, healing, justice, and empowerment themes." />
+        </div>
+        <div className="feature-grid-4">
+          <div className="feature-tile">
+            <div className="feature-icon safety">S</div>
+            <div style={{ fontWeight: 800, fontSize: 28 }}>Safety</div>
+            <p className="muted">We prioritize immediate protection, stable shelter, and critical follow-up workflows.</p>
+          </div>
+          <div className="feature-tile">
+            <div className="feature-icon healing">H</div>
+            <div style={{ fontWeight: 800, fontSize: 28 }}>Healing</div>
+            <p className="muted">Process recordings and interventions help teams document and support recovery journeys.</p>
+          </div>
+          <div className="feature-tile">
+            <div className="feature-icon justice">J</div>
+            <div style={{ fontWeight: 800, fontSize: 28 }}>Justice</div>
+            <p className="muted">Case conferences and coordinated referrals strengthen legal and social protection outcomes.</p>
+          </div>
+          <div className="feature-tile">
+            <div className="feature-icon empowerment">E</div>
+            <div style={{ fontWeight: 800, fontSize: 28 }}>Empowerment</div>
+            <p className="muted">Donor-backed education, wellbeing, and reintegration support build long-term resilience.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0, fontSize: 46, textAlign: "center" }}>Our Programs and Services</h2>
+        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 430 }}>
+          <img src="/reference/programs-services.png" alt="Reference layout for programs and services card gallery." />
+        </div>
+        <div className="program-grid">
+          <div className="program-card">
+            <div className="program-photo">
+              <img src="/reference/programs-services.png" alt="Program collage inspiration for service categories." />
+            </div>
+            <div className="program-name">Physiological Needs</div>
+          </div>
+          <div className="program-card">
+            <div className="program-photo" />
+            <div className="program-name">Biological Needs</div>
+          </div>
+          <div className="program-card">
+            <div className="program-photo" />
+            <div className="program-name">Spiritual Needs</div>
+          </div>
+          <div className="program-card">
+            <div className="program-photo" />
+            <div className="program-name">Psychological Needs</div>
+          </div>
+          <div className="program-card">
+            <div className="program-photo" />
+            <div className="program-name">Social Needs</div>
+          </div>
+          <div className="program-card">
+            <div className="program-photo" />
+            <div className="program-name">Love and Belonging</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="cta-ribbon">
+        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 240 }}>
+          <img src="/reference/hero-ribbon.png" alt="Hero call-to-action reference banner showing children and ocean." />
+        </div>
+        <h2>Bring safety, healing, and empowerment to children in need</h2>
+        <Link className="btn primary" to="/give" style={{ marginTop: 16 }}>
+          Donate now
+        </Link>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0, textAlign: "center", fontSize: 46 }}>Board of Directors</h2>
+        <div className="avatar-row">
+          <div className="avatar-bubble" />
+          <div className="avatar-bubble" />
+          <div className="avatar-bubble" />
+          <div className="avatar-bubble" />
+        </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0, textAlign: "center", fontSize: 50 }}>Recent Posts</h2>
+        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 360 }}>
+          <img src="/reference/recent-posts.png" alt="Reference image showing recent posts content cards." />
+        </div>
+        <div className="post-grid">
+          <article className="post-card">
+            <div className="post-photo" />
+            <div className="post-body">
+              <div className="muted" style={{ fontSize: 12 }}>May 11, 2025</div>
+              <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>Highs and Lows of Lighthouse</div>
+              <p className="muted">A reflection on field realities and the importance of consistent support systems.</p>
+              <Link className="btn" to="/about">Read more</Link>
+            </div>
+          </article>
+          <article className="post-card">
+            <div className="post-photo" />
+            <div className="post-body">
+              <div className="muted" style={{ fontSize: 12 }}>December 11, 2024</div>
+              <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>The Power of Light</div>
+              <p className="muted">How targeted donor campaigns can unlock real pathways to safety and recovery.</p>
+              <Link className="btn" to="/impact">Read more</Link>
+            </div>
+          </article>
+          <article className="post-card">
+            <div className="post-photo" />
+            <div className="post-body">
+              <div className="muted" style={{ fontSize: 12 }}>September 12, 2023</div>
+              <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>Thankful to Celebrate 5 Years</div>
+              <p className="muted">Milestones from safehouse operations, reintegration support, and donor impact growth.</p>
+              <Link className="btn" to="/roles">Read more</Link>
+            </div>
+          </article>
+        </div>
+      </div>
     </div>
   );
 }

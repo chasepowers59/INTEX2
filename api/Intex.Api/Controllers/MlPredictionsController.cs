@@ -13,6 +13,17 @@ namespace Intex.Api.Controllers;
 [Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
 {
+    private static readonly (string Type, string EntityType, string Purpose)[] ExpectedTypes =
+    [
+        ("donor_lapse_90d", "Supporter", "Retention risk"),
+        ("donor_upgrade_next_amount", "Supporter", "Upgrade ask guidance"),
+        ("next_channel_source", "Supporter", "Best outreach channel"),
+        ("post_donation_value", "SocialPost", "Social conversion value"),
+        ("safehouse_incident_next_month", "Safehouse", "Capacity and incident pressure"),
+        ("resident_incident_30d", "Resident", "Resident incident risk"),
+        ("resident_reintegration_readiness", "Resident", "Reintegration readiness")
+    ];
+
     [HttpGet("types")]
     public async Task<ActionResult<IReadOnlyList<string>>> GetTypes()
     {
@@ -23,6 +34,57 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
             .ToListAsync();
 
         return Ok(types);
+    }
+
+    [HttpGet("coverage")]
+    public async Task<ActionResult> GetCoverage()
+    {
+        var grouped = await db.MlPredictions.AsNoTracking()
+            .GroupBy(x => x.PredictionType)
+            .Select(g => new
+            {
+                predictionType = g.Key,
+                rowCount = g.Count(),
+                latestCreatedAtUtc = g.Max(x => x.CreatedAtUtc),
+                entityTypes = g.Select(x => x.EntityType).Distinct().OrderBy(x => x).ToList()
+            })
+            .ToListAsync();
+
+        var byType = grouped.ToDictionary(x => x.predictionType, StringComparer.OrdinalIgnoreCase);
+
+        var expected = ExpectedTypes.Select(e =>
+        {
+            byType.TryGetValue(e.Type, out var hit);
+            return new
+            {
+                predictionType = e.Type,
+                entityType = e.EntityType,
+                purpose = e.Purpose,
+                present = hit is not null,
+                rowCount = hit?.rowCount ?? 0,
+                latestCreatedAtUtc = hit?.latestCreatedAtUtc
+            };
+        }).ToList();
+
+        var additional = grouped
+            .Where(x => !ExpectedTypes.Any(e => string.Equals(e.Type, x.predictionType, StringComparison.OrdinalIgnoreCase)))
+            .Select(x => new
+            {
+                predictionType = x.predictionType,
+                entityTypes = x.entityTypes,
+                rowCount = x.rowCount,
+                latestCreatedAtUtc = x.latestCreatedAtUtc
+            })
+            .ToList();
+
+        return Ok(new
+        {
+            expectedTotal = ExpectedTypes.Length,
+            expectedPresent = expected.Count(x => x.present),
+            expectedMissing = expected.Count(x => !x.present),
+            expected,
+            additional
+        });
     }
 
     [HttpGet("predictions")]

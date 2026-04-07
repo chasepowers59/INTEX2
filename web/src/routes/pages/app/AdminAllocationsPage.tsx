@@ -62,6 +62,16 @@ export function AdminAllocationsPage() {
               {error}
             </div>
           ) : null}
+          <div className="row" style={{ marginTop: 10 }}>
+            <div className="card tone-berry" style={{ boxShadow: "none", flex: "1 1 260px" }}>
+              <div style={{ fontWeight: 800 }}>Allocation CRUD guide</div>
+              <ol className="trust-list muted">
+                <li>Create rows with SupporterId, date, category, and amount.</li>
+                <li>Filter by supporter or category to audit spending quickly.</li>
+                <li>Delete only incorrect rows; this immediately affects donor portal views.</li>
+              </ol>
+            </div>
+          </div>
         </div>
 
         <div className="card">

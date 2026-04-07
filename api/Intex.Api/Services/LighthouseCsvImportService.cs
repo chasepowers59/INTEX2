@@ -144,7 +144,10 @@ public sealed class LighthouseCsvImportService(
             if (et is null) continue;
             var table = et.GetTableName();
             var schema = et.GetSchema() ?? "dbo";
-            await db.Database.ExecuteSqlRawAsync($"DELETE FROM [{schema}].[{table}]", cancellationToken: ct);
+            // Safe: schema/table names are resolved from EF model metadata, not user input.
+#pragma warning disable EF1003
+            await db.Database.ExecuteSqlRawAsync("DELETE FROM [" + schema + "].[" + table + "]", cancellationToken: ct);
+#pragma warning restore EF1003
         }
     }
 
@@ -193,7 +196,10 @@ public sealed class LighthouseCsvImportService(
         var schema = et?.GetSchema() ?? "dbo";
         if (!string.IsNullOrWhiteSpace(table))
         {
-            await db.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{schema}].[{table}] ON", cancellationToken: ct);
+            // Safe: schema/table names are resolved from EF model metadata, not user input.
+#pragma warning disable EF1003
+            await db.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [" + schema + "].[" + table + "] ON", cancellationToken: ct);
+#pragma warning restore EF1003
         }
 
         try
@@ -204,7 +210,10 @@ public sealed class LighthouseCsvImportService(
         {
             if (!string.IsNullOrWhiteSpace(table))
             {
-                await db.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{schema}].[{table}] OFF", cancellationToken: ct);
+                // Safe: schema/table names are resolved from EF model metadata, not user input.
+#pragma warning disable EF1003
+                await db.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [" + schema + "].[" + table + "] OFF", cancellationToken: ct);
+#pragma warning restore EF1003
             }
         }
 

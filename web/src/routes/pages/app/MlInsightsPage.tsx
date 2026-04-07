@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { Link } from "react-router-dom";
 
 type MlPred = {
   predictionId: number;
@@ -13,12 +14,33 @@ type MlPred = {
   createdAtUtc: string;
 };
 
+type MlCoverage = {
+  expectedTotal: number;
+  expectedPresent: number;
+  expectedMissing: number;
+  expected: {
+    predictionType: string;
+    entityType: string;
+    purpose: string;
+    present: boolean;
+    rowCount: number;
+    latestCreatedAtUtc: string | null;
+  }[];
+  additional: {
+    predictionType: string;
+    entityTypes: string[];
+    rowCount: number;
+    latestCreatedAtUtc: string | null;
+  }[];
+};
+
 export function MlInsightsPage() {
   const auth = useAuth();
   const [types, setTypes] = useState<string[]>([]);
   const [type, setType] = useState<string>("");
   const [items, setItems] = useState<MlPred[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [coverage, setCoverage] = useState<MlCoverage | null>(null);
   const [importBusy, setImportBusy] = useState<boolean>(false);
   const [importReplace, setImportReplace] = useState<boolean>(true);
 
@@ -28,6 +50,8 @@ export function MlInsightsPage() {
     const t = await apiFetch<string[]>("/api/ml/types", { token: auth.token ?? undefined });
     setTypes(t);
     if (!type && t.length > 0) setType(t[0]);
+    const c = await apiFetch<MlCoverage>("/api/ml/coverage", { token: auth.token ?? undefined });
+    setCoverage(c);
   };
 
   const loadPreds = async (predictionType: string) => {
@@ -68,6 +92,61 @@ export function MlInsightsPage() {
         <p className="muted">
           This page displays model outputs imported from the IS455 notebooks. Import is admin-only.
         </p>
+        <div className="staff-ml-grid" style={{ marginTop: 12 }}>
+          <div className="card tone-aqua" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 800 }}>Integration status</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              ML prediction types discovered: <strong>{types.length}</strong>
+            </div>
+            <div className="muted" style={{ fontSize: 13 }}>Loaded rows for selected type: <strong>{items.length}</strong></div>
+            <div className="muted" style={{ fontSize: 13 }}>
+              Expected pipelines loaded: <strong>{coverage ? `${coverage.expectedPresent}/${coverage.expectedTotal}` : "—"}</strong>
+            </div>
+          </div>
+          <div className="card tone-berry" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 800 }}>Who should use this</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Employees triage via Action Center; admins import/validate models; donors view anonymized impact only.
+            </div>
+          </div>
+          <div className="card tone-peach" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 800 }}>Operational links</div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <Link className="btn" to="/app/action-center">Action Center</Link>
+              <Link className="btn" to="/app/social-media">Social strategy</Link>
+            </div>
+          </div>
+        </div>
+
+        {coverage ? (
+          <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
+            <div style={{ fontWeight: 900 }}>Expected ML pipeline coverage</div>
+            <div className="table-wrap" style={{ marginTop: 10 }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Prediction type</th>
+                    <th>Entity</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                    <th>Rows</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {coverage.expected.map((x) => (
+                    <tr key={x.predictionType}>
+                      <td data-label="Prediction type" className="muted">{x.predictionType}</td>
+                      <td data-label="Entity">{x.entityType}</td>
+                      <td data-label="Purpose">{x.purpose}</td>
+                      <td data-label="Status">{x.present ? <span className="badge ok">Imported</span> : <span className="badge warn">Missing</span>}</td>
+                      <td data-label="Rows">{x.rowCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
         <div className="row" style={{ marginTop: 10 }}>
           <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 230px" }}>
             <div style={{ fontWeight: 800 }}>Risk pipelines</div>

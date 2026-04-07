@@ -46,6 +46,10 @@ export function DonorsPage() {
       <div className="card">
         <h1 style={{ marginTop: 0 }}>Donors & Contributions</h1>
         <p className="muted">Employees can view. Only admins can create/update/delete.</p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <span className="badge ok">Employee: view trends and histories</span>
+          <span className="badge warn">Admin: full supporter and contribution CRUD</span>
+        </div>
         {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
         <div className="row" style={{ marginTop: 8 }}>
           <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search supporters…" />

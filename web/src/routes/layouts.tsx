@@ -123,6 +123,7 @@ export function PublicLayout() {
 
 export function AppLayout() {
   const auth = useAuth();
+  const donorOnly = auth.hasRole("Donor") && !auth.hasRole("Admin") && !auth.hasRole("Employee");
 
   useEffect(() => {
     applyThemeFromCookie();
@@ -138,7 +139,7 @@ export function AppLayout() {
   };
 
   return (
-    <div className="layout">
+    <div className={`layout ${donorOnly ? "layout-donor" : "layout-staff"}`}>
       <aside className="sidebar">
         <div className="sidebar-brand">
           <div className="title">Steps of Hope</div>

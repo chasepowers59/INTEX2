@@ -73,6 +73,9 @@ export function DonorPortalPage() {
             <Link className="btn" to="/impact">
               Public impact
             </Link>
+            <Link className="btn" to="/app/ml">
+              View ML transparency
+            </Link>
           </div>
 
           <div className="donor-hero-metrics">
@@ -100,6 +103,25 @@ export function DonorPortalPage() {
               {error}
             </div>
           ) : null}
+        </div>
+
+        <div className="row">
+          <div className="card tone-aqua soft-pulse" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>What donors can do here</div>
+            <ul className="trust-list muted">
+              <li>Review contribution history and allocation trends.</li>
+              <li>Understand anonymized impact without exposing survivor identity.</li>
+              <li>Use public impact and giving pages for next donation actions.</li>
+            </ul>
+          </div>
+          <div className="card tone-peach" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>What staff/admin do elsewhere</div>
+            <ul className="trust-list muted">
+              <li>Staff: manage cases, check-ins, and intervention workflows.</li>
+              <li>Admin: CRUD users, allocations, imports, and published snapshots.</li>
+              <li>ML workflows remain role-gated to protect sensitive operations.</li>
+            </ul>
+          </div>
         </div>
 
         <div className="card">
@@ -205,14 +227,17 @@ export function DonorPortalPage() {
         </div>
 
         <div className="photo-grid" style={{ marginTop: 12 }}>
-          <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donor impact at community safehouse">
-            <div className="caption">Photo placeholder: your support in action</div>
+          <div className="photo-placeholder" role="img" aria-label="Reference image showing impact activities and donor-backed services">
+            <img src="/reference/programs-services.png" alt="Donor impact collage reference." />
+            <div className="caption">Your support in action</div>
           </div>
-          <div className="photo-placeholder" role="img" aria-label="Generated placeholder: trauma-informed support and services">
-            <div className="caption">Photo placeholder: trauma-informed support services</div>
+          <div className="photo-placeholder" role="img" aria-label="Reference image showing hero mission call to action">
+            <img src="/reference/hero-ribbon.png" alt="Mission hero banner reference." />
+            <div className="caption">Trauma-informed support services</div>
           </div>
-          <div className="photo-placeholder" role="img" aria-label="Generated placeholder: recovery milestones and hope">
-            <div className="caption">Photo placeholder: recovery milestones and hope</div>
+          <div className="photo-placeholder" role="img" aria-label="Reference image showing recent post storytelling cards">
+            <img src="/reference/recent-posts.png" alt="Recent posts storytelling reference." />
+            <div className="caption">Recovery milestones and hope</div>
           </div>
         </div>
       </div>

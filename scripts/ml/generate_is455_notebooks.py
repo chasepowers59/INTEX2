@@ -421,12 +421,8 @@ The final scoring step exports JSON to `output/ml-predictions/`. These files mat
 DONOR_LAPSE = {
     "data": [
 r'''
-supporters = require_csv("supporters")
-donations = require_csv("donations")
-PIPELINE_1 = [
-    r"""
 supporters = load_df("supporters")
-        donations = load_df("donations")
+donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 donations = donations.dropna(subset=["donation_date", "supporter_id"]).copy()
 donations["amount"] = numeric(donations["amount"])
@@ -522,12 +518,8 @@ export_predictions_json(
 DONOR_UPGRADE = {
     "data": [
 r'''
-supporters = require_csv("supporters")
-donations = require_csv("donations")
-PIPELINE_2 = [
-    r"""
 supporters = load_df("supporters")
-        donations = load_df("donations")
+donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 mon = donations[donations["donation_type"] == "Monetary"].copy()
 mon["amount"] = numeric(mon["amount"])
@@ -633,12 +625,8 @@ export_predictions_json(
 NEXT_BEST_CHANNEL = {
     "data": [
 r'''
-supporters = require_csv("supporters")
-donations = require_csv("donations")
-PIPELINE_3 = [
-    r"""
 supporters = load_df("supporters")
-        donations = load_df("donations")
+donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 donations = donations.dropna(subset=["donation_date","supporter_id","channel_source"]).sort_values(["supporter_id","donation_date"]).copy()
 donations["amount"] = numeric(donations["amount"])
@@ -735,9 +723,6 @@ export_predictions_json(
 SOCIAL_REFERRALS = {
     "data": [
 r'''
-posts = require_csv("social_media_posts")
-PIPELINE_4 = [
-    r"""
 posts = load_df("social_media_posts")
 posts["created_at"] = pd.to_datetime(posts["created_at"], errors="coerce")
 posts = posts.dropna(subset=["created_at"]).sort_values("created_at").copy()
@@ -817,9 +802,6 @@ export_predictions_json(
 SAFEHOUSE_FORECAST = {
     "data": [
 r'''
-metrics = require_csv("safehouse_monthly_metrics")
-PIPELINE_5 = [
-    r"""
 metrics = load_df("safehouse_monthly_metrics")
 metrics["month_start"] = pd.to_datetime(metrics["month_start"], errors="coerce")
 metrics = metrics.dropna(subset=["month_start"]).sort_values(["safehouse_id","month_start"]).copy()
@@ -897,20 +879,12 @@ export_predictions_json(
 RESIDENT_RISK = {
     "data": [
 r'''
-residents = require_csv("residents")
-incidents = require_csv("incident_reports")
-visits = require_csv("home_visitations")
-recordings = require_csv("process_recordings")
-edu = require_csv("education_records")
-health = require_csv("health_wellbeing_records")
-PIPELINE_6 = [
-    r"""
 residents = load_df("residents")
-        incidents = load_df("incident_reports")
-        visits = load_df("home_visitations")
-        recordings = load_df("process_recordings")
-        edu = load_df("education_records")
-        health = load_df("health_wellbeing_records")
+incidents = load_df("incident_reports")
+visits = load_df("home_visitations")
+recordings = load_df("process_recordings")
+edu = load_df("education_records")
+health = load_df("health_wellbeing_records")
 
 incidents["incident_date"] = pd.to_datetime(incidents["incident_date"], errors="coerce")
 visits["visit_date"] = pd.to_datetime(visits["visit_date"], errors="coerce")

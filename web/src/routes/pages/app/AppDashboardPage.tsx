@@ -110,6 +110,11 @@ export function AppDashboardPage() {
           Use this dashboard to brief leadership and partners on outcomes, risks, and stewardship while preserving survivor
           privacy. Data shown here is operational and staff-only.
         </p>
+        <div className="row" style={{ marginTop: 10 }}>
+          <Link className="btn" to="/app/cases">Employee case workflow</Link>
+          <Link className="btn" to="/app/reports">Admin reporting and snapshots</Link>
+          <Link className="btn" to="/app/admin/users">Admin user CRUD</Link>
+        </div>
       </div>
 
       <div className="kpi-grid">
