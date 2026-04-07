@@ -8,11 +8,17 @@ import { getCookie, setCookie } from "../lib/cookies";
 const THEME_COOKIE = "ui_theme";
 const CONSENT_COOKIE = "cookie_consent";
 
-function applyThemeFromCookie() {
+function getActiveTheme() {
   const theme = getCookie(THEME_COOKIE);
   if (theme === "light" || theme === "dark") {
-    document.documentElement.setAttribute("data-theme", theme);
+    return theme;
   }
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function applyThemeFromCookie() {
+  const theme = getCookie(THEME_COOKIE);
+  document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
 }
 
 export function PublicLayout() {
@@ -26,7 +32,7 @@ export function PublicLayout() {
   const portalTo =
     staff ? "/app/dashboard" : auth.hasRole("Donor") ? "/app/donor" : "/app/dashboard";
   const toggleTheme = () => {
-    const current = getCookie(THEME_COOKIE) === "light" ? "light" : "dark";
+    const current = getActiveTheme();
     const next = current === "light" ? "dark" : "light";
     if (getCookie(CONSENT_COOKIE) === "accepted") {
       setCookie(THEME_COOKIE, next, 180);
@@ -39,7 +45,12 @@ export function PublicLayout() {
       <div className="public-top-strip">
         <div className="container public-top-strip-inner">
           <span>South Korea Victim Support Line: +82 02-555-0147</span>
-          <span>Email: support@stepsofhope.org · Donor Relations: donors@stepsofhope.org</span>
+          <div className="public-top-strip-actions">
+            <span>Email: support@stepsofhope.org · Donor Relations: donors@stepsofhope.org</span>
+            <button className="theme-toggle-link" type="button" onClick={toggleTheme}>
+              Toggle theme
+            </button>
+          </div>
         </div>
       </div>
       <header className="public-header">
@@ -50,10 +61,29 @@ export function PublicLayout() {
             </span>
             <span className="public-brand-text">
               <span className="public-brand-title">Steps of Hope</span>
-              <span className="public-brand-sub">Support for South Korean victims · donor and staff portal</span>
+              <span className="public-brand-sub">Support for South Korean survivors</span>
               <span className="public-slogan">Safety · Healing · Justice · Empowerment</span>
             </span>
           </Link>
+          <div className="nav-pill-actions" aria-label="Donation and account actions">
+            <Link className="nav-pill nav-pill-secondary" to="/give">
+              Give
+            </Link>
+            {auth.isAuthenticated ? (
+              <Link className="nav-pill nav-pill-primary" to={portalTo}>
+                My portal
+              </Link>
+            ) : (
+              <>
+                <Link className="nav-pill nav-pill-glow" to="/register">
+                  Donate
+                </Link>
+                <Link className="nav-pill nav-pill-outline-accent" to="/login">
+                  Sign in
+                </Link>
+              </>
+            )}
+          </div>
           <nav className="nav-pills" aria-label="Primary">
             <Link className="nav-pill" to="/">
               Home
@@ -63,9 +93,6 @@ export function PublicLayout() {
             </Link>
             <Link className="nav-pill" to="/contact">
               Contact
-            </Link>
-            <Link className="nav-pill" to="/roles">
-              Roles
             </Link>
             <div className="nav-dropdown">
               <span className="nav-pill">Programs</span>
@@ -87,26 +114,6 @@ export function PublicLayout() {
             <Link className="nav-pill" to="/impact">
               Impact
             </Link>
-            <Link className="nav-pill nav-pill-accent" to="/give">
-              Give
-            </Link>
-            <button className="nav-pill" type="button" onClick={toggleTheme}>
-              Toggle theme
-            </button>
-            {auth.isAuthenticated ? (
-              <Link className="nav-pill nav-pill-primary" to={portalTo}>
-                My portal
-              </Link>
-            ) : (
-              <>
-                <Link className="nav-pill nav-pill-glow" to="/register">
-                  Join as donor
-                </Link>
-                <Link className="nav-pill nav-pill-primary" to="/login">
-                  Sign in
-                </Link>
-              </>
-            )}
           </nav>
         </div>
       </header>
@@ -135,7 +142,7 @@ export function AppLayout() {
   }, []);
 
   const toggleTheme = () => {
-    const current = getCookie(THEME_COOKIE) === "light" ? "light" : "dark";
+    const current = getActiveTheme();
     const next = current === "light" ? "dark" : "light";
     // Only persist optional preference cookies after explicit consent.
     if (getCookie(CONSENT_COOKIE) === "accepted") {
