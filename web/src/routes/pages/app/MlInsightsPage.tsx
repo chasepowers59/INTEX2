@@ -68,6 +68,26 @@ export function MlInsightsPage() {
         <p className="muted">
           This page displays model outputs imported from the IS455 notebooks. Import is admin-only.
         </p>
+        <div className="row" style={{ marginTop: 10 }}>
+          <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 230px" }}>
+            <div style={{ fontWeight: 800 }}>Risk pipelines</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Resident incident risk and donor lapse detection guide proactive interventions.
+            </div>
+          </div>
+          <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 230px" }}>
+            <div style={{ fontWeight: 800 }}>Growth pipelines</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Donor upgrade and next-best campaign outputs improve outreach conversion.
+            </div>
+          </div>
+          <div className="card tone-berry" style={{ boxShadow: "none", flex: "1 1 230px" }}>
+            <div style={{ fontWeight: 800 }}>Social media pipelines</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Social post referral prediction helps prioritize content themes and channels.
+            </div>
+          </div>
+        </div>
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
             {error}
@@ -230,10 +250,32 @@ export function MlInsightsPage() {
           </table>
         </div>
 
-        <details style={{ marginTop: 12 }}>
-          <summary className="muted">Payload JSON (first row)</summary>
-          <pre style={{ whiteSpace: "pre-wrap" }}>{items[0]?.payloadJson ?? "{}"}</pre>
-        </details>
+        <div className="card" style={{ marginTop: 12, boxShadow: "none" }}>
+          <div style={{ fontWeight: 800 }}>Payload highlights</div>
+          {items[0]?.payloadJson ? (
+            (() => {
+              try {
+                const payload = JSON.parse(items[0].payloadJson) as Record<string, unknown>;
+                const entries = Object.entries(payload).slice(0, 8);
+                return entries.length ? (
+                  <ul className="muted mini-widget-list">
+                    {entries.map(([k, v]) => (
+                      <li key={k}>
+                        {k.replaceAll("_", " ")}: {String(v)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="muted" style={{ marginTop: 8 }}>No payload attributes in first row.</div>
+                );
+              } catch {
+                return <div className="muted" style={{ marginTop: 8 }}>Payload details are available after the next model export.</div>;
+              }
+            })()
+          ) : (
+            <div className="muted" style={{ marginTop: 8 }}>No payload details available yet.</div>
+          )}
+        </div>
       </div>
     </div>
   );

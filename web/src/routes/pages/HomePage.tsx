@@ -106,6 +106,32 @@ export function HomePage() {
           <li>Traceable contribution and allocation records in your donor portal.</li>
         </ul>
       </div>
+
+      <div className="row" style={{ alignItems: "stretch" }}>
+        <div className="card tone-peach" style={{ flex: 1, minWidth: 260 }}>
+          <h2 style={{ marginTop: 0 }}>Social media strategy</h2>
+          <p className="muted">
+            We use responsible campaign storytelling to expand donor reach while protecting survivor privacy.
+          </p>
+          <ul className="muted trust-list">
+            <li>Platform-specific creative plans for Instagram, YouTube, and short-form channels.</li>
+            <li>Referral-based performance tracking tied to estimated donation value.</li>
+            <li>Monthly impact recap posts with verified aggregate metrics.</li>
+          </ul>
+        </div>
+        <div className="card tone-aqua" style={{ flex: 1, minWidth: 260 }}>
+          <h2 style={{ marginTop: 0 }}>ML pipelines in this project</h2>
+          <p className="muted">
+            Predictive workflows support safer operations and smarter stewardship.
+          </p>
+          <ul className="muted trust-list">
+            <li>Resident risk and readiness signals for proactive follow-up.</li>
+            <li>Donor lapse and donor upgrade propensity models.</li>
+            <li>Next-best campaign guidance for targeted donor engagement.</li>
+            <li>Safehouse capacity forecasting and social post donation referral insights.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

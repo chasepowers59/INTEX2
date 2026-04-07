@@ -36,10 +36,22 @@ export function PublicLayout() {
       <header className="public-header">
         <div className="container public-header-inner">
           <Link to="/" className="public-brand">
-            <span className="public-brand-mark" aria-hidden />
+            <span className="public-brand-mark" aria-hidden>
+              <svg viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="24" fill="url(#lg)" />
+                <path d="M13 30h22M17 30V19l7-5 7 5v11M21 30V24h6v6" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                <defs>
+                  <linearGradient id="lg" x1="6" y1="6" x2="42" y2="42">
+                    <stop stopColor="#2dd4bf" />
+                    <stop offset="1" stopColor="#7c6cff" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </span>
             <span className="public-brand-text">
               <span className="public-brand-title">Steps of Hope</span>
               <span className="public-brand-sub">Support for South Korean victims · donor and leadership portal</span>
+              <span className="public-slogan">Safety · Healing · Justice · Empowerment</span>
             </span>
           </Link>
           <nav className="nav-pills" aria-label="Primary">
@@ -52,6 +64,23 @@ export function PublicLayout() {
             <Link className="nav-pill" to="/contact">
               Contact
             </Link>
+            <div className="nav-dropdown">
+              <span className="nav-pill">Programs</span>
+              <div className="nav-dropdown-menu" role="menu" aria-label="Programs">
+                <Link className="nav-dropdown-item" to="/impact">
+                  Survivor safety and shelter
+                </Link>
+                <Link className="nav-dropdown-item" to="/impact">
+                  Healing and reintegration
+                </Link>
+                <Link className="nav-dropdown-item" to="/app/ml">
+                  Predictive prevention insights
+                </Link>
+                <Link className="nav-dropdown-item" to="/give">
+                  Donor funding pathways
+                </Link>
+              </div>
+            </div>
             <Link className="nav-pill" to="/impact">
               Impact
             </Link>
