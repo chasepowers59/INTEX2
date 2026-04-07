@@ -98,7 +98,7 @@ export function ImpactPage() {
 
       {highlights ? (
         <>
-          <div className="card" style={{ background: "linear-gradient(135deg, rgba(124,108,255,0.12), rgba(45,212,191,0.08))" }}>
+          <div className="card tone-brand-soft">
             <h2 style={{ marginTop: 0, fontSize: 18 }}>Why this work matters for partners and donors</h2>
             <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>
               Every gift and every hour of advocacy translates into measurable program activity: victims housed within licensed

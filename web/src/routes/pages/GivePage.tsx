@@ -230,7 +230,7 @@ export function GivePage() {
         </div>
       </div>
 
-      <div className="card" style={{ background: "var(--panel2)" }}>
+      <div className="card panel2-bg">
         <div style={{ fontWeight: 900 }}>Privacy promise</div>
         <div className="muted" style={{ marginTop: 6, lineHeight: 1.6 }}>
           Donor receipts and allocations are tied to supporter records. Resident-level information is never exposed on

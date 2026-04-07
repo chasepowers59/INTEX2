@@ -7,7 +7,7 @@ export function HomePage() {
       <div className="card hero-home" style={{ padding: 28 }}>
         <div className="hero-home-grid">
           <div>
-            <div className="badge" style={{ borderColor: "rgba(124,108,255,0.45)", background: "rgba(124,108,255,0.1)" }}>
+            <div className="badge brand">
               South Korea response focus · Privacy-first operations · Role-based donor access
             </div>
             <h1
@@ -22,14 +22,7 @@ export function HomePage() {
             >
               Stand with South Korean victims.
               <br />
-              <span
-                style={{
-                  background: "linear-gradient(90deg, var(--brand), var(--brand2))",
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  color: "transparent",
-                }}
-              >
+              <span className="brand-hero-text">
                 Restore safety with transparent giving.
               </span>
             </h1>
@@ -75,7 +68,7 @@ export function HomePage() {
         </div>
       </div>
 
-      <div className="card" style={{ background: "var(--panel2)" }}>
+      <div className="card panel2-bg">
         <h2 style={{ marginTop: 0 }}>Start here by role</h2>
         <div className="workflow-grid">
           <div className="workflow-card">
@@ -116,7 +109,7 @@ export function HomePage() {
             Create donor account
           </Link>
         </div>
-        <div className="card" style={{ flex: 1, minWidth: 260, padding: 20, background: "var(--panel2)" }}>
+        <div className="card panel2-bg" style={{ flex: 1, minWidth: 260, padding: 20 }}>
           <div style={{ fontWeight: 800, fontSize: 18 }}>For staff teams</div>
           <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
             Caseload, ML insights, and admin tools stay behind <strong>Admin</strong> and <strong>Employee</strong> roles—
@@ -126,7 +119,7 @@ export function HomePage() {
             Sign in
           </Link>
         </div>
-        <div className="card" style={{ flex: 1, minWidth: 260, padding: 20, background: "var(--panel2)" }}>
+        <div className="card panel2-bg" style={{ flex: 1, minWidth: 260, padding: 20 }}>
           <div style={{ fontWeight: 800, fontSize: 18 }}>For everyone</div>
           <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
             Explore published snapshots: safehouse momentum, programs, and outreach—aggregated only, no resident data.

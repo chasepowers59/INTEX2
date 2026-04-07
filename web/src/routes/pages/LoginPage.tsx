@@ -26,7 +26,7 @@ export function LoginPage() {
         <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
           <strong>Staff</strong> sign in for operations tools. <strong>Donors</strong> sign in for giving history and impact.
         </p>
-        <div className="badge" style={{ marginTop: 16, borderColor: "rgba(124,108,255,0.4)", background: "rgba(124,108,255,0.08)" }}>
+        <div className="badge brand" style={{ marginTop: 16 }}>
           Role-based access: Admin · Employee · Donor
         </div>
         <div className="row" style={{ marginTop: 20 }}>

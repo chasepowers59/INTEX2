@@ -146,7 +146,7 @@ export function AppDashboardPage() {
         </div>
       </div>
 
-      <div className="card" style={{ background: "var(--panel2)" }}>
+      <div className="card panel2-bg">
         <div style={{ fontWeight: 800 }}>Executive note</div>
         <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
           Use this dashboard to brief staff and partners on outcomes, risks, and stewardship while preserving survivor
@@ -187,7 +187,7 @@ export function AppDashboardPage() {
           </p>
 
           <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
-            <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
               <div style={{ fontWeight: 800 }}>Annual-report style pillars</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Mentions in services provided, plans can match multiple pillars.
@@ -199,7 +199,7 @@ export function AppDashboardPage() {
                 <li>Legal: {insights.servicesPillarMentions.legal}</li>
               </ul>
             </div>
-            <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
               <div style={{ fontWeight: 800 }}>Resident outcomes (records)</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Education progress &amp; health scores across all monthly rows.
@@ -210,7 +210,7 @@ export function AppDashboardPage() {
                 <li>Avg general health score: {insights.health.avgGeneralHealthScore ?? "—"}</li>
               </ul>
             </div>
-            <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
               <div style={{ fontWeight: 800 }}>Safety in 90 days</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Open follow-ups: {insights.incidents90d.openFollowUps}
@@ -227,7 +227,7 @@ export function AppDashboardPage() {
           </div>
 
           <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
-            <div className="card" style={{ flex: "1 1 280px", boxShadow: "none", background: "var(--panel2)" }}>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
               <div style={{ fontWeight: 800 }}>Donation allocations by program area</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Where pledged value is directed—helps explain impact to donors.
@@ -244,12 +244,12 @@ export function AppDashboardPage() {
                           <span>{r.programArea}</span>
                           <span className="muted">₱{r.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                         </div>
-                        <div style={{ height: 8, background: "var(--border)", borderRadius: 4, marginTop: 4 }}>
+                        <div className="mini-track">
                           <div
                             style={{
                               width: `${Math.min(100, (r.totalPhp / max) * 100)}%`,
                               height: "100%",
-                              background: "rgba(124,108,255,0.85)",
+                              background: "var(--brand)",
                               borderRadius: 4,
                             }}
                           />
@@ -260,7 +260,7 @@ export function AppDashboardPage() {
                 );
               })()}
             </div>
-            <div className="card" style={{ flex: "1 1 280px", boxShadow: "none", background: "var(--panel2)" }}>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
               <div style={{ fontWeight: 800 }}>Outreach ROI, dataset estimates</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Boost spend vs. modeled donation value from social posts.

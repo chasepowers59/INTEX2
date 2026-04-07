@@ -71,7 +71,7 @@ export function DonorsPage() {
           <span className="badge ok">Employee: view trends and histories</span>
           <span className="badge warn">Admin: full supporter and contribution CRUD</span>
         </div>
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? <div className="badge danger">{error}</div> : null}
         <div className="row" style={{ marginTop: 8 }}>
           <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search supporters…" />
           <button className="btn" onClick={() => void load()}>

@@ -28,7 +28,7 @@ export function AboutPage() {
         </div>
       </div>
 
-      <div className="card" style={{ background: "var(--panel2)" }}>
+      <div className="card panel2-bg">
         <h2 style={{ marginTop: 0 }}>Why this model works</h2>
         <ul className="muted trust-list">
           <li>Role-based access keeps sensitive resident workflows in staff-only views.</li>

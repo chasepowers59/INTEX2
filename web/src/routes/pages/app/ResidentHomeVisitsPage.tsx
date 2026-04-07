@@ -65,7 +65,7 @@ export function ResidentHomeVisitsPage() {
         <p className="muted">
           Log home/field visits and track follow-ups. Case conferences are visible on the dashboard (and will be expanded).
         </p>
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? <div className="badge danger">{error}</div> : null}
 
         <RequireRole role="Admin">
           <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>

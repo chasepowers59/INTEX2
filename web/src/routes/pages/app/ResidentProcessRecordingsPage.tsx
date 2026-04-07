@@ -55,7 +55,7 @@ export function ResidentProcessRecordingsPage() {
         <p className="muted">
           Structured counseling session notes for this resident. Entries are displayed chronologically.
         </p>
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? <div className="badge danger">{error}</div> : null}
 
         <RequireRole role="Admin">
           <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>

@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../lib/auth";
 import { AppLayout, PublicLayout } from "./layouts";
 import { RequireAuth, RequireStaff } from "./guards";
@@ -34,6 +34,7 @@ export function App() {
         <Routes>
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/app" element={<Navigate to="/" replace />} />
             <Route path="/impact" element={<ImpactPage />} />
             <Route path="/give" element={<GivePage />} />
             <Route path="/login" element={<LoginPage />} />

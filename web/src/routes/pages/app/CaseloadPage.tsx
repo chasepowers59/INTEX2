@@ -75,7 +75,7 @@ export function CaseloadPage() {
         <h1 style={{ marginTop: 0 }}>Caseload Inventory</h1>
         <p className="muted">Filter and search residents by status, safehouse, category, and more.</p>
 
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? <div className="badge danger">{error}</div> : null}
 
         <div className="row" style={{ marginTop: 8 }}>
           <label style={{ display: "grid", gap: 6, minWidth: 220 }}>

@@ -12,7 +12,7 @@ export function ContactPage() {
         </p>
       </div>
 
-      <div className="card" style={{ background: "var(--panel2)" }}>
+      <div className="card panel2-bg">
         <h2 style={{ marginTop: 0 }}>Reach us</h2>
         <ul className="muted trust-list">
           <li>General support: support@stepsofhope.org</li>

@@ -53,7 +53,7 @@ export function MlActionCenterPage() {
           Two staff views that align with the project goal: retain/grow donations and prevent residents from
           falling through the cracks.
         </p>
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? <div className="badge danger">{error}</div> : null}
       </div>
 
       <div className="card">
