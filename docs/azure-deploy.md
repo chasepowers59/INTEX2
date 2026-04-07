@@ -17,7 +17,7 @@ Region guidance (team decision):
 2. Deploy `api/Intex.Api` (GitHub deploy or Zip deploy).
 3. In **Configuration → Application settings**, set:
    - `ConnectionStrings__AppDb` = (Azure SQL connection string)
-   - `Jwt__Key` = long random secret (32+ chars)
+   - `Jwt__Key` = long random secret (**32+ characters**; without this, login returns HTTP 500/503 after a correct password)
    - `Jwt__Issuer` = `intex-w26`
    - `Jwt__Audience` = `intex-w26-web`
    - `Cors__AllowedOrigins__0` = your **exact** Static Web Apps site URL (must match what the browser sends as `Origin`, including `https://` and **no trailing slash**).

@@ -15,7 +15,8 @@ public sealed class AuthController(
     UserManager<AppUser> userManager,
     SignInManager<AppUser> signInManager,
     TokenService tokenService,
-    AppDbContext db
+    AppDbContext db,
+    ILogger<AuthController> logger
 ) : ControllerBase
 {
     [HttpPost("login")]
@@ -37,14 +38,7 @@ public sealed class AuthController(
         }
 
         var roles = await userManager.GetRolesAsync(user);
-        var token = tokenService.CreateToken(user, roles);
-
-        return Ok(new LoginResponse(
-            AccessToken: token,
-            Username: user.UserName ?? "",
-            DisplayName: user.DisplayName ?? user.UserName ?? "User",
-            Roles: roles.ToArray()
-        ));
+        return TryIssueToken(user, roles);
     }
 
     [HttpGet("me")]
@@ -177,14 +171,48 @@ public sealed class AuthController(
         }
 
         var roles = await userManager.GetRolesAsync(user);
-        var token = tokenService.CreateToken(user, roles);
+        return TryIssueToken(user, roles);
+    }
 
-        return Ok(new LoginResponse(
-            AccessToken: token,
-            Username: user.UserName ?? "",
-            DisplayName: user.DisplayName ?? user.UserName ?? "User",
-            Roles: roles.ToArray()
-        ));
+    /// <summary>
+    /// Missing/short <c>Jwt__Key</c> on Azure throws during signing; return 503 + message instead of opaque HTTP 500.
+    /// </summary>
+    private ActionResult<LoginResponse> TryIssueToken(AppUser user, IList<string> roles)
+    {
+        try
+        {
+            var token = tokenService.CreateToken(user, roles);
+            return Ok(new LoginResponse(
+                AccessToken: token,
+                Username: user.UserName ?? "",
+                DisplayName: user.DisplayName ?? user.UserName ?? "User",
+                Roles: roles.ToArray()
+            ));
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogWarning(ex, "JWT token issuance failed (configuration).");
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new
+                {
+                    message =
+                        ex.Message
+                        + " In Azure: App Service → Environment variables → add Jwt__Key (32+ random characters)."
+                });
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            // e.g. IDX10720 signing key too short from identity model when Jwt:Key slips through too small
+            logger.LogWarning(ex, "JWT token issuance failed (signing key size).");
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                new
+                {
+                    message =
+                        "JWT signing key is too short. Set Jwt__Key in Azure Application Settings to at least 32 random UTF-8 characters."
+                });
+        }
     }
 
     private static string? BuildDisplayName(DonorRegisterRequest req)
