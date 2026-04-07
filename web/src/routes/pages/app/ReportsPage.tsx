@@ -17,6 +17,13 @@ type ImpactSnapshot = {
   isPublished: boolean;
   publishedAt: string | null;
 };
+type AuditItem = {
+  whenUtc: string;
+  actor: string;
+  action: string;
+  area: string;
+  target: string;
+};
 
 export function ReportsPage() {
   const auth = useAuth();
@@ -34,6 +41,7 @@ export function ReportsPage() {
   );
   const [snapMetrics, setSnapMetrics] = useState<string>("{}");
   const [snapPublish, setSnapPublish] = useState<boolean>(true);
+  const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -50,6 +58,8 @@ export function ReportsPage() {
         if (auth.hasRole("Admin")) {
           const list = await apiFetch<{ items: ImpactSnapshot[] }>("/api/impact-snapshots", { token: auth.token ?? undefined });
           setSnapshots(list.items);
+          const audit = await apiFetch<{ items: AuditItem[] }>("/api/reports/audit-activity?take=80", { token: auth.token ?? undefined });
+          setAuditItems(audit.items);
         }
       } catch (e) {
         setError((e as Error).message);
@@ -191,6 +201,7 @@ export function ReportsPage() {
           <p className="muted" style={{ marginTop: 6 }}>
             Publish aggregated, anonymized snapshots to the public Impact page. Never include resident-level details.
           </p>
+          <div className="badge ok">Privacy boundary: this tool outputs identity-stripped aggregate metrics only.</div>
 
           <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
             <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
@@ -223,6 +234,28 @@ export function ReportsPage() {
           </label>
 
           <div className="row" style={{ marginTop: 12, justifyContent: "space-between" }}>
+            <button
+              className="btn"
+              onClick={() => {
+                setSnapHeadline("Anonymized operations summary for donor stewardship");
+                setSnapSummary(
+                  "This snapshot intentionally excludes resident names, addresses, direct identifiers, and case-level narratives while summarizing outcomes at aggregate level."
+                );
+              }}
+            >
+              Use anonymized donor preset
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                setSnapHeadline("Anonymized executive safety and service snapshot");
+                setSnapSummary(
+                  "This report is prepared for governance review using aggregate trend indicators with strict privacy-safe language and no direct minor identifiers."
+                );
+              }}
+            >
+              Use anonymized board preset
+            </button>
             <button
               className="btn"
               onClick={async () => {
@@ -326,6 +359,40 @@ export function ReportsPage() {
                       No snapshots created yet.
                     </td>
                   </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      {auth.hasRole("Admin") ? (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Audit activity</h2>
+          <p className="muted">Recent sensitive operations activity feed for accountability and privacy governance.</p>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Actor</th>
+                  <th>Action</th>
+                  <th>Area</th>
+                  <th>Target</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditItems.map((x, idx) => (
+                  <tr key={`${x.whenUtc}-${idx}`}>
+                    <td data-label="When" className="muted">{new Date(x.whenUtc).toLocaleString()}</td>
+                    <td data-label="Actor">{x.actor}</td>
+                    <td data-label="Action">{x.action}</td>
+                    <td data-label="Area" className="muted">{x.area}</td>
+                    <td data-label="Target" className="muted">{x.target}</td>
+                  </tr>
+                ))}
+                {auditItems.length === 0 ? (
+                  <tr><td colSpan={5} className="muted">No recent audit activity rows.</td></tr>
                 ) : null}
               </tbody>
             </table>

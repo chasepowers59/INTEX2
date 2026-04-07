@@ -21,7 +21,7 @@ export function LoginPage() {
 
   return (
     <div className="auth-split">
-      <div className="auth-aside">
+      <div className="auth-aside auth-dark-shell">
         <h2>Welcome back</h2>
         <p className="muted" style={{ margin: 0, lineHeight: 1.65 }}>
           <strong>Staff</strong> use work email here for the leadership dashboard. <strong>Donors</strong> use the email
@@ -39,9 +39,12 @@ export function LoginPage() {
             Public impact
           </Link>
         </div>
+        <div className="image-frame" style={{ marginTop: 12, maxHeight: 260 }}>
+          <img src="/reference/auth-layout-ref.png" alt="Authentication mobile design inspiration." />
+        </div>
       </div>
 
-      <div className="card auth-panel">
+      <div className="card auth-panel auth-dark-panel">
         <h1 style={{ marginTop: 0, fontSize: 26, letterSpacing: "-0.02em" }}>Sign in</h1>
         <p className="muted" style={{ marginTop: 0 }}>
           Email and password for your Steps of Hope account.
@@ -72,6 +75,12 @@ export function LoginPage() {
             autoComplete="current-password"
           />
         </label>
+        <div className="auth-inline-row" style={{ marginTop: 10 }}>
+          <label className="muted" style={{ fontSize: 12 }}>
+            <input type="checkbox" style={{ marginRight: 6 }} /> Remember me
+          </label>
+          <span className="auth-link-subtle">Forgot password?</span>
+        </div>
 
         {error ? (
           <div className="badge danger" style={{ marginTop: 14 }}>
@@ -81,7 +90,7 @@ export function LoginPage() {
 
         <div className="row" style={{ marginTop: 20, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <button
-            className="btn primary"
+            className="btn auth-action-primary"
             disabled={loading}
             onClick={async () => {
               setError(null);

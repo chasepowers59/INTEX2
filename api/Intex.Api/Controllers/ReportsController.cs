@@ -11,6 +11,79 @@ namespace Intex.Api.Controllers;
 [Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class ReportsController(AppDbContext db) : ControllerBase
 {
+    [HttpGet("audit-activity")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult> AuditActivity([FromQuery] int take = 100)
+    {
+        take = Math.Clamp(take, 10, 300);
+        var cutoffDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+
+        var processRows = await db.ProcessRecordings.AsNoTracking()
+            .Where(x => x.SessionDate >= cutoffDate)
+            .OrderByDescending(x => x.SessionDate)
+            .Take(take)
+            .Select(x => new
+            {
+                whenUtc = x.SessionDate.ToDateTime(TimeOnly.MinValue),
+                actor = string.IsNullOrWhiteSpace(x.SocialWorkerName) ? "Staff" : x.SocialWorkerName,
+                action = "Process recording logged",
+                area = "Resident care",
+                target = $"Resident {x.ResidentId}"
+            })
+            .ToListAsync();
+
+        var visitRows = await db.HomeVisitations.AsNoTracking()
+            .Where(x => x.VisitDate >= cutoffDate)
+            .OrderByDescending(x => x.VisitDate)
+            .Take(take)
+            .Select(x => new
+            {
+                whenUtc = x.VisitDate.ToDateTime(TimeOnly.MinValue),
+                actor = string.IsNullOrWhiteSpace(x.SocialWorkerName) ? "Staff" : x.SocialWorkerName,
+                action = "Home visitation recorded",
+                area = "Field operations",
+                target = $"Resident {x.ResidentId}"
+            })
+            .ToListAsync();
+
+        var allocationRows = await db.ImpactAllocations.AsNoTracking()
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Take(take)
+            .Select(x => new
+            {
+                whenUtc = x.CreatedAtUtc,
+                actor = "Admin",
+                action = "Impact allocation created",
+                area = "Donor stewardship",
+                target = $"Supporter {x.SupporterId} · {x.Category}"
+            })
+            .ToListAsync();
+
+        var publishedSnapshots = await db.PublicImpactSnapshots.AsNoTracking()
+            .Where(x => x.IsPublished && x.PublishedAt != null)
+            .OrderByDescending(x => x.PublishedAt)
+            .Take(take)
+            .Select(x => new
+            {
+                whenUtc = x.PublishedAt!.Value.ToDateTime(TimeOnly.MinValue),
+                actor = "Admin",
+                action = "Public snapshot published",
+                area = "Public reporting",
+                target = x.Headline
+            })
+            .ToListAsync();
+
+        var items = processRows
+            .Concat(visitRows)
+            .Concat(allocationRows)
+            .Concat(publishedSnapshots)
+            .OrderByDescending(x => x.whenUtc)
+            .Take(take)
+            .ToList();
+
+        return Ok(new { asOfUtc = DateTime.UtcNow, items });
+    }
+
     [HttpGet("donations-by-month")]
     public async Task<ActionResult> DonationsByMonth([FromQuery] int months = 12)
     {

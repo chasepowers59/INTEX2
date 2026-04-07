@@ -17,6 +17,7 @@ type Recording = {
 };
 
 type Paged<T> = { page: number; pageSize: number; total: number; items: T[] };
+const highRiskWords = ["fear", "relapse", "danger", "unsafe", "threat", "abuse", "violence", "self-harm"];
 
 export function ResidentProcessRecordingsPage() {
   const auth = useAuth();
@@ -33,6 +34,7 @@ export function ResidentProcessRecordingsPage() {
     interventionsApplied: "",
     followUpActions: "",
   });
+  const keywordHits = highRiskWords.filter((w) => form.narrativeSummary.toLowerCase().includes(w));
 
   const load = async () => {
     setError(null);
@@ -111,6 +113,14 @@ export function ResidentProcessRecordingsPage() {
                 placeholder="What happened in the session?"
               />
             </label>
+            {keywordHits.length ? (
+              <div className="row" style={{ marginTop: 8 }}>
+                <span className="badge warn">Risk keyword assist:</span>
+                {keywordHits.map((w) => (
+                  <span key={w} className="badge danger">{w}</span>
+                ))}
+              </div>
+            ) : null}
 
             <div className="row" style={{ marginTop: 10 }}>
               <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>

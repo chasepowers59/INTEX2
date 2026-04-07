@@ -60,24 +60,40 @@ export function AppDashboardPage() {
   const [alerts, setAlerts] = useState<OpsAlerts | null>(null);
   const [insights, setInsights] = useState<ProgramInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [readinessBands, setReadinessBands] = useState<string>("—");
 
   useEffect(() => {
     if (!auth.token || !staff) return;
     (async () => {
-      const [res, ops, prog] = await Promise.allSettled([
+      const [res, ops, prog, readiness] = await Promise.allSettled([
         apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined }),
         apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token: auth.token ?? undefined }),
         apiFetch<ProgramInsights>("/api/analytics/program-insights", { token: auth.token ?? undefined }),
+        apiFetch<any[]>("/api/ml/predictions?type=resident_reintegration_readiness&take=200", { token: auth.token ?? undefined }),
       ]);
 
       if (res.status === "fulfilled") setData(res.value);
       if (ops.status === "fulfilled") setAlerts(ops.value);
       if (prog.status === "fulfilled") setInsights(prog.value);
+      if (readiness.status === "fulfilled") {
+        const counts = new Map<string, number>();
+        for (const row of readiness.value) {
+          const band = (row.label ?? "Unknown") as string;
+          counts.set(band, (counts.get(band) ?? 0) + 1);
+        }
+        const txt = [...counts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([k, v]) => `${k}:${v}`)
+          .join(" · ");
+        setReadinessBands(txt || "—");
+      }
 
       const errs: string[] = [];
       if (res.status === "rejected") errs.push(`Overview: ${(res.reason as Error)?.message ?? "failed"}`);
       if (ops.status === "rejected") errs.push(`Operational alerts: ${(ops.reason as Error)?.message ?? "failed"}`);
       if (prog.status === "rejected") errs.push(`Program insights: ${(prog.reason as Error)?.message ?? "failed"}`);
+      if (readiness.status === "rejected") errs.push(`Readiness: ${(readiness.reason as Error)?.message ?? "failed"}`);
       if (errs.length > 0) {
         setError(errs.join(" | "));
       }
@@ -102,6 +118,32 @@ export function AppDashboardPage() {
             Updated {new Date(data.asOfUtc).toLocaleString()}
           </div>
         ) : null}
+        <div className="image-frame" style={{ marginTop: 12, maxHeight: 210 }}>
+          <img src="/reference/admin-layout-ref.png" alt="Dashboard layout inspiration reference." />
+        </div>
+      </div>
+
+      <div className="admin-overview-grid">
+        <div className="admin-overview-card">
+          <div className="muted">Residents</div>
+          <div className="admin-overview-kpi">{data?.activeResidents ?? "—"}</div>
+          <div className="muted">Active caseload count</div>
+        </div>
+        <div className="admin-overview-card">
+          <div className="muted">Donations 30d</div>
+          <div className="admin-overview-kpi">{data?.donations30d.count ?? "—"}</div>
+          <div className="muted">{data ? `₱${data.donations30d.totalAmount.toFixed(0)} total` : "—"}</div>
+        </div>
+        <div className="admin-overview-card">
+          <div className="muted">Check-ins due</div>
+          <div className="admin-overview-kpi">{data?.checkInsDue30d ?? "—"}</div>
+          <div className="muted">30-day follow-up window</div>
+        </div>
+        <div className="admin-overview-card">
+          <div className="muted">Readiness bands</div>
+          <div className="admin-overview-kpi" style={{ fontSize: 20 }}>{readinessBands}</div>
+          <div className="muted">Resident reintegration view</div>
+        </div>
       </div>
 
       <div className="card" style={{ background: "var(--panel2)" }}>
@@ -133,6 +175,7 @@ export function AppDashboardPage() {
           value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" · ") || "—" : "—"}
           hint={data?.residentRisk.asOfUtc ? `As of ${new Date(data.residentRisk.asOfUtc).toLocaleString()}` : "No ML import yet"}
         />
+        <StatCard label="Reintegration readiness bands" value={readinessBands} hint="From resident readiness ML imports" tone="ok" />
       </div>
 
       {insights ? (

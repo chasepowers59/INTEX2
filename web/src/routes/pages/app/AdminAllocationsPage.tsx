@@ -29,6 +29,7 @@ export function AdminAllocationsPage() {
   const [amount, setAmount] = useState<string>("");
   const [currency, setCurrency] = useState<string>("PHP");
   const [notes, setNotes] = useState<string>("");
+  const [selectedAllocations, setSelectedAllocations] = useState<number[]>([]);
 
   const load = async () => {
     setError(null);
@@ -147,6 +148,30 @@ export function AdminAllocationsPage() {
 
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Browse allocations</h2>
+          <div className="row" style={{ marginBottom: 8 }}>
+            <button
+              className="btn danger"
+              disabled={selectedAllocations.length === 0}
+              onClick={async () => {
+                if (!confirm(`Delete ${selectedAllocations.length} allocations?`)) return;
+                setError(null);
+                try {
+                  for (const id of selectedAllocations) {
+                    await apiFetch(`/api/impact-allocations/${id}?confirm=true`, {
+                      method: "DELETE",
+                      token: auth.token ?? undefined,
+                    });
+                  }
+                  setSelectedAllocations([]);
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            >
+              Bulk delete ({selectedAllocations.length})
+            </button>
+          </div>
           <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
             <label style={{ display: "grid", gap: 6, minWidth: 200 }}>
               <span className="muted">Filter SupporterId</span>
@@ -165,6 +190,7 @@ export function AdminAllocationsPage() {
             <table className="table">
               <thead>
                 <tr>
+                  <th>Select</th>
                   <th>Date</th>
                   <th>Supporter</th>
                   <th>Category</th>
@@ -176,6 +202,19 @@ export function AdminAllocationsPage() {
               <tbody>
                 {items.map((x) => (
                   <tr key={x.impactAllocationId}>
+                    <td data-label="Select">
+                      <input
+                        type="checkbox"
+                        checked={selectedAllocations.includes(x.impactAllocationId)}
+                        onChange={(e) =>
+                          setSelectedAllocations((prev) =>
+                            e.target.checked
+                              ? [...prev, x.impactAllocationId]
+                              : prev.filter((id) => id !== x.impactAllocationId)
+                          )
+                        }
+                      />
+                    </td>
                     <td data-label="Date" className="muted">
                       {x.allocationDate}
                     </td>
@@ -215,7 +254,7 @@ export function AdminAllocationsPage() {
                 ))}
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="muted">
+                    <td colSpan={7} className="muted">
                       No allocations found.
                     </td>
                   </tr>

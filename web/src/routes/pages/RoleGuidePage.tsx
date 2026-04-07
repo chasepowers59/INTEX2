@@ -9,6 +9,11 @@ export function RoleGuidePage() {
         <p className="muted">
           Clear role boundaries protect sensitive survivor data while giving donors transparent impact visibility.
         </p>
+        <div className="row" style={{ marginTop: 10 }}>
+          <Link className="btn" to="/register">Donor start</Link>
+          <Link className="btn" to="/login">Staff/Admin start</Link>
+          <Link className="btn" to="/impact">Public impact</Link>
+        </div>
       </div>
 
       <div className="card tone-aqua">
@@ -27,6 +32,10 @@ export function RoleGuidePage() {
           <li>View aggregated allocation outcomes tied to donor profile.</li>
           <li>Cannot access resident case data or staff operational tools.</li>
         </ul>
+        <div className="row" style={{ marginTop: 10 }}>
+          <Link className="btn primary" to="/register">Create donor account</Link>
+          <Link className="btn" to="/app/donor">Open donor portal</Link>
+        </div>
       </div>
 
       <div className="card tone-berry">
@@ -36,6 +45,10 @@ export function RoleGuidePage() {
           <li>Manage supporters and contribution records.</li>
           <li>Admin-only functions include user management, allocations admin, and data import controls.</li>
         </ul>
+        <div className="row" style={{ marginTop: 10 }}>
+          <Link className="btn" to="/app/dashboard">Open operations dashboard</Link>
+          <Link className="btn" to="/app/admin/users">Admin users</Link>
+        </div>
       </div>
 
       <div className="row">

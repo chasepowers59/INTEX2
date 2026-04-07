@@ -27,7 +27,7 @@ export function RegisterDonorPage() {
 
   return (
     <div className="auth-split">
-      <div className="auth-aside">
+      <div className="auth-aside auth-dark-shell">
         <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
           Free donor account · Donor role · South Korea victim support
         </div>
@@ -50,9 +50,12 @@ export function RegisterDonorPage() {
             Public impact
           </Link>
         </div>
+        <div className="image-frame" style={{ marginTop: 12, maxHeight: 260 }}>
+          <img src="/reference/auth-layout-ref.png" alt="Registration and auth style inspiration." />
+        </div>
       </div>
 
-      <div className="card auth-panel glow-donor">
+      <div className="card auth-panel glow-donor auth-dark-panel">
         <div className="step-track">
           <span className="step-pill active">1 · Email</span>
           <span className="step-pill active">2 · Password</span>
@@ -63,8 +66,9 @@ export function RegisterDonorPage() {
           One short form. You’ll be signed in immediately with the Donor role.
         </p>
 
-        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donors joining support efforts for South Korean victims" style={{ marginBottom: 14 }}>
-          <div className="caption">Photo placeholder: donors joining South Korean victim support efforts</div>
+        <div className="photo-placeholder" role="img" aria-label="Donors joining support efforts for South Korean victims" style={{ marginBottom: 14 }}>
+          <img src="/reference/donor-impact-community.jpg" alt="Donors joining survivor support efforts." />
+          <div className="caption">Donors joining South Korean victim support efforts</div>
         </div>
 
         <div className="field-stack" style={{ marginTop: 16 }}>
@@ -149,7 +153,7 @@ export function RegisterDonorPage() {
 
         <div className="row" style={{ marginTop: 18, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <button
-            className="btn primary"
+            className="btn auth-action-primary"
             disabled={loading}
             onClick={async () => {
               setError(null);

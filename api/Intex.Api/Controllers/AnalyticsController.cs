@@ -11,6 +11,17 @@ namespace Intex.Api.Controllers;
 [Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class AnalyticsController(AppDbContext db) : ControllerBase
 {
+    private static readonly IReadOnlyDictionary<string, (string outcome, decimal unitPhp)> OutcomeMap =
+        new Dictionary<string, (string outcome, decimal unitPhp)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Counseling"] = ("trauma-informed counseling session", 1200m),
+            ["Education"] = ("week of learning support", 900m),
+            ["Health"] = ("health and wellbeing check", 700m),
+            ["Shelter"] = ("day of safe shelter", 1500m),
+            ["Food"] = ("nutritional support pack", 450m),
+            ["Transport"] = ("safe transport support", 300m)
+        };
+
     [HttpGet("overview")]
     public async Task<ActionResult> GetOverview()
     {
@@ -304,6 +315,133 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
                 topPosts = topReferralPosts
             },
             contributionMix
+        });
+    }
+
+    [HttpGet("donor-stewardship")]
+    public async Task<ActionResult> GetDonorStewardship()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var allSupporters = await db.Supporters.AsNoTracking()
+            .Where(x => x.IsActive)
+            .Select(x => new { x.SupporterId, x.FullName, x.SupporterType })
+            .ToListAsync();
+
+        var contributionAgg = await db.Contributions.AsNoTracking()
+            .Where(x => x.ContributionType == "Monetary")
+            .GroupBy(x => x.SupporterId)
+            .Select(g => new
+            {
+                supporterId = g.Key,
+                giftCount = g.Count(),
+                totalPhp = g.Sum(x => x.Amount ?? 0m),
+                firstGift = g.Min(x => x.ContributionDate),
+                lastGift = g.Max(x => x.ContributionDate)
+            })
+            .ToListAsync();
+
+        var allocAgg = await db.ImpactAllocations.AsNoTracking()
+            .GroupBy(x => new { x.SupporterId, x.Category })
+            .Select(g => new
+            {
+                supporterId = g.Key.SupporterId,
+                category = g.Key.Category,
+                totalPhp = g.Sum(x => x.Amount)
+            })
+            .ToListAsync();
+
+        var perSupporterAlloc = allocAgg
+            .GroupBy(x => x.supporterId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var supporterRows = contributionAgg
+            .Select(x =>
+            {
+                var cadenceDays = Math.Max(1, (x.lastGift.DayNumber - x.firstGift.DayNumber) / Math.Max(1, x.giftCount - 1));
+                var recencyDays = Math.Max(0, today.DayNumber - x.lastGift.DayNumber);
+                var expectedWindow = (int)Math.Round(cadenceDays * 1.7);
+                var lapseRisk = recencyDays >= expectedWindow;
+                var ladderTier =
+                    x.totalPhp >= 30000m ? "Major" :
+                    x.totalPhp >= 10000m ? "Mid-tier" :
+                    "Emerging";
+
+                var ladderPrompt =
+                    ladderTier == "Mid-tier"
+                        ? "Invite this donor to fund a named project such as a new safehouse bed or school-year package."
+                        : ladderTier == "Emerging"
+                            ? "Encourage recurring monthly giving with a clear first milestone."
+                            : "Offer stewardship updates and major-gift partnership pathways.";
+
+                perSupporterAlloc.TryGetValue(x.supporterId, out var allocs);
+                var topOutcome = allocs?
+                    .OrderByDescending(a => a.totalPhp)
+                    .Select(a =>
+                    {
+                        if (!OutcomeMap.TryGetValue(a.category, out var map))
+                        {
+                            return $"{a.category}: ₱{a.totalPhp:N0} applied";
+                        }
+
+                        var units = map.unitPhp <= 0 ? 0 : (int)Math.Floor(a.totalPhp / map.unitPhp);
+                        return units > 0
+                            ? $"{a.category}: funded about {units} {map.outcome}{(units == 1 ? "" : "s")}."
+                            : $"{a.category}: ₱{a.totalPhp:N0} applied to care services.";
+                    })
+                    .FirstOrDefault() ?? "No allocation narrative yet.";
+
+                return new
+                {
+                    supporterId = x.supporterId,
+                    giftCount = x.giftCount,
+                    totalPhp = x.totalPhp,
+                    cadenceDays,
+                    recencyDays,
+                    expectedWindowDays = expectedWindow,
+                    lapseRisk,
+                    ladderTier,
+                    ladderPrompt,
+                    outcomeNarrative = topOutcome
+                };
+            })
+            .OrderByDescending(x => x.lapseRisk)
+            .ThenByDescending(x => x.totalPhp)
+            .ToList();
+
+        var supporterNameById = allSupporters.ToDictionary(x => x.SupporterId, x => x.FullName);
+
+        var watchlist = supporterRows
+            .Where(x => x.lapseRisk)
+            .Take(15)
+            .Select(x => new
+            {
+                x.supporterId,
+                displayName = supporterNameById.GetValueOrDefault(x.supporterId, $"Supporter {x.supporterId}"),
+                x.recencyDays,
+                x.expectedWindowDays,
+                x.totalPhp,
+                x.outcomeNarrative
+            })
+            .ToList();
+
+        var midTier = supporterRows
+            .Where(x => x.ladderTier == "Mid-tier")
+            .Take(15)
+            .Select(x => new
+            {
+                x.supporterId,
+                displayName = supporterNameById.GetValueOrDefault(x.supporterId, $"Supporter {x.supporterId}"),
+                x.totalPhp,
+                x.giftCount,
+                x.ladderPrompt
+            })
+            .ToList();
+
+        return Ok(new
+        {
+            asOfUtc = DateTime.UtcNow,
+            watchlist,
+            donorLadderMidTier = midTier
         });
     }
 }

@@ -5,63 +5,103 @@ export function HomePage() {
   return (
     <div style={{ display: "grid", gap: 20 }}>
       <div className="card hero-home" style={{ padding: 28 }}>
-        <div className="badge" style={{ borderColor: "rgba(124,108,255,0.45)", background: "rgba(124,108,255,0.1)" }}>
-          South Korea response focus · Privacy-first operations · Role-based donor access
-        </div>
-        <h1
-          style={{
-            marginTop: 14,
-            marginBottom: 10,
-            fontSize: "clamp(32px, 5vw, 46px)",
-            lineHeight: 1.06,
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-          }}
-        >
-          Stand with South Korean victims.
-          <br />
-          <span
-            style={{
-              background: "linear-gradient(90deg, var(--brand), var(--brand2))",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            Restore safety with transparent giving.
-          </span>
-        </h1>
-        <p className="muted" style={{ maxWidth: 720, fontSize: 17, lineHeight: 1.55, margin: 0 }}>
-          Steps of Hope coordinates support for South Korean victims across safehouses, follow-up services, and
-          documented recovery milestones. Donors get a dedicated <strong>Donor</strong> experience to give, track allocations,
-          and view aggregate impact safely.
-        </p>
+        <div className="hero-home-grid">
+          <div>
+            <div className="badge" style={{ borderColor: "rgba(124,108,255,0.45)", background: "rgba(124,108,255,0.1)" }}>
+              South Korea response focus · Privacy-first operations · Role-based donor access
+            </div>
+            <h1
+              style={{
+                marginTop: 14,
+                marginBottom: 10,
+                fontSize: "clamp(32px, 5vw, 46px)",
+                lineHeight: 1.06,
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
+              }}
+            >
+              Stand with South Korean victims.
+              <br />
+              <span
+                style={{
+                  background: "linear-gradient(90deg, var(--brand), var(--brand2))",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                Restore safety with transparent giving.
+              </span>
+            </h1>
+            <p className="muted" style={{ maxWidth: 720, fontSize: 17, lineHeight: 1.55, margin: 0 }}>
+              Steps of Hope coordinates support for South Korean victims across safehouses, follow-up services, and
+              documented recovery milestones. Donors get a dedicated <strong>Donor</strong> experience to give, track allocations,
+              and view aggregate impact safely.
+            </p>
 
-        <div className="row" style={{ marginTop: 22, flexWrap: "wrap" }}>
-          <Link className="btn primary" to="/register">
-            Join as donor — free
-          </Link>
-          <Link className="btn nav-pill-glow" to="/give">
-            Give
-          </Link>
-          <Link className="btn" to="/login">
-            Staff & donor sign in
-          </Link>
-          <Link className="btn" to="/impact">
-            Public impact
-          </Link>
+            <div className="row" style={{ marginTop: 22, flexWrap: "wrap" }}>
+              <Link className="btn primary" to="/register">
+                Join as donor — free
+              </Link>
+              <Link className="btn nav-pill-glow" to="/give">
+                Give
+              </Link>
+              <Link className="btn" to="/login">
+                Staff & donor sign in
+              </Link>
+              <Link className="btn" to="/impact">
+                Public impact
+              </Link>
+            </div>
+          </div>
+          <div className="hero-mosaic">
+            <img src="/reference/clean-layout-ref.png" alt="Clean modern landing layout inspiration." />
+          </div>
         </div>
       </div>
 
       <div className="photo-grid">
-        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: volunteers distributing care supplies in South Korea">
-          <div className="caption">Photo placeholder: emergency support distribution</div>
+        <div className="photo-placeholder" role="img" aria-label="Volunteers distributing care supplies in South Korea">
+          <img src="/reference/donor-impact-community.jpg" alt="Volunteers preparing donation-backed community support kits." />
+          <div className="caption">Emergency support distribution</div>
         </div>
-        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: trauma-informed counseling and community support">
-          <div className="caption">Photo placeholder: trauma-informed counseling support</div>
+        <div className="photo-placeholder" role="img" aria-label="Trauma-informed counseling and community support">
+          <img src="/reference/trauma-informed-counseling.jpg" alt="Trauma-informed counseling support session." />
+          <div className="caption">Trauma-informed counseling support</div>
         </div>
-        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donor-supported recovery and shelter access">
-          <div className="caption">Photo placeholder: donor-funded shelter and recovery</div>
+        <div className="photo-placeholder" role="img" aria-label="Donor-supported recovery and shelter access">
+          <img src="/reference/south-korea-safehouse-support.jpg" alt="Safehouse support and recovery environment." />
+          <div className="caption">Donor-funded shelter and recovery</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ background: "var(--panel2)" }}>
+        <h2 style={{ marginTop: 0 }}>Start here by role</h2>
+        <div className="workflow-grid">
+          <div className="workflow-card">
+            <h3>Donor path</h3>
+            <p className="muted" style={{ marginTop: 8 }}>Create account, give securely, then track your impact story.</p>
+            <div className="row">
+              <Link className="btn primary" to="/register">Create account</Link>
+              <Link className="btn" to="/give">Give</Link>
+            </div>
+          </div>
+          <div className="workflow-card">
+            <h3>Employee path</h3>
+            <p className="muted" style={{ marginTop: 8 }}>Sign in, open caseload, and log process recordings or visits.</p>
+            <div className="row">
+              <Link className="btn primary" to="/login">Sign in</Link>
+              <Link className="btn" to="/roles">Role guide</Link>
+            </div>
+          </div>
+          <div className="workflow-card">
+            <h3>Admin path</h3>
+            <p className="muted" style={{ marginTop: 8 }}>Manage users, allocations, reports, and system imports.</p>
+            <div className="row">
+              <Link className="btn primary" to="/login">Admin sign in</Link>
+              <Link className="btn" to="/impact">Public impact view</Link>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -176,23 +216,33 @@ export function HomePage() {
             <div className="program-name">Physiological Needs</div>
           </div>
           <div className="program-card">
-            <div className="program-photo" />
+            <div className="program-photo">
+              <img src="/reference/south-korea-safehouse-support.jpg" alt="Biological needs support through safe shelter and care access." />
+            </div>
             <div className="program-name">Biological Needs</div>
           </div>
           <div className="program-card">
-            <div className="program-photo" />
+            <div className="program-photo">
+              <img src="/reference/trauma-informed-counseling.jpg" alt="Trauma-informed support for spiritual and emotional care." />
+            </div>
             <div className="program-name">Spiritual Needs</div>
           </div>
           <div className="program-card">
-            <div className="program-photo" />
+            <div className="program-photo">
+              <img src="/reference/health-wellbeing-checkin.jpg" alt="Psychological and wellbeing care check-ins." />
+            </div>
             <div className="program-name">Psychological Needs</div>
           </div>
           <div className="program-card">
-            <div className="program-photo" />
+            <div className="program-photo">
+              <img src="/reference/donor-impact-community.jpg" alt="Social support and community engagement." />
+            </div>
             <div className="program-name">Social Needs</div>
           </div>
           <div className="program-card">
-            <div className="program-photo" />
+            <div className="program-photo">
+              <img src="/reference/education-reintegration-support.jpg" alt="Education and belonging support activities." />
+            </div>
             <div className="program-name">Love and Belonging</div>
           </div>
         </div>
@@ -211,10 +261,10 @@ export function HomePage() {
       <div className="card">
         <h2 style={{ marginTop: 0, textAlign: "center", fontSize: 46 }}>Board of Directors</h2>
         <div className="avatar-row">
-          <div className="avatar-bubble" />
-          <div className="avatar-bubble" />
-          <div className="avatar-bubble" />
-          <div className="avatar-bubble" />
+          <div className="avatar-bubble"><img src="/reference/south-korea-safehouse-support.jpg" alt="Board member profile visual 1." /></div>
+          <div className="avatar-bubble"><img src="/reference/trauma-informed-counseling.jpg" alt="Board member profile visual 2." /></div>
+          <div className="avatar-bubble"><img src="/reference/donor-impact-community.jpg" alt="Board member profile visual 3." /></div>
+          <div className="avatar-bubble"><img src="/reference/education-reintegration-support.jpg" alt="Board member profile visual 4." /></div>
         </div>
       </div>
 
@@ -225,7 +275,9 @@ export function HomePage() {
         </div>
         <div className="post-grid">
           <article className="post-card">
-            <div className="post-photo" />
+            <div className="post-photo">
+              <img src="/reference/health-wellbeing-checkin.jpg" alt="Survivor care progress check-in scene." />
+            </div>
             <div className="post-body">
               <div className="muted" style={{ fontSize: 12 }}>May 11, 2025</div>
               <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>Highs and Lows of Survivor Care</div>
@@ -234,7 +286,9 @@ export function HomePage() {
             </div>
           </article>
           <article className="post-card">
-            <div className="post-photo" />
+            <div className="post-photo">
+              <img src="/reference/donor-impact-community.jpg" alt="Campaign storytelling and donor engagement visual." />
+            </div>
             <div className="post-body">
               <div className="muted" style={{ fontSize: 12 }}>December 11, 2024</div>
               <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>The Power of Light</div>
@@ -243,7 +297,9 @@ export function HomePage() {
             </div>
           </article>
           <article className="post-card">
-            <div className="post-photo" />
+            <div className="post-photo">
+              <img src="/reference/education-reintegration-support.jpg" alt="Milestones in education and reintegration support." />
+            </div>
             <div className="post-body">
               <div className="muted" style={{ fontSize: 12 }}>September 12, 2023</div>
               <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>Thankful to Celebrate 5 Years</div>

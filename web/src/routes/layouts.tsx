@@ -286,6 +286,19 @@ export function AppLayout() {
                 </svg>
                 My Impact
               </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/give">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Give
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/impact">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Public Impact
+              </NavLink>
             </nav>
           </>
         ) : null}

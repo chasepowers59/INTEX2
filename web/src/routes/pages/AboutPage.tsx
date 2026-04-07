@@ -14,14 +14,17 @@ export function AboutPage() {
       </div>
 
       <div className="photo-grid">
-        <div className="photo-placeholder" role="img" aria-label="Placeholder image: coordinated safehouse support team">
-          <div className="caption">Photo placeholder: coordinated safehouse support team</div>
+        <div className="photo-placeholder" role="img" aria-label="Coordinated safehouse support team">
+          <img src="/reference/south-korea-safehouse-support.jpg" alt="Coordinated safehouse support team." />
+          <div className="caption">Coordinated safehouse support team</div>
         </div>
-        <div className="photo-placeholder" role="img" aria-label="Placeholder image: counseling and recovery support session">
-          <div className="caption">Photo placeholder: counseling and recovery support</div>
+        <div className="photo-placeholder" role="img" aria-label="Counseling and recovery support session">
+          <img src="/reference/trauma-informed-counseling.jpg" alt="Counseling and recovery support session." />
+          <div className="caption">Counseling and recovery support</div>
         </div>
-        <div className="photo-placeholder" role="img" aria-label="Placeholder image: donor-backed community resilience">
-          <div className="caption">Photo placeholder: donor-backed community resilience</div>
+        <div className="photo-placeholder" role="img" aria-label="Donor-backed community resilience">
+          <img src="/reference/donor-impact-community.jpg" alt="Donor-backed community resilience and aid support." />
+          <div className="caption">Donor-backed community resilience</div>
         </div>
       </div>
 

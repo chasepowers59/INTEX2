@@ -20,6 +20,7 @@ export function AdminUsersPage() {
   const [items, setItems] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
 
   const [createEmail, setCreateEmail] = useState("");
   const [createDisplayName, setCreateDisplayName] = useState("");
@@ -149,10 +150,63 @@ export function AdminUsersPage() {
 
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Users</h2>
+          <div className="row" style={{ marginBottom: 8 }}>
+            <button
+              className="btn"
+              disabled={selectedEmails.length === 0 || busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  for (const email of selectedEmails) {
+                    await apiFetch("/api/admin/users/set-enabled", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({ email, enabled: true }),
+                    });
+                  }
+                  setSelectedEmails([]);
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Bulk enable ({selectedEmails.length})
+            </button>
+            <button
+              className="btn danger"
+              disabled={selectedEmails.length === 0 || busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  for (const email of selectedEmails) {
+                    await apiFetch("/api/admin/users/set-enabled", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({ email, enabled: false }),
+                    });
+                  }
+                  setSelectedEmails([]);
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Bulk disable ({selectedEmails.length})
+            </button>
+          </div>
           <div className="table-wrap" style={{ marginTop: 10 }}>
             <table className="table">
               <thead>
                 <tr>
+                  <th>Select</th>
                   <th>Email</th>
                   <th>Name</th>
                   <th>Roles</th>
@@ -166,6 +220,17 @@ export function AdminUsersPage() {
                   const disabled = !!u.lockoutEnd;
                   return (
                     <tr key={u.id}>
+                      <td data-label="Select">
+                        <input
+                          type="checkbox"
+                          checked={selectedEmails.includes(u.email)}
+                          onChange={(e) =>
+                            setSelectedEmails((prev) =>
+                              e.target.checked ? [...prev, u.email] : prev.filter((x) => x !== u.email)
+                            )
+                          }
+                        />
+                      </td>
                       <td data-label="Email" style={{ fontWeight: 800 }}>
                         {u.email}
                       </td>
@@ -270,7 +335,7 @@ export function AdminUsersPage() {
                 })}
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="muted">
+                    <td colSpan={7} className="muted">
                       No users found.
                     </td>
                   </tr>

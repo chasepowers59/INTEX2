@@ -12,6 +12,23 @@ type Supporter = {
 };
 
 type Paged<T> = { page: number; pageSize: number; total: number; items: T[] };
+type DonorStewardship = {
+  watchlist: {
+    supporterId: number;
+    displayName: string;
+    recencyDays: number;
+    expectedWindowDays: number;
+    totalPhp: number;
+    outcomeNarrative: string;
+  }[];
+  donorLadderMidTier: {
+    supporterId: number;
+    displayName: string;
+    totalPhp: number;
+    giftCount: number;
+    ladderPrompt: string;
+  }[];
+};
 
 export function DonorsPage() {
   const auth = useAuth();
@@ -20,6 +37,7 @@ export function DonorsPage() {
   const [selectedSupporter, setSelectedSupporter] = useState<Supporter | null>(null);
   const [contribs, setContribs] = useState<Paged<any> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stewardship, setStewardship] = useState<DonorStewardship | null>(null);
 
   const load = async () => {
     setError(null);
@@ -38,6 +56,9 @@ export function DonorsPage() {
 
   useEffect(() => {
     void load();
+    void apiFetch<DonorStewardship>("/api/analytics/donor-stewardship", { token: auth.token ?? undefined })
+      .then(setStewardship)
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -84,6 +105,35 @@ export function DonorsPage() {
           </RequireRole>
         </div>
       </div>
+
+      {stewardship ? (
+        <div className="row">
+          <div className="card tone-peach" style={{ flex: "1 1 320px" }}>
+            <h2 style={{ marginTop: 0 }}>Predictive lapse watchlist</h2>
+            <p className="muted">Donors who are past their expected giving window. Prioritize gratitude update plus check-in.</p>
+            <ul className="trust-list muted">
+              {stewardship.watchlist.slice(0, 6).map((x) => (
+                <li key={x.supporterId}>
+                  {x.displayName}: {x.recencyDays}d since last gift (expected {x.expectedWindowDays}d). {x.outcomeNarrative}
+                </li>
+              ))}
+              {stewardship.watchlist.length === 0 ? <li>No current lapse-risk donors detected.</li> : null}
+            </ul>
+          </div>
+          <div className="card tone-aqua" style={{ flex: "1 1 320px" }}>
+            <h2 style={{ marginTop: 0 }}>Donor ladder prompts</h2>
+            <p className="muted">Mid-tier donors likely ready for a specific project ask instead of a generic appeal.</p>
+            <ul className="trust-list muted">
+              {stewardship.donorLadderMidTier.slice(0, 6).map((x) => (
+                <li key={x.supporterId}>
+                  {x.displayName}: ₱{x.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })} across {x.giftCount} gifts. {x.ladderPrompt}
+                </li>
+              ))}
+              {stewardship.donorLadderMidTier.length === 0 ? <li>No mid-tier ladder prompts yet.</li> : null}
+            </ul>
+          </div>
+        </div>
+      ) : null}
 
       <div className="card">
         <div className="table-wrap">

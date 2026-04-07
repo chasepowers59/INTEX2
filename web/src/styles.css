@@ -621,6 +621,48 @@ a {
   letter-spacing: -0.02em;
 }
 
+.auth-dark-shell {
+  background: radial-gradient(circle at 50% 0%, rgba(184, 255, 42, 0.24), transparent 55%), #050807;
+  border-color: rgba(184, 255, 42, 0.25);
+}
+
+.auth-dark-shell h2 {
+  color: #f8ffe8;
+}
+
+.auth-dark-shell .muted {
+  color: rgba(242, 255, 210, 0.72);
+}
+
+.auth-dark-panel {
+  background: linear-gradient(180deg, rgba(7, 10, 12, 0.96), rgba(7, 10, 12, 0.9));
+  border-color: rgba(184, 255, 42, 0.2);
+}
+
+.auth-action-primary {
+  background: linear-gradient(90deg, #c9f64b, #dcff7a);
+  color: #111;
+  border-color: transparent;
+  font-weight: 800;
+}
+
+.auth-action-primary:hover {
+  filter: brightness(1.02);
+}
+
+.auth-inline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.auth-link-subtle {
+  font-size: 12px;
+  text-decoration: underline;
+  color: rgba(220, 255, 122, 0.92);
+}
+
 .auth-aside {
   background:
     radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15), transparent 40%),
@@ -740,6 +782,27 @@ details.optional-block[open] summary {
   overflow: hidden;
 }
 
+.hero-home-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.hero-mosaic {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--panel2);
+  min-height: 300px;
+}
+
+.hero-mosaic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .hero-home::before {
   content: "";
   position: absolute;
@@ -784,6 +847,24 @@ details.optional-block[open] summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workflow-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 14px;
+}
+
+.workflow-card h3 {
+  margin: 0;
+  font-size: 18px;
 }
 
 .photo-placeholder {
@@ -912,7 +993,8 @@ details.optional-block[open] summary {
 
 .program-photo img,
 .post-photo img,
-.image-frame img {
+.image-frame img,
+.photo-placeholder img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -954,6 +1036,13 @@ details.optional-block[open] summary {
   border-radius: 999px;
   border: 2px solid rgba(238,242,255,.25);
   background: linear-gradient(150deg, rgba(124,108,255,.3), rgba(48,201,255,.2));
+  overflow: hidden;
+}
+
+.avatar-bubble img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .post-grid {
@@ -991,6 +1080,26 @@ details.optional-block[open] summary {
   gap: 12px;
 }
 
+.admin-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-overview-card {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel2);
+  padding: 14px;
+}
+
+.admin-overview-kpi {
+  font-size: 34px;
+  font-weight: 900;
+  margin-top: 6px;
+  letter-spacing: -0.02em;
+}
+
 .soft-pulse {
   animation: softPulse 3.4s ease-in-out infinite;
 }
@@ -1019,6 +1128,12 @@ details.optional-block[open] summary {
   .program-grid,
   .post-grid,
   .staff-ml-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-home-grid,
+  .admin-overview-grid,
+  .workflow-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -66,6 +66,7 @@ export function ImpactPage() {
           Aggregated, anonymized view of services supporting South Korean victims: safe shelter, education and wellbeing
           progress, field engagement, and outreach effectiveness—without identifying any resident.
         </p>
+        <div className="badge ok">Identity-stripped public reporting: no names, addresses, or case file details.</div>
 
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
@@ -81,14 +82,17 @@ export function ImpactPage() {
       </div>
 
       <div className="photo-grid">
-        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: safehouse community support session">
-          <div className="caption">Photo placeholder: safehouse recovery support</div>
+        <div className="photo-placeholder" role="img" aria-label="Safehouse community support session">
+          <img src="/reference/south-korea-safehouse-support.jpg" alt="Safehouse recovery and support environment." />
+          <div className="caption">Safehouse recovery support</div>
         </div>
-        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: social workers documenting program outcomes">
-          <div className="caption">Photo placeholder: transparent impact tracking</div>
+        <div className="photo-placeholder" role="img" aria-label="Social workers documenting program outcomes">
+          <img src="/reference/secure-anonymized-reporting.jpg" alt="Privacy-safe analytics and impact reporting visual." />
+          <div className="caption">Transparent impact tracking</div>
         </div>
-        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donors and partners supporting Korean victim programs">
-          <div className="caption">Photo placeholder: donor and partner collaboration</div>
+        <div className="photo-placeholder" role="img" aria-label="Donors and partners supporting Korean victim programs">
+          <img src="/reference/donor-impact-community.jpg" alt="Donors and partners collaborating for support programs." />
+          <div className="caption">Donor and partner collaboration</div>
         </div>
       </div>
 

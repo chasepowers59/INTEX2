@@ -25,6 +25,15 @@ type AllocationAgg = {
   count: number;
 };
 
+const outcomeMap: Record<string, { unitPhp: number; text: string }> = {
+  Counseling: { unitPhp: 1200, text: "trauma-informed counseling sessions" },
+  Education: { unitPhp: 900, text: "weeks of education support" },
+  Health: { unitPhp: 700, text: "health and wellbeing check-ins" },
+  Shelter: { unitPhp: 1500, text: "days of safe shelter coverage" },
+  Food: { unitPhp: 450, text: "nutrition support packs" },
+  Transport: { unitPhp: 300, text: "safe transport assists" },
+};
+
 export function DonorPortalPage() {
   const auth = useAuth();
   const [data, setData] = useState<Paged<Contribution> | null>(null);
@@ -51,6 +60,21 @@ export function DonorPortalPage() {
     [data],
   );
   const allocationPhp = useMemo(() => allocations.reduce((s, x) => s + x.totalAmount, 0), [allocations]);
+  const outcomeNarratives = useMemo(() => {
+    const byCat = new Map<string, number>();
+    for (const x of allocations) byCat.set(x.category, (byCat.get(x.category) ?? 0) + x.totalAmount);
+    return [...byCat.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([category, total]) => {
+        const map = outcomeMap[category];
+        if (!map) return `${category}: ₱${total.toLocaleString(undefined, { maximumFractionDigits: 0 })} applied`;
+        const units = Math.floor(total / map.unitPhp);
+        return units > 0
+          ? `${category}: around ${units.toLocaleString()} ${map.text}`
+          : `${category}: ₱${total.toLocaleString(undefined, { maximumFractionDigits: 0 })} applied`;
+      });
+  }, [allocations]);
 
   return (
     <RequireRole role="Donor">
@@ -226,17 +250,31 @@ export function DonorPortalPage() {
           )}
         </div>
 
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Your impact story from allocations</h2>
+          <p className="muted">A donor-friendly narrative estimate based on aggregated category allocations in your account window.</p>
+          {outcomeNarratives.length ? (
+            <ul className="trust-list muted">
+              {outcomeNarratives.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          ) : (
+            <div className="muted">Once allocations are posted by staff, this section turns your totals into understandable outcomes.</div>
+          )}
+        </div>
+
         <div className="photo-grid" style={{ marginTop: 12 }}>
-          <div className="photo-placeholder" role="img" aria-label="Reference image showing impact activities and donor-backed services">
-            <img src="/reference/programs-services.png" alt="Donor impact collage reference." />
+          <div className="photo-placeholder" role="img" aria-label="Impact activities and donor-backed services">
+            <img src="/reference/donor-impact-community.jpg" alt="Donor-backed support and community aid." />
             <div className="caption">Your support in action</div>
           </div>
-          <div className="photo-placeholder" role="img" aria-label="Reference image showing hero mission call to action">
-            <img src="/reference/hero-ribbon.png" alt="Mission hero banner reference." />
+          <div className="photo-placeholder" role="img" aria-label="Trauma-informed support services">
+            <img src="/reference/trauma-informed-counseling.jpg" alt="Trauma-informed counseling and support session." />
             <div className="caption">Trauma-informed support services</div>
           </div>
-          <div className="photo-placeholder" role="img" aria-label="Reference image showing recent post storytelling cards">
-            <img src="/reference/recent-posts.png" alt="Recent posts storytelling reference." />
+          <div className="photo-placeholder" role="img" aria-label="Recovery milestones and hope">
+            <img src="/reference/education-reintegration-support.jpg" alt="Education and reintegration support milestones." />
             <div className="caption">Recovery milestones and hope</div>
           </div>
         </div>

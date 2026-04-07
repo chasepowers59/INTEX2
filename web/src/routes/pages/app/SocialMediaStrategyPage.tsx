@@ -24,6 +24,9 @@ export function SocialMediaStrategyPage() {
   const auth = useAuth();
   const [data, setData] = useState<ProgramInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [storyTheme, setStoryTheme] = useState("Survivor progress milestone");
+  const [needItem, setNeedItem] = useState("School uniforms");
+  const [gratitudeFocus, setGratitudeFocus] = useState("Donor-funded counseling outcomes");
 
   useEffect(() => {
     (async () => {
@@ -95,6 +98,72 @@ export function SocialMediaStrategyPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Content pillars coach · 3-post formula</h2>
+        <p className="muted">Use one Story post, one Need post, and one Gratitude post weekly to keep messaging balanced and sustainable.</p>
+        <div className="row">
+          <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
+            <span className="muted">Story post idea</span>
+            <input className="input" value={storyTheme} onChange={(e) => setStoryTheme(e.target.value)} />
+          </label>
+          <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
+            <span className="muted">Need post ask</span>
+            <input className="input" value={needItem} onChange={(e) => setNeedItem(e.target.value)} />
+          </label>
+          <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
+            <span className="muted">Gratitude focus</span>
+            <input className="input" value={gratitudeFocus} onChange={(e) => setGratitudeFocus(e.target.value)} />
+          </label>
+        </div>
+        <div className="row" style={{ marginTop: 10 }}>
+          <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 220px" }}>
+            <strong>Monday · Story</strong>
+            <div className="muted">{storyTheme}</div>
+          </div>
+          <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 220px" }}>
+            <strong>Wednesday · Need</strong>
+            <div className="muted">{needItem}</div>
+          </div>
+          <div className="card tone-berry" style={{ boxShadow: "none", flex: "1 1 220px" }}>
+            <strong>Friday · Gratitude</strong>
+            <div className="muted">{gratitudeFocus}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Channel conversion compare</h2>
+        {(() => {
+          const rows = data?.socialRoi.topPosts ?? [];
+          const byPlatform = new Map<string, { referrals: number; value: number }>();
+          for (const r of rows) {
+            const cur = byPlatform.get(r.platform) ?? { referrals: 0, value: 0 };
+            cur.referrals += r.referrals;
+            cur.value += r.estimatedValuePhp;
+            byPlatform.set(r.platform, cur);
+          }
+          const ranked = [...byPlatform.entries()].sort((a, b) => b[1].value - a[1].value);
+          const top = ranked[0];
+          return (
+            <>
+              <ul className="trust-list muted">
+                {ranked.map(([platform, v]) => (
+                  <li key={platform}>
+                    {platform}: ₱{v.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} estimated value · {v.referrals} referrals
+                  </li>
+                ))}
+                {ranked.length === 0 ? <li>No channel comparison rows yet.</li> : null}
+              </ul>
+              {top ? (
+                <div className="badge ok" style={{ marginTop: 8 }}>
+                  Recommendation: prioritize {top[0]} next week, then repurpose to your second-best channel.
+                </div>
+              ) : null}
+            </>
+          );
+        })()}
       </div>
     </div>
   );
