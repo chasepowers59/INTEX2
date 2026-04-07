@@ -41,11 +41,12 @@ builder.Services
     {
         var pwd = builder.Configuration.GetSection("Identity:Password");
         options.Password.RequiredLength = pwd.GetValue("RequiredLength", 12);
-        options.Password.RequireDigit = pwd.GetValue("RequireDigit", true);
-        options.Password.RequireLowercase = pwd.GetValue("RequireLowercase", true);
-        options.Password.RequireUppercase = pwd.GetValue("RequireUppercase", true);
-        options.Password.RequireNonAlphanumeric = pwd.GetValue("RequireNonAlphanumeric", true);
-        options.Password.RequiredUniqueChars = pwd.GetValue("RequiredUniqueChars", 4);
+        // Project requirement: password policy is length-only (no complexity checks).
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredUniqueChars = 1;
 
         options.Lockout.MaxFailedAccessAttempts = 8;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);

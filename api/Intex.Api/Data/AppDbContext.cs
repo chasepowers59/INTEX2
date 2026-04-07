@@ -192,6 +192,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasIndex(x => new { x.SupporterId, x.AllocationDate });
 
         builder.Entity<ImpactAllocation>()
+            .HasOne(x => x.Contribution)
+            .WithMany()
+            .HasForeignKey(x => x.ContributionId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<ImpactAllocation>()
             .HasIndex(x => new { x.SnapshotId, x.Category });
 
         builder.Entity<MlPrediction>()

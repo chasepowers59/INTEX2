@@ -8,6 +8,7 @@ type AllocationRow = {
   impactAllocationId: number;
   supporterId: number;
   supporterName: string;
+  contributionId: number | null;
   snapshotId: number | null;
   allocationDate: string;
   category: string;
@@ -15,6 +16,17 @@ type AllocationRow = {
   currency: string;
   notes: string | null;
   createdAtUtc: string;
+};
+
+type RecentContribution = {
+  contributionId: number;
+  supporterId: number;
+  supporterName: string;
+  contributionType: string;
+  amount: number | null;
+  currency: string;
+  contributionDate: string;
+  campaignName: string | null;
 };
 
 export function AdminAllocationsPage() {
@@ -26,6 +38,7 @@ export function AdminAllocationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [supporterId, setSupporterId] = useState<string>("");
+  const [contributionId, setContributionId] = useState<string>("");
   const [allocationDate, setAllocationDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [category, setCategory] = useState<string>("Food");
   const [amount, setAmount] = useState<string>("");
@@ -33,6 +46,7 @@ export function AdminAllocationsPage() {
   const [notes, setNotes] = useState<string>("");
   const [selectedAllocations, setSelectedAllocations] = useState<number[]>([]);
   const [page, setPage] = useState(1);
+  const [recentContributions, setRecentContributions] = useState<RecentContribution[]>([]);
 
   const load = async () => {
     setError(null);
@@ -49,6 +63,9 @@ export function AdminAllocationsPage() {
 
   useEffect(() => {
     void load().catch((e) => setError((e as Error).message));
+    void apiFetch<any>("/api/contributions?page=1&pageSize=80", { token: auth.token ?? undefined })
+      .then((res) => setRecentContributions((res.items ?? []) as RecentContribution[]))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.token]);
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
@@ -82,6 +99,29 @@ export function AdminAllocationsPage() {
 
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Add allocation</h2>
+          <label style={{ display: "grid", gap: 6, marginBottom: 10 }}>
+            <span className="muted">Recent donation to allocate from</span>
+            <select
+              className="input"
+              value={contributionId}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setContributionId(nextId);
+                const picked = recentContributions.find((c) => c.contributionId === Number(nextId));
+                if (picked) {
+                  setSupporterId(String(picked.supporterId));
+                  setAmount(picked.amount != null ? String(picked.amount) : "");
+                }
+              }}
+            >
+              <option value="">Select recent donation (optional)</option>
+              {recentContributions.map((c) => (
+                <option key={c.contributionId} value={c.contributionId}>
+                  #{c.contributionId} · {c.supporterName} · {c.contributionDate} · {c.amount ?? "—"} {c.currency}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="row" style={{ alignItems: "end" }}>
             <label style={{ display: "grid", gap: 6, minWidth: 200 }}>
               <span className="muted">SupporterId</span>
@@ -130,6 +170,7 @@ export function AdminAllocationsPage() {
                     token: auth.token ?? undefined,
                     body: JSON.stringify({
                       supporterId: sid,
+                      contributionId: contributionId.trim() ? Number(contributionId) : null,
                       snapshotId: null,
                       allocationDate,
                       category: category.trim(),
@@ -225,6 +266,7 @@ export function AdminAllocationsPage() {
                     </td>
                     <td data-label="Supporter" style={{ fontWeight: 800 }}>
                       {x.supporterName} <span className="muted">#{x.supporterId}</span>
+                      {x.contributionId ? <span className="muted"> · Donation #{x.contributionId}</span> : null}
                     </td>
                     <td data-label="Category">
                       <span className="badge">{x.category}</span>

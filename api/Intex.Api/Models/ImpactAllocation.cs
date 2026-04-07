@@ -10,6 +10,9 @@ public sealed class ImpactAllocation
     public int SupporterId { get; set; }
     public Supporter? Supporter { get; set; }
 
+    public int? ContributionId { get; set; }
+    public Contribution? Contribution { get; set; }
+
     public int? SnapshotId { get; set; }
     public PublicImpactSnapshot? Snapshot { get; set; }
 

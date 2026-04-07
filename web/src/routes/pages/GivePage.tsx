@@ -4,6 +4,12 @@ import { useAuth } from "../../lib/auth";
 import { apiFetch } from "../../lib/api";
 
 type DonateResponse = { contributionId: number };
+type DonationConfirmation = {
+  contributionId: number;
+  contributionType: string;
+  amountLabel: string;
+  campaignName: string;
+};
 
 export function GivePage() {
   const auth = useAuth();
@@ -21,10 +27,12 @@ export function GivePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<number | null>(null);
+  const [confirmation, setConfirmation] = useState<DonationConfirmation | null>(null);
 
   useEffect(() => {
     setError(null);
     setSuccessId(null);
+    setConfirmation(null);
   }, [auth.isAuthenticated, auth.roles.join(",")]);
 
   const signInToDonate = () => {
@@ -231,6 +239,17 @@ export function GivePage() {
                         }),
                       });
                       setSuccessId(res.contributionId);
+                      setConfirmation({
+                        contributionId: res.contributionId,
+                        contributionType,
+                        amountLabel:
+                          contributionType === "Monetary"
+                            ? `PHP ${amt.toLocaleString()}`
+                            : estimatedValue.trim()
+                              ? `Estimated PHP ${Number(estimatedValue).toLocaleString()}`
+                              : "Recorded contribution",
+                        campaignName: campaignName.trim() || "General Fund",
+                      });
                       setAmount("");
                       setNotes("");
                     } catch (e) {
@@ -288,6 +307,40 @@ export function GivePage() {
           <li>Impact reporting remains aggregate to protect victim privacy.</li>
         </ul>
       </div>
+      {confirmation ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(5,8,20,0.55)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div className="card glow-donor" style={{ maxWidth: 520, width: "100%" }}>
+            <h2 style={{ marginTop: 0 }}>Donation confirmed</h2>
+            <p className="muted" style={{ lineHeight: 1.6 }}>
+              Thank you. Your contribution has been recorded and validated.
+            </p>
+            <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
+              <span className="badge ok">Confirmation ID: {confirmation.contributionId}</span>
+              <span className="badge">{confirmation.contributionType}</span>
+              <span className="badge">{confirmation.amountLabel}</span>
+              <span className="badge">{confirmation.campaignName}</span>
+            </div>
+            <div className="row" style={{ marginTop: 14 }}>
+              <button className="btn primary" onClick={() => setConfirmation(null)}>
+                Close
+              </button>
+              <Link className="btn" to="/app/donor" onClick={() => setConfirmation(null)}>
+                Open donor portal
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

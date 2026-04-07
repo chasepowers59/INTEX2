@@ -52,6 +52,7 @@ public sealed class ImpactAllocationsController(AppDbContext db) : ControllerBas
                     a.ImpactAllocationId,
                     a.SupporterId,
                     supporterName = s.FullName,
+                    a.ContributionId,
                     a.SnapshotId,
                     a.AllocationDate,
                     a.Category,
@@ -83,9 +84,19 @@ public sealed class ImpactAllocationsController(AppDbContext db) : ControllerBas
             if (!snapExists) return BadRequest(new { message = "SnapshotId not found." });
         }
 
+        if (req.ContributionId.HasValue)
+        {
+            var contribution = await db.Contributions.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ContributionId == req.ContributionId.Value);
+            if (contribution is null) return BadRequest(new { message = "ContributionId not found." });
+            if (contribution.SupporterId != req.SupporterId)
+                return BadRequest(new { message = "Contribution supporter does not match SupporterId." });
+        }
+
         var entity = new ImpactAllocation
         {
             SupporterId = req.SupporterId,
+            ContributionId = req.ContributionId,
             SnapshotId = req.SnapshotId,
             AllocationDate = req.AllocationDate,
             Category = req.Category.Trim(),
@@ -110,6 +121,7 @@ public sealed class ImpactAllocationsController(AppDbContext db) : ControllerBas
         if (entity is null) return NotFound(new { message = "Not found." });
 
         entity.SupporterId = req.SupporterId;
+        entity.ContributionId = req.ContributionId;
         entity.SnapshotId = req.SnapshotId;
         entity.AllocationDate = req.AllocationDate;
         entity.Category = req.Category.Trim();

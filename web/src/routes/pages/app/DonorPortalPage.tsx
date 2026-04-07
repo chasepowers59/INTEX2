@@ -24,6 +24,20 @@ type AllocationAgg = {
   totalAmount: number;
   count: number;
 };
+type AllocationLink = {
+  impactAllocationId: number;
+  allocationDate: string;
+  category: string;
+  allocationAmount: number;
+  allocationCurrency: string;
+  notes: string | null;
+  contributionId: number;
+  contributionDate: string;
+  contributionType: string;
+  contributionAmount: number | null;
+  contributionCurrency: string;
+  campaignName: string | null;
+};
 
 const outcomeMap: Record<string, { unitPhp: number; text: string }> = {
   Counseling: { unitPhp: 1200, text: "trauma-informed counseling sessions" },
@@ -38,6 +52,7 @@ export function DonorPortalPage() {
   const auth = useAuth();
   const [data, setData] = useState<Paged<Contribution> | null>(null);
   const [allocations, setAllocations] = useState<AllocationAgg[]>([]);
+  const [allocationLinks, setAllocationLinks] = useState<AllocationLink[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,6 +64,10 @@ export function DonorPortalPage() {
           token: auth.token ?? undefined,
         });
         setAllocations(a.items);
+        const links = await apiFetch<{ months: number; items: AllocationLink[] }>("/api/donor/allocation-links?months=12", {
+          token: auth.token ?? undefined,
+        });
+        setAllocationLinks(links.items);
       } catch (e) {
         setError((e as Error).message);
       }
@@ -248,6 +267,40 @@ export function DonorPortalPage() {
               record, allocations will appear once staff record them—or use Register with your CRM email after import.
             </div>
           )}
+        </div>
+
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Allocation mapping by donation</h2>
+          <p className="muted">Each row shows which donation was used for a specific allocation entry.</p>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Donation</th>
+                  <th>Allocation date</th>
+                  <th>Category</th>
+                  <th>Allocated</th>
+                  <th>Campaign</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allocationLinks.map((x) => (
+                  <tr key={x.impactAllocationId}>
+                    <td data-label="Donation" className="muted">
+                      #{x.contributionId} · {x.contributionDate} · {x.contributionType} · {x.contributionAmount ?? "—"} {x.contributionCurrency}
+                    </td>
+                    <td data-label="Allocation date" className="muted">{x.allocationDate}</td>
+                    <td data-label="Category"><span className="badge">{x.category}</span></td>
+                    <td data-label="Allocated">{x.allocationAmount} {x.allocationCurrency}</td>
+                    <td data-label="Campaign" className="muted">{x.campaignName ?? "—"}</td>
+                  </tr>
+                ))}
+                {allocationLinks.length === 0 ? (
+                  <tr><td colSpan={5} className="muted">No donation-linked allocations recorded yet.</td></tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="card">

@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/donor")]
-[Authorize(Roles = AppRoles.Donor)]
+[Authorize(Roles = $"{AppRoles.Donor},{AppRoles.Admin}")]
 public sealed class DonorController(AppDbContext db, Microsoft.AspNetCore.Identity.UserManager<AppUser> userManager) : ControllerBase
 {
     public sealed record DonateRequest(
@@ -157,6 +157,47 @@ public sealed class DonorController(AppDbContext db, Microsoft.AspNetCore.Identi
                 totalAmount = g.Sum(x => x.Amount),
                 count = g.Count()
             })
+            .ToListAsync();
+
+        return Ok(new { months, items });
+    }
+
+    [HttpGet("allocation-links")]
+    public async Task<ActionResult> MyAllocationLinks([FromQuery] int months = 12)
+    {
+        months = Math.Clamp(months, 1, 24);
+        var userId = userManager.GetUserId(User);
+        if (userId is null) return Unauthorized();
+
+        var user = await userManager.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
+        if (user is null || user.SupporterId is null) return Ok(new { months, items = Array.Empty<object>() });
+
+        var from = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-months + 1));
+        var items = await db.ImpactAllocations.AsNoTracking()
+            .Where(x => x.SupporterId == user.SupporterId.Value && x.AllocationDate >= from && x.ContributionId != null)
+            .Join(
+                db.Contributions.AsNoTracking(),
+                a => a.ContributionId!.Value,
+                c => c.ContributionId,
+                (a, c) => new
+                {
+                    a.ImpactAllocationId,
+                    a.AllocationDate,
+                    a.Category,
+                    allocationAmount = a.Amount,
+                    allocationCurrency = a.Currency,
+                    a.Notes,
+                    contributionId = c.ContributionId,
+                    contributionDate = c.ContributionDate,
+                    contributionType = c.ContributionType,
+                    contributionAmount = c.Amount,
+                    contributionCurrency = c.Currency,
+                    c.CampaignName
+                }
+            )
+            .OrderByDescending(x => x.AllocationDate)
+            .ThenByDescending(x => x.ImpactAllocationId)
+            .Take(200)
             .ToListAsync();
 
         return Ok(new { months, items });
