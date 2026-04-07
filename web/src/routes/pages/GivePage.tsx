@@ -30,15 +30,15 @@ export function GivePage() {
     <div style={{ display: "grid", gap: 16 }}>
       <div className="card glow-donor" style={{ padding: 26 }}>
         <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
-          Secure giving · Donor role after sign-in
+          Secure giving for South Korean victims · Donor role after sign-in
         </div>
         <h1 style={{ marginTop: 0, fontSize: "clamp(28px, 4vw, 38px)", fontWeight: 800, letterSpacing: "-0.03em" }}>
-          Give with confidence
+          Give with confidence and compassion
         </h1>
         <p className="muted" style={{ fontSize: 16, lineHeight: 1.6, maxWidth: 760, margin: 0 }}>
-          Your gift is recorded against your supporter profile. Create a <strong>donor account</strong> in one minute—we
-          assign the <strong>Donor</strong> role automatically so you can donate here and open <em>your</em> portal
-          (receipts + anonymized allocations). No resident-level data.
+          Your gift supports safe shelter, case follow-up, and recovery services for South Korean victims. Create a{" "}
+          <strong>donor account</strong> in one minute—we assign the <strong>Donor</strong> role automatically so you can
+          donate here and open <em>your</em> portal (receipts + anonymized allocations). No resident-level data.
         </p>
         <div className="row" style={{ marginTop: 18, flexWrap: "wrap" }}>
           <Link className="btn primary" to="/register" state={{ from: loc.pathname }}>
@@ -53,9 +53,21 @@ export function GivePage() {
         </div>
       </div>
 
+      <div className="photo-grid">
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donor welcome image for Korean victim support">
+          <div className="caption">Photo placeholder: donor welcome for Korean victim support</div>
+        </div>
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: care package preparation">
+          <div className="caption">Photo placeholder: care package preparation</div>
+        </div>
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: community resilience and rebuilding">
+          <div className="caption">Photo placeholder: community resilience and rebuilding</div>
+        </div>
+      </div>
+
       <div className="card" style={{ padding: 18 }}>
         <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>
-          Curious how programs are doing overall? The{" "}
+          Curious how programs for South Korean victims are doing overall? The{" "}
           <Link to="/impact" style={{ textDecoration: "underline", fontWeight: 600 }}>
             public impact dashboard
           </Link>{" "}
@@ -182,6 +194,11 @@ export function GivePage() {
           Donor receipts and allocations are tied to supporter records. Resident-level information is never exposed on
           donor views.
         </div>
+        <ul className="muted trust-list">
+          <li>Funds are tracked against campaign and category for transparent stewardship.</li>
+          <li>Donor portal access is role-protected and account-specific.</li>
+          <li>Impact reporting remains aggregate to protect victim privacy.</li>
+        </ul>
       </div>
     </div>
   );

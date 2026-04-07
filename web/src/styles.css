@@ -675,3 +675,61 @@ details.optional-block[open] summary {
   font-weight: 800;
   margin-top: 4px;
 }
+
+.mission-banner {
+  margin-bottom: 14px;
+  border: 1px solid rgba(45, 212, 191, 0.45);
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.18), rgba(124, 108, 255, 0.16));
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.photo-placeholder {
+  min-height: 190px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, rgba(124, 108, 255, 0.22), rgba(48, 201, 255, 0.08));
+}
+
+.photo-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.2), transparent 42%);
+}
+
+.photo-placeholder .caption {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(7, 10, 20, 0.48);
+  border: 1px solid rgba(238, 242, 255, 0.2);
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+
+.trust-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .photo-grid {
+    grid-template-columns: 1fr;
+  }
+}

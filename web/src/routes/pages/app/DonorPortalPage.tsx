@@ -63,8 +63,8 @@ export function DonorPortalPage() {
             Hello{auth.displayName ? `, ${auth.displayName.split(" ")[0]}` : ""}
           </h1>
           <p className="muted" style={{ margin: 0, fontSize: 15, lineHeight: 1.55, maxWidth: 640 }}>
-            Your receipts and where funds were applied—always aggregated. Resident identities stay in the staff-only
-            portal.
+            Your receipts and where funds were applied—always aggregated. You are supporting South Korean victims through
+            safe shelter, counseling, and reintegration support while resident identities stay in the staff-only portal.
           </p>
           <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
             <Link className="btn primary" to="/give">
@@ -202,6 +202,18 @@ export function DonorPortalPage() {
               record, allocations will appear once staff record them—or use Register with your CRM email after import.
             </div>
           )}
+        </div>
+
+        <div className="photo-grid" style={{ marginTop: 12 }}>
+          <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donor impact at community safehouse">
+            <div className="caption">Photo placeholder: your support in action</div>
+          </div>
+          <div className="photo-placeholder" role="img" aria-label="Generated placeholder: trauma-informed support and services">
+            <div className="caption">Photo placeholder: trauma-informed support services</div>
+          </div>
+          <div className="photo-placeholder" role="img" aria-label="Generated placeholder: recovery milestones and hope">
+            <div className="caption">Photo placeholder: recovery milestones and hope</div>
+          </div>
         </div>
       </div>
     </RequireRole>

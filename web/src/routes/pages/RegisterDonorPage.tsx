@@ -23,12 +23,13 @@ export function RegisterDonorPage() {
     <div className="auth-split">
       <div className="auth-aside">
         <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
-          Free donor account · Donor role
+          Free donor account · Donor role · South Korea victim support
         </div>
         <h2>Give and see your impact—in about a minute</h2>
         <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
           We assign the <strong>Donor</strong> role automatically so only <em>your</em> receipts and anonymized allocation
-          summaries are visible. Resident identities stay inside the staff portal.
+          summaries are visible. Your giving supports South Korean victims while resident identities stay inside the
+          staff portal.
         </p>
         <ul className="muted" style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
           <li>Use the <strong>same email</strong> as your supporter record after CSV import to link history.</li>
@@ -55,6 +56,10 @@ export function RegisterDonorPage() {
         <p className="muted" style={{ marginTop: 0 }}>
           One short form. You’ll be signed in immediately with the Donor role.
         </p>
+
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donors joining support efforts for South Korean victims" style={{ marginBottom: 14 }}>
+          <div className="caption">Photo placeholder: donors joining Korean victim support efforts</div>
+        </div>
 
         <div className="field-stack" style={{ marginTop: 16 }}>
           <span className="field-label">Email</span>

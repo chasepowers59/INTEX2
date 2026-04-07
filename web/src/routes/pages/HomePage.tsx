@@ -6,7 +6,7 @@ export function HomePage() {
     <div style={{ display: "grid", gap: 20 }}>
       <div className="card hero-home" style={{ padding: 28 }}>
         <div className="badge" style={{ borderColor: "rgba(124,108,255,0.45)", background: "rgba(124,108,255,0.1)" }}>
-          Privacy-first operations · Role-based donor access
+          South Korea response focus · Privacy-first operations · Role-based donor access
         </div>
         <h1
           style={{
@@ -18,7 +18,7 @@ export function HomePage() {
             letterSpacing: "-0.03em",
           }}
         >
-          Safer programs.
+          Stand with South Korean victims.
           <br />
           <span
             style={{
@@ -28,12 +28,13 @@ export function HomePage() {
               color: "transparent",
             }}
           >
-            Stronger stewardship.
+            Restore safety with transparent giving.
           </span>
         </h1>
         <p className="muted" style={{ maxWidth: 720, fontSize: 17, lineHeight: 1.55, margin: 0 }}>
-          Steps of Hope coordinates survivor support across safehouses—follow-ups, documentation, and anonymized impact—
-          while giving supporters a dedicated <strong>Donor</strong> experience to give and track personal impact.
+          Steps of Hope coordinates survivor support for South Korean victims across safehouses, follow-up services, and
+          documented recovery milestones. Donors get a dedicated <strong>Donor</strong> experience to give, track allocations,
+          and view aggregate impact safely.
         </p>
 
         <div className="row" style={{ marginTop: 22, flexWrap: "wrap" }}>
@@ -49,6 +50,18 @@ export function HomePage() {
           <Link className="btn" to="/impact">
             Public impact
           </Link>
+        </div>
+      </div>
+
+      <div className="photo-grid">
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: volunteers distributing care supplies in South Korea">
+          <div className="caption">Photo placeholder: emergency support distribution</div>
+        </div>
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: trauma-informed counseling and community support">
+          <div className="caption">Photo placeholder: trauma-informed counseling support</div>
+        </div>
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donor-supported recovery and shelter access">
+          <div className="caption">Photo placeholder: donor-funded shelter and recovery</div>
         </div>
       </div>
 
@@ -82,6 +95,16 @@ export function HomePage() {
             View impact
           </Link>
         </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Why donors trust this platform</h2>
+        <ul className="muted trust-list">
+          <li>Mission-specific framing for South Korean victim recovery and protection.</li>
+          <li>Privacy-first reporting with no resident-identifying details in donor views.</li>
+          <li>Clear role separation between donor tools and staff operations.</li>
+          <li>Traceable contribution and allocation records in your donor portal.</li>
+        </ul>
       </div>
     </div>
   );

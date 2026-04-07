@@ -64,8 +64,8 @@ export function ImpactPage() {
       <div className="card">
         <h1 style={{ marginTop: 0 }}>Impact Dashboard (Public)</h1>
         <p className="muted">
-          Aggregated, anonymized view aligned with how Philippine social welfare programs report outcomes: safe shelter,
-          education and wellbeing progress, field engagement, and outreach effectiveness—without identifying any resident.
+          Aggregated, anonymized view of services supporting South Korean victims: safe shelter, education and wellbeing
+          progress, field engagement, and outreach effectiveness—without identifying any resident.
         </p>
 
         {error ? (
@@ -81,12 +81,24 @@ export function ImpactPage() {
         ) : null}
       </div>
 
+      <div className="photo-grid">
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: safehouse community support session">
+          <div className="caption">Photo placeholder: safehouse recovery support</div>
+        </div>
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: social workers documenting program outcomes">
+          <div className="caption">Photo placeholder: transparent impact tracking</div>
+        </div>
+        <div className="photo-placeholder" role="img" aria-label="Generated placeholder: donors and partners supporting Korean victim programs">
+          <div className="caption">Photo placeholder: donor and partner collaboration</div>
+        </div>
+      </div>
+
       {highlights ? (
         <>
           <div className="card" style={{ background: "linear-gradient(135deg, rgba(124,108,255,0.12), rgba(45,212,191,0.08))" }}>
             <h2 style={{ marginTop: 0, fontSize: 18 }}>Why this work matters (for partners & investors)</h2>
             <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>
-              Every peso and every hour of advocacy translates into measurable program activity: girls housed within licensed
+              Every gift and every hour of advocacy translates into measurable program activity: victims housed within licensed
               capacity, documented counseling and home visits, and education and health trends tracked the same way agencies
               expect in annual accomplishment reporting. Social outreach is tied to modeled donation impact so you can see
               which channels help the mission scale.

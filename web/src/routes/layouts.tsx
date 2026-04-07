@@ -33,7 +33,7 @@ export function PublicLayout() {
             <span className="public-brand-mark" aria-hidden />
             <span className="public-brand-text">
               <span className="public-brand-title">Steps of Hope</span>
-              <span className="public-brand-sub">Leadership & donor portal</span>
+              <span className="public-brand-sub">Support for South Korean victims · donor and leadership portal</span>
             </span>
           </Link>
           <nav className="nav-pills" aria-label="Primary">
@@ -62,6 +62,9 @@ export function PublicLayout() {
       </header>
 
       <main className="container public-main">
+        <div className="mission-banner">
+          Your support helps South Korean victims access safe shelter, case follow-up, and recovery pathways.
+        </div>
         <Outlet />
       </main>
 
@@ -94,6 +97,9 @@ export function AppLayout() {
           <div className="title">Steps of Hope</div>
           <div className="muted" style={{ fontSize: 12 }}>
             Signed in as {auth.displayName ?? auth.username}
+          </div>
+          <div className="muted" style={{ fontSize: 12 }}>
+            Mission focus: South Korean victim support
           </div>
         </div>
 

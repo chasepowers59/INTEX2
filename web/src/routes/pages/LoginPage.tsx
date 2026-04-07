@@ -19,7 +19,8 @@ export function LoginPage() {
         <h2>Welcome back</h2>
         <p className="muted" style={{ margin: 0, lineHeight: 1.65 }}>
           <strong>Staff</strong> use work email here for the leadership dashboard. <strong>Donors</strong> use the email
-          from registration—the same one as your supporter record if we imported Lighthouse data.
+          from registration—the same one as your supporter record if we imported Lighthouse data for South Korean victim
+          support operations.
         </p>
         <div className="badge" style={{ marginTop: 16, borderColor: "rgba(124,108,255,0.4)", background: "rgba(124,108,255,0.08)" }}>
           Role-based access: Admin · Employee · Donor
@@ -39,6 +40,9 @@ export function LoginPage() {
         <p className="muted" style={{ marginTop: 0 }}>
           Email and password for your Steps of Hope account.
         </p>
+        <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+          Mission focus: resources and care pathways for South Korean victims.
+        </div>
 
         <label className="field-stack" style={{ marginTop: 18 }}>
           <span className="field-label">Email</span>

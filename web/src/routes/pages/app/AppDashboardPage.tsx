@@ -89,7 +89,8 @@ export function AppDashboardPage() {
       <div className="card">
         <h1 style={{ marginTop: 0 }}>Leadership Dashboard</h1>
         <p className="muted">
-          High-signal, privacy-first view of operations: follow-up health, donor momentum, and safety-critical alerts.
+          High-signal, privacy-first view of operations supporting South Korean victims: follow-up health, donor momentum,
+          and safety-critical alerts.
         </p>
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
@@ -101,6 +102,14 @@ export function AppDashboardPage() {
             Updated {new Date(data.asOfUtc).toLocaleString()}
           </div>
         ) : null}
+      </div>
+
+      <div className="card" style={{ background: "var(--panel2)" }}>
+        <div style={{ fontWeight: 800 }}>Executive note</div>
+        <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+          Use this dashboard to brief leadership and partners on outcomes, risks, and stewardship while preserving survivor
+          privacy. Data shown here is operational and staff-only.
+        </p>
       </div>
 
       <div className="kpi-grid">
