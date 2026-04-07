@@ -549,6 +549,12 @@ a {
   letter-spacing: -0.02em;
 }
 
+.auth-aside {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15), transparent 40%),
+    linear-gradient(155deg, rgba(124, 108, 255, 0.2), rgba(48, 201, 255, 0.06));
+}
+
 .auth-panel {
   border-radius: 18px;
   padding: 22px 22px 20px;

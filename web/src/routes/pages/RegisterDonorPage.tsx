@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
@@ -18,6 +18,12 @@ export function RegisterDonorPage() {
   const [organizationName, setOrganizationName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!auth.isAuthenticated) return;
+    const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
+    nav(staff ? "/app/dashboard" : "/app/donor", { replace: true });
+  }, [auth, nav]);
 
   return (
     <div className="auth-split">
@@ -162,8 +168,7 @@ export function RegisterDonorPage() {
                   phone: phone.trim() || undefined,
                   organizationName: organizationName.trim() || undefined,
                 });
-                const dest = from && from.startsWith("/") ? from : "/app/donor";
-                nav(dest, { replace: true });
+                nav("/app/donor", { replace: true });
               } catch (e) {
                 setError((e as Error).message);
               } finally {

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
-import { KeyValueGrid } from "../../components/ui/KeyValueGrid";
 import { StatCard } from "../../components/ui/StatCard";
 
 type Snapshot = {
@@ -62,7 +61,7 @@ export function ImpactPage() {
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Impact Dashboard (Public)</h1>
+        <h1 style={{ marginTop: 0 }}>Impact Dashboard</h1>
         <p className="muted">
           Aggregated, anonymized view of services supporting South Korean victims: safe shelter, education and wellbeing
           progress, field engagement, and outreach effectiveness—without identifying any resident.
@@ -96,7 +95,7 @@ export function ImpactPage() {
       {highlights ? (
         <>
           <div className="card" style={{ background: "linear-gradient(135deg, rgba(124,108,255,0.12), rgba(45,212,191,0.08))" }}>
-            <h2 style={{ marginTop: 0, fontSize: 18 }}>Why this work matters (for partners & investors)</h2>
+            <h2 style={{ marginTop: 0, fontSize: 18 }}>Why this work matters for partners and donors</h2>
             <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>
               Every gift and every hour of advocacy translates into measurable program activity: victims housed within licensed
               capacity, documented counseling and home visits, and education and health trends tracked the same way agencies
@@ -115,10 +114,10 @@ export function ImpactPage() {
             <StatCard
               label="Community on record"
               value={highlights.activeSupporters}
-              hint="Supporters & advocates (aggregate count)"
+              hint="Supporters and advocates, aggregate count"
             />
             <StatCard
-              label="Social-attributed giving (modeled)"
+              label="Social-attributed giving, modeled"
               value={`₱${highlights.socialEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               hint={`${highlights.socialPostsWithDonationReferrals} posts linked to referral activity`}
               tone="ok"
@@ -141,12 +140,12 @@ export function ImpactPage() {
                 <StatCard
                   label="Avg education progress"
                   value={lm.avgEducationProgress != null ? `${lm.avgEducationProgress}%` : "—"}
-                  hint="Across sites (monthly average)"
+                  hint="Across sites, monthly average"
                 />
                 <StatCard
                   label="Avg wellbeing score"
                   value={lm.avgHealthScore != null ? lm.avgHealthScore.toFixed(2) : "—"}
-                  hint="General health score (1–5 scale)"
+                  hint="General health score on a one to five scale"
                 />
                 <StatCard label="Counseling sessions logged" value={lm.counselingSessionsMonth} tone="ok" />
                 <StatCard label="Home / field visits" value={lm.homeVisitsMonth} />
@@ -187,15 +186,21 @@ export function ImpactPage() {
                   const obj = JSON.parse(x.metricPayloadJson) as Record<string, unknown>;
                   const rows = Object.entries(obj)
                     .slice(0, 12)
-                    .map(([k, v]) => ({ key: k, value: typeof v === "number" ? v.toLocaleString() : String(v) }));
-                  return rows.length ? <KeyValueGrid items={rows} /> : null;
+                    .map(([k, v]) => ({
+                      key: k.replaceAll("_", " ").replace(/\b\w/g, (m) => m.toUpperCase()),
+                      value: typeof v === "number" ? v.toLocaleString() : String(v),
+                    }));
+                  return rows.length ? (
+                    <ul className="muted trust-list">
+                      {rows.map((r) => (
+                        <li key={r.key}>
+                          {r.key}: {r.value}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null;
                 } catch {
-                  return (
-                    <details style={{ marginTop: 10 }}>
-                      <summary className="muted">Metrics (JSON)</summary>
-                      <pre style={{ whiteSpace: "pre-wrap" }}>{x.metricPayloadJson}</pre>
-                    </details>
-                  );
+                  return <div className="muted" style={{ marginTop: 8 }}>Additional impact details are being prepared in a reader-friendly format.</div>;
                 }
               })()}
             </div>

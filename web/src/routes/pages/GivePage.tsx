@@ -38,7 +38,7 @@ export function GivePage() {
         <p className="muted" style={{ fontSize: 16, lineHeight: 1.6, maxWidth: 760, margin: 0 }}>
           Your gift supports safe shelter, case follow-up, and recovery services for South Korean victims. Create a{" "}
           <strong>donor account</strong> in one minute—we assign the <strong>Donor</strong> role automatically so you can
-          donate here and open <em>your</em> portal (receipts + anonymized allocations). No resident-level data.
+          donate here and open <em>your</em> portal with receipts and anonymized allocations. No resident-level data.
         </p>
         <div className="row" style={{ marginTop: 18, flexWrap: "wrap" }}>
           <Link className="btn primary" to="/register" state={{ from: loc.pathname }}>
@@ -130,7 +130,7 @@ export function GivePage() {
 
           <div className="row" style={{ alignItems: "end", marginTop: 10 }}>
             <label style={{ display: "grid", gap: 6, minWidth: 240 }}>
-              <span className="muted">Amount (PHP)</span>
+              <span className="muted">Amount in PHP</span>
               <input className="input" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 15000" />
             </label>
             <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 260 }}>
@@ -140,7 +140,7 @@ export function GivePage() {
           </div>
 
           <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-            <span className="muted">Notes (optional)</span>
+            <span className="muted">Notes, optional</span>
             <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional message…" />
           </label>
 
@@ -182,7 +182,7 @@ export function GivePage() {
                 }
               }}
             >
-              {busy ? "Submitting..." : "Donate (demo)"}
+              {busy ? "Submitting..." : "Donate now"}
             </button>
           </div>
         </div>

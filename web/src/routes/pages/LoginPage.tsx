@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
@@ -12,6 +12,12 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!auth.isAuthenticated) return;
+    const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
+    nav(staff ? "/app/dashboard" : "/app/donor", { replace: true });
+  }, [auth, nav]);
 
   return (
     <div className="auth-split">

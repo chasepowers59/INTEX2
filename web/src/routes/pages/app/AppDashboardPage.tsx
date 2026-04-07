@@ -115,14 +115,14 @@ export function AppDashboardPage() {
       <div className="kpi-grid">
         <StatCard label="Active residents" value={data?.activeResidents ?? "—"} />
         <StatCard
-          label="Donations (30d)"
+          label="Donations in last 30 days"
           value={data ? `${data.donations30d.count}` : "—"}
           hint={data ? `₱${data.donations30d.totalAmount.toFixed(2)} total` : undefined}
           tone="brand"
         />
-        <StatCard label="Check-ins due (30d)" value={data?.checkInsDue30d ?? "—"} tone="warn" />
-        <StatCard label="Process recordings (7d)" value={data?.processRecordings7d ?? "—"} tone="ok" />
-        <StatCard label="Case conferences (14d)" value={data?.upcomingConferences14d ?? "—"} />
+        <StatCard label="Check-ins due in 30 days" value={data?.checkInsDue30d ?? "—"} tone="warn" />
+        <StatCard label="Process recordings in 7 days" value={data?.processRecordings7d ?? "—"} tone="ok" />
+        <StatCard label="Case conferences in 14 days" value={data?.upcomingConferences14d ?? "—"} />
         <StatCard
           label="Resident incident risk bands"
           value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" · ") || "—" : "—"}
@@ -142,7 +142,7 @@ export function AppDashboardPage() {
             <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
               <div style={{ fontWeight: 800 }}>Annual-report style pillars</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Mentions in <code>services_provided</code> (plans can match multiple).
+                Mentions in services provided, plans can match multiple pillars.
               </p>
               <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
                 <li>Caring: {insights.servicesPillarMentions.caring}</li>
@@ -163,7 +163,7 @@ export function AppDashboardPage() {
               </ul>
             </div>
             <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
-              <div style={{ fontWeight: 800 }}>Safety (90d)</div>
+              <div style={{ fontWeight: 800 }}>Safety in 90 days</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Open follow-ups: {insights.incidents90d.openFollowUps}
               </p>
@@ -213,7 +213,7 @@ export function AppDashboardPage() {
               })()}
             </div>
             <div className="card" style={{ flex: "1 1 280px", boxShadow: "none", background: "var(--panel2)" }}>
-              <div style={{ fontWeight: 800 }}>Outreach ROI (dataset estimates)</div>
+              <div style={{ fontWeight: 800 }}>Outreach ROI, dataset estimates</div>
               <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 Boost spend vs. modeled donation value from social posts.
               </p>
@@ -228,7 +228,7 @@ export function AppDashboardPage() {
                   <li key={p.postId}>
                     #{p.postId} {p.platform} · {p.postType}
                     {p.campaignName ? ` · ${p.campaignName}` : ""} — ₱{p.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}{" "}
-                    ({p.referrals} ref.)
+                    {p.referrals} referrals
                   </li>
                 ))}
               </ul>
