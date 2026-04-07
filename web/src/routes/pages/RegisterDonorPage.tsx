@@ -61,7 +61,7 @@ export function RegisterDonorPage() {
         </p>
 
         <div className="photo-placeholder" role="img" aria-label="Donors joining support efforts for South Korean victims" style={{ marginBottom: 12 }}>
-          <img src="/reference/donor-impact-community.jpg" alt="Donors joining survivor support efforts." />
+          <img src="/photos/community-support.jpg" alt="Donors joining survivor support efforts." />
           <div className="caption">Donors joining South Korean victim support efforts</div>
         </div>
 

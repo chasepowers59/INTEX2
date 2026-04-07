@@ -80,3 +80,12 @@ Recommended first prediction types:
   - `dotnet build api/Intex.Api/Intex.Api.csproj`
   - `npm run build` in `web/`
 - Record final URLs and tested account roles for grading handoff.
+
+## 8) IS414 Advanced Features
+
+- Docker deployment artifacts are available:
+  - `api/Intex.Api/Dockerfile`
+  - `web/Dockerfile`
+  - `docker-compose.yml`
+- Advanced security implementation notes (third-party auth, MFA, sanitization callout):
+  - `docs/is414-advanced-security.md`

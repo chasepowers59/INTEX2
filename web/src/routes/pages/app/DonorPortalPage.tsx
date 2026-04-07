@@ -266,15 +266,15 @@ export function DonorPortalPage() {
 
         <div className="photo-grid" style={{ marginTop: 12 }}>
           <div className="photo-placeholder" role="img" aria-label="Impact activities and donor-backed services">
-            <img src="/reference/donor-impact-community.jpg" alt="Donor-backed support and community aid." />
+            <img src="/photos/community-support.jpg" alt="Donor-backed support and community aid." />
             <div className="caption">Your support in action</div>
           </div>
           <div className="photo-placeholder" role="img" aria-label="Trauma-informed support services">
-            <img src="/reference/trauma-informed-counseling.jpg" alt="Trauma-informed counseling and support session." />
+            <img src="/photos/counseling-support.jpg" alt="Trauma-informed counseling and support session." />
             <div className="caption">Trauma-informed support services</div>
           </div>
           <div className="photo-placeholder" role="img" aria-label="Recovery milestones and hope">
-            <img src="/reference/education-reintegration-support.jpg" alt="Education and reintegration support milestones." />
+            <img src="/photos/education-support.jpg" alt="Education and reintegration support milestones." />
             <div className="caption">Recovery milestones and hope</div>
           </div>
         </div>

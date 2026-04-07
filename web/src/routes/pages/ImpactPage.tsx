@@ -83,15 +83,15 @@ export function ImpactPage() {
 
       <div className="photo-grid">
         <div className="photo-placeholder" role="img" aria-label="Safehouse community support session">
-          <img src="/reference/hero-ribbon.png" alt="Safehouse recovery and support environment." />
+          <img src="/photos/shelter-recovery.jpg" alt="Safehouse recovery and support environment." />
           <div className="caption">Safehouse recovery support</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Social workers documenting program outcomes">
-          <img src="/reference/secure-anonymized-reporting.jpg" alt="Privacy-safe analytics and impact reporting visual." />
+          <img src="/photos/team-collaboration.jpg" alt="Privacy-safe analytics and impact reporting visual." />
           <div className="caption">Transparent impact tracking</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Donors and partners supporting Korean victim programs">
-          <img src="/reference/donor-impact-community.jpg" alt="Donors and partners collaborating for support programs." />
+          <img src="/photos/community-support.jpg" alt="Donors and partners collaborating for support programs." />
           <div className="caption">Donor and partner collaboration</div>
         </div>
       </div>

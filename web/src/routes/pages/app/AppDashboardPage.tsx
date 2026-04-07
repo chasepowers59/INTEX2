@@ -119,7 +119,7 @@ export function AppDashboardPage() {
           </div>
         ) : null}
         <div className="image-frame" style={{ marginTop: 12, maxHeight: 210 }}>
-          <img src="/reference/admin-layout-ref.png" alt="Dashboard layout inspiration reference." />
+          <img src="/photos/team-collaboration.jpg" alt="Operations staff collaboration and dashboard context." />
         </div>
       </div>
 

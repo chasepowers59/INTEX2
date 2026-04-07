@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { getCookie, setCookie } from "../lib/cookies";
 
 const THEME_COOKIE = "ui_theme";
+const CONSENT_COOKIE = "cookie_consent";
 
 function applyThemeFromCookie() {
   const theme = getCookie(THEME_COOKIE);
@@ -28,7 +29,7 @@ export function PublicLayout() {
   return (
     <>
       <div className="public-top-strip">
-        <div className="container public-top-strip-inner muted">
+        <div className="container public-top-strip-inner">
           <span>South Korea Victim Support Line: +82 02-555-0147</span>
           <span>Email: support@stepsofhope.org · Donor Relations: donors@stepsofhope.org</span>
         </div>
@@ -125,7 +126,10 @@ export function AppLayout() {
   const toggleTheme = () => {
     const current = getCookie(THEME_COOKIE) === "light" ? "light" : "dark";
     const next = current === "light" ? "dark" : "light";
-    setCookie(THEME_COOKIE, next, 180);
+    // Only persist optional preference cookies after explicit consent.
+    if (getCookie(CONSENT_COOKIE) === "accepted") {
+      setCookie(THEME_COOKIE, next, 180);
+    }
     document.documentElement.setAttribute("data-theme", next);
   };
 

@@ -15,15 +15,15 @@ export function AboutPage() {
 
       <div className="photo-grid">
         <div className="photo-placeholder" role="img" aria-label="Coordinated safehouse support team">
-          <img src="/reference/hero-ribbon.png" alt="Coordinated safehouse support team." />
+          <img src="/photos/shelter-recovery.jpg" alt="Coordinated safehouse support team." />
           <div className="caption">Coordinated safehouse support team</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Counseling and recovery support session">
-          <img src="/reference/trauma-informed-counseling.jpg" alt="Counseling and recovery support session." />
+          <img src="/photos/counseling-support.jpg" alt="Counseling and recovery support session." />
           <div className="caption">Counseling and recovery support</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Donor-backed community resilience">
-          <img src="/reference/donor-impact-community.jpg" alt="Donor-backed community resilience and aid support." />
+          <img src="/photos/community-support.jpg" alt="Donor-backed community resilience and aid support." />
           <div className="caption">Donor-backed community resilience</div>
         </div>
       </div>

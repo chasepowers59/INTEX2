@@ -33,14 +33,11 @@ export function HomePage() {
             </p>
 
             <div className="row" style={{ marginTop: 22, flexWrap: "wrap" }}>
-              <Link className="btn primary" to="/register">
-                Join as donor — free
+              <Link className="btn primary" to="/login">
+                Sign in
               </Link>
               <Link className="btn nav-pill-glow" to="/give">
                 Give
-              </Link>
-              <Link className="btn" to="/login">
-                Staff & donor sign in
               </Link>
               <Link className="btn" to="/impact">
                 Public impact
@@ -48,53 +45,23 @@ export function HomePage() {
             </div>
           </div>
           <div className="hero-mosaic">
-            <img src="/reference/clean-layout-ref.png" alt="Clean modern landing layout inspiration." />
+            <img src="/photos/team-collaboration.jpg" alt="Staff and partners coordinating support services." />
           </div>
         </div>
       </div>
 
       <div className="photo-grid">
         <div className="photo-placeholder" role="img" aria-label="Volunteers distributing care supplies in South Korea">
-          <img src="/reference/donor-impact-community.jpg" alt="Volunteers preparing donation-backed community support kits." />
+          <img src="/photos/community-support.jpg" alt="Volunteers preparing donation-backed community support kits." />
           <div className="caption">Emergency support distribution</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Trauma-informed counseling and community support">
-          <img src="/reference/trauma-informed-counseling.jpg" alt="Trauma-informed counseling support session." />
+          <img src="/photos/counseling-support.jpg" alt="Trauma-informed counseling support session." />
           <div className="caption">Trauma-informed counseling support</div>
         </div>
         <div className="photo-placeholder" role="img" aria-label="Donor-supported recovery and shelter access">
-          <img src="/reference/hero-ribbon.png" alt="Safehouse support and recovery environment." />
+          <img src="/photos/shelter-recovery.jpg" alt="Safehouse support and recovery environment." />
           <div className="caption">Donor-funded shelter and recovery</div>
-        </div>
-      </div>
-
-      <div className="card panel2-bg">
-        <h2 style={{ marginTop: 0 }}>Start here by role</h2>
-        <div className="workflow-grid">
-          <div className="workflow-card">
-            <h3>Donor path</h3>
-            <p className="muted" style={{ marginTop: 8 }}>Create account, give securely, then track your impact story.</p>
-            <div className="row">
-              <Link className="btn primary" to="/register">Create account</Link>
-              <Link className="btn" to="/give">Give</Link>
-            </div>
-          </div>
-          <div className="workflow-card">
-            <h3>Employee path</h3>
-            <p className="muted" style={{ marginTop: 8 }}>Sign in, open caseload, and log process recordings or visits.</p>
-            <div className="row">
-              <Link className="btn primary" to="/login">Sign in</Link>
-              <Link className="btn" to="/roles">Role guide</Link>
-            </div>
-          </div>
-          <div className="workflow-card">
-            <h3>Admin path</h3>
-            <p className="muted" style={{ marginTop: 8 }}>Manage users, allocations, reports, and system imports.</p>
-            <div className="row">
-              <Link className="btn primary" to="/login">Admin sign in</Link>
-              <Link className="btn" to="/impact">Public impact view</Link>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -112,7 +79,7 @@ export function HomePage() {
         <div className="card panel2-bg" style={{ flex: 1, minWidth: 260, padding: 20 }}>
           <div style={{ fontWeight: 800, fontSize: 18 }}>For staff teams</div>
           <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-            Caseload, ML insights, and admin tools stay behind <strong>Admin</strong> and <strong>Employee</strong> roles—
+            Caseload and admin tools stay behind <strong>Admin</strong> and <strong>Employee</strong> roles—
             never mixed with donor-facing views.
           </p>
           <Link className="btn" to="/login" style={{ marginTop: 12 }}>
@@ -153,15 +120,15 @@ export function HomePage() {
           </ul>
         </div>
         <div className="card tone-aqua" style={{ flex: 1, minWidth: 260 }}>
-          <h2 style={{ marginTop: 0 }}>ML pipelines in this project</h2>
+          <h2 style={{ marginTop: 0 }}>How we protect people and data</h2>
           <p className="muted">
-            Predictive workflows support safer operations and smarter stewardship.
+            Public pages stay simple while sensitive details remain restricted by role and policy.
           </p>
           <ul className="muted trust-list">
-            <li>Resident risk and readiness signals for proactive follow-up.</li>
-            <li>Donor lapse and donor upgrade propensity models.</li>
-            <li>Next-best campaign guidance for targeted donor engagement.</li>
-            <li>Safehouse capacity forecasting and social post donation referral insights.</li>
+            <li>No resident-identifying information is shown on donor or public pages.</li>
+            <li>Staff-only actions require authenticated role checks.</li>
+            <li>Published updates focus on aggregate impact and verified summaries.</li>
+            <li>Audit-oriented reporting supports accountability for sensitive operations.</li>
           </ul>
         </div>
       </div>
@@ -169,27 +136,24 @@ export function HomePage() {
       <div className="card">
         <div className="sub-kicker">What we do</div>
         <h2 className="section-title">Provide Safety, Healing, Justice, and Empowerment</h2>
-        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 360 }}>
-          <img src="/reference/what-we-do.png" alt="Reference section showing safety, healing, justice, and empowerment themes." />
-        </div>
         <div className="feature-grid-4">
           <div className="feature-tile">
-            <div className="feature-icon safety">S</div>
+            <div className="feature-icon safety">🛡</div>
             <div style={{ fontWeight: 800, fontSize: 28 }}>Safety</div>
             <p className="muted">We prioritize immediate protection, stable shelter, and critical follow-up workflows.</p>
           </div>
           <div className="feature-tile">
-            <div className="feature-icon healing">H</div>
+            <div className="feature-icon healing">❤</div>
             <div style={{ fontWeight: 800, fontSize: 28 }}>Healing</div>
             <p className="muted">Process recordings and interventions help teams document and support recovery journeys.</p>
           </div>
           <div className="feature-tile">
-            <div className="feature-icon justice">J</div>
+            <div className="feature-icon justice">⚖</div>
             <div style={{ fontWeight: 800, fontSize: 28 }}>Justice</div>
             <p className="muted">Case conferences and coordinated referrals strengthen legal and social protection outcomes.</p>
           </div>
           <div className="feature-tile">
-            <div className="feature-icon empowerment">E</div>
+            <div className="feature-icon empowerment">✦</div>
             <div style={{ fontWeight: 800, fontSize: 28 }}>Empowerment</div>
             <p className="muted">Donor-backed education, wellbeing, and reintegration support build long-term resilience.</p>
           </div>
@@ -198,43 +162,40 @@ export function HomePage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0, fontSize: 46, textAlign: "center" }}>Our Programs and Services</h2>
-        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 430 }}>
-          <img src="/reference/programs-services.png" alt="Reference layout for programs and services card gallery." />
-        </div>
         <div className="program-grid">
           <div className="program-card">
             <div className="program-photo">
-              <img src="/reference/programs-services.png" alt="Program collage inspiration for service categories." />
+              <img src="/photos/community-support.jpg" alt="Program support and coordinated outreach." />
             </div>
             <div className="program-name">Physiological Needs</div>
           </div>
           <div className="program-card">
             <div className="program-photo">
-              <img src="/reference/hero-ribbon.png" alt="Biological needs support through safe shelter and care access." />
+              <img src="/photos/shelter-recovery.jpg" alt="Biological needs support through safe shelter and care access." />
             </div>
             <div className="program-name">Biological Needs</div>
           </div>
           <div className="program-card">
             <div className="program-photo">
-              <img src="/reference/trauma-informed-counseling.jpg" alt="Trauma-informed support for spiritual and emotional care." />
+              <img src="/photos/counseling-support.jpg" alt="Trauma-informed support for spiritual and emotional care." />
             </div>
             <div className="program-name">Spiritual Needs</div>
           </div>
           <div className="program-card">
             <div className="program-photo">
-              <img src="/reference/health-wellbeing-checkin.jpg" alt="Psychological and wellbeing care check-ins." />
+              <img src="/photos/wellbeing-checkin.jpg" alt="Psychological and wellbeing care check-ins." />
             </div>
             <div className="program-name">Psychological Needs</div>
           </div>
           <div className="program-card">
             <div className="program-photo">
-              <img src="/reference/donor-impact-community.jpg" alt="Social support and community engagement." />
+              <img src="/photos/team-collaboration.jpg" alt="Social support and community engagement." />
             </div>
             <div className="program-name">Social Needs</div>
           </div>
           <div className="program-card">
             <div className="program-photo">
-              <img src="/reference/education-reintegration-support.jpg" alt="Education and belonging support activities." />
+              <img src="/photos/education-support.jpg" alt="Education and belonging support activities." />
             </div>
             <div className="program-name">Love and Belonging</div>
           </div>
@@ -242,9 +203,6 @@ export function HomePage() {
       </div>
 
       <div className="cta-ribbon">
-        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 240 }}>
-          <img src="/reference/hero-ribbon.png" alt="Hero call-to-action reference banner showing children and ocean." />
-        </div>
         <h2>Bring safety, healing, and empowerment to children in need</h2>
         <Link className="btn primary" to="/give" style={{ marginTop: 16 }}>
           Donate now
@@ -254,22 +212,19 @@ export function HomePage() {
       <div className="card">
         <h2 style={{ marginTop: 0, textAlign: "center", fontSize: 46 }}>Board of Directors</h2>
         <div className="avatar-row">
-          <div className="avatar-bubble"><img src="/reference/hero-ribbon.png" alt="Board member profile visual 1." /></div>
-          <div className="avatar-bubble"><img src="/reference/trauma-informed-counseling.jpg" alt="Board member profile visual 2." /></div>
-          <div className="avatar-bubble"><img src="/reference/donor-impact-community.jpg" alt="Board member profile visual 3." /></div>
-          <div className="avatar-bubble"><img src="/reference/education-reintegration-support.jpg" alt="Board member profile visual 4." /></div>
+          <div className="avatar-bubble"><img src="/photos/team-collaboration.jpg" alt="Board member profile visual 1." /></div>
+          <div className="avatar-bubble"><img src="/photos/counseling-support.jpg" alt="Board member profile visual 2." /></div>
+          <div className="avatar-bubble"><img src="/photos/community-support.jpg" alt="Board member profile visual 3." /></div>
+          <div className="avatar-bubble"><img src="/photos/education-support.jpg" alt="Board member profile visual 4." /></div>
         </div>
       </div>
 
       <div className="card">
         <h2 style={{ marginTop: 0, textAlign: "center", fontSize: 50 }}>Recent Posts</h2>
-        <div className="image-frame" style={{ marginBottom: 12, maxHeight: 360 }}>
-          <img src="/reference/recent-posts.png" alt="Reference image showing recent posts content cards." />
-        </div>
         <div className="post-grid">
           <article className="post-card">
             <div className="post-photo">
-              <img src="/reference/health-wellbeing-checkin.jpg" alt="Survivor care progress check-in scene." />
+              <img src="/photos/wellbeing-checkin.jpg" alt="Survivor care progress check-in scene." />
             </div>
             <div className="post-body">
               <div className="muted" style={{ fontSize: 12 }}>May 11, 2025</div>
@@ -280,7 +235,7 @@ export function HomePage() {
           </article>
           <article className="post-card">
             <div className="post-photo">
-              <img src="/reference/donor-impact-community.jpg" alt="Campaign storytelling and donor engagement visual." />
+              <img src="/photos/community-support.jpg" alt="Campaign storytelling and donor engagement visual." />
             </div>
             <div className="post-body">
               <div className="muted" style={{ fontSize: 12 }}>December 11, 2024</div>
@@ -291,7 +246,7 @@ export function HomePage() {
           </article>
           <article className="post-card">
             <div className="post-photo">
-              <img src="/reference/education-reintegration-support.jpg" alt="Milestones in education and reintegration support." />
+              <img src="/photos/education-support.jpg" alt="Milestones in education and reintegration support." />
             </div>
             <div className="post-body">
               <div className="muted" style={{ fontSize: 12 }}>September 12, 2023</div>
