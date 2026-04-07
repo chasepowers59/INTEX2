@@ -191,7 +191,7 @@ app.UseAuthorization();
 
 app.MapGet("/health", (HttpContext ctx) =>
     Results.Ok(new { status = "ok", traceId = ctx.TraceIdentifier }));
-app.MapGet("/health/info", (IConfiguration config) =>
+app.MapGet("/health/info", async (IConfiguration config, IServiceProvider sp) =>
 {
     var conn = config.GetConnectionString("AppDb");
     var hasConn = !string.IsNullOrWhiteSpace(conn);
@@ -200,6 +200,19 @@ app.MapGet("/health/info", (IConfiguration config) =>
     var jwtKeyUtf8Bytes = Encoding.UTF8.GetByteCount(jwtKey);
     static bool SeedPair(IConfiguration c, string emailKey, string pwdKey) =>
         !string.IsNullOrWhiteSpace(c[$"Seed:{emailKey}"]) && !string.IsNullOrWhiteSpace(c[$"Seed:{pwdKey}"]);
+
+    var seedAdminOk = SeedPair(config, "AdminEmail", "AdminPassword");
+    int? aspNetUserCount = null;
+    try
+    {
+        await using var scope = sp.CreateAsyncScope();
+        var um = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        aspNetUserCount = await um.Users.CountAsync();
+    }
+    catch
+    {
+        // DB unavailable — leave null
+    }
 
     return Results.Ok(new
     {
@@ -210,9 +223,12 @@ app.MapGet("/health/info", (IConfiguration config) =>
         jwtKeyUtf8Bytes,
         jwtKeyConfigured = jwtKeyUtf8Bytes >= 32,
         databaseAutoMigrate = config.GetValue("Database:AutoMigrate", true),
-        seedAdminCredentialsConfigured = SeedPair(config, "AdminEmail", "AdminPassword"),
+        seedAdminCredentialsConfigured = seedAdminOk,
         seedEmployeeCredentialsConfigured = SeedPair(config, "EmployeeEmail", "EmployeePassword"),
         seedDonorCredentialsConfigured = SeedPair(config, "DonorEmail", "DonorPassword"),
+        aspNetUserCount,
+        seedAdminConfiguredButNoUsers = seedAdminOk && aspNetUserCount == 0,
+        identityPasswordRequiredLength = config.GetValue("Identity:Password:RequiredLength", 12),
         nowUtc = DateTime.UtcNow
     });
 });

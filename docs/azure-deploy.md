@@ -70,7 +70,7 @@ Alternatively, from your PC (firewall allowing your IP):
 4. Verify connectivity:
    - API `GET /health` should return `{ "status": "ok" }`
    - API `GET /health/db` should return `200` when SQL is reachable (and `503` when not)
-   - `GET /health/info` — shows `jwtKeyUtf8Bytes` / `jwtKeyConfigured` (not the secret), CORS origins, and **`seedAdminCredentialsConfigured`** / **`seed*CredentialsConfigured`** (if `false`, login will fail until you set `Seed__AdminEmail` + `Seed__AdminPassword` and restart)
+   - `GET /health/info` — shows `jwtKeyUtf8Bytes` / `jwtKeyConfigured` (not the secret), CORS origins, **`aspNetUserCount`**, **`seedAdminConfiguredButNoUsers`** (if `true`, `Seed__AdminPassword` failed Identity rules or seed errored — use `identityPasswordRequiredLength` and a strong password, then restart), and **`seed*CredentialsConfigured`**
    - `GET /health/migrations` — **`pending` must be empty** after deploy; if not, run `dotnet ef database update` against this SQL database. If **`startupMigrate.outcome`** is **`failed`**, read **`startupMigrate.error`** and fix the database (often the two-table cleanup above), then restart.
    - `GET /health/schema` — **`AspNetUsers` / `Supporters` should be `true`**; if false, migrations never applied to this DB. Check **`aspNetUserCount`**: if `0`, seed users were not created (fix `Seed__*` settings and restart, or register a donor)
 
@@ -78,7 +78,7 @@ Alternatively, from your PC (firewall allowing your IP):
 
    | App Service setting | Purpose |
    | --- | --- |
-   | `Seed__AdminEmail`, `Seed__AdminPassword` | Admin account (recommended for first login) |
+   | `Seed__AdminEmail`, `Seed__AdminPassword` | Admin account (recommended for first login). Password must meet **Identity** rules (default: 12+ chars with upper, lower, digit, and symbol) or **no user is created** — check `/health/info` for `seedAdminConfiguredButNoUsers` |
    | `Seed__EmployeeEmail`, `Seed__EmployeePassword` | Optional convenience employee |
    | `Seed__DonorEmail`, `Seed__DonorPassword` | Optional convenience donor (link `SupporterId` in `/app/admin/users`) |
    | `Seed__SyncPasswords` = `true` or `false` | When `true`, **overwrites** passwords for **existing** users that match configured seed emails (use after changing App Service passwords or fixing a stale hash). **Turn off** in production unless you intend this. |

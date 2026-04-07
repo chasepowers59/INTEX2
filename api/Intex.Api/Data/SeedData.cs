@@ -56,6 +56,19 @@ public static class SeedData
                 logger);
         }
 
+        var userCount = await userManager.Users.CountAsync();
+        if (userCount == 0
+            && !string.IsNullOrWhiteSpace(config["Seed:AdminEmail"])
+            && !string.IsNullOrWhiteSpace(config["Seed:AdminPassword"]))
+        {
+            var reqLen = config.GetValue("Identity:Password:RequiredLength", 12);
+            logger.LogCritical(
+                "Zero Identity users after seeding while Seed:AdminEmail and Seed:AdminPassword are set. " +
+                "The admin password almost certainly failed Identity validation (need length {RequiredLength}+ with upper, lower, digit, and non-alphanumeric). " +
+                "Update Seed__AdminPassword in App Service (or adjust Identity__Password__* settings), then restart. See earlier SeedData logs for PasswordTooShort / etc.",
+                reqLen);
+        }
+
         var seedDemo = config.GetValue("Seed:DemoData", true);
         if (seedDemo)
         {
@@ -152,24 +165,34 @@ public static class SeedData
                 DisplayName = account.DisplayName
             };
 
+            if (!await ValidateSeedPasswordAsync(userManager, user, password, email, account.Label, logger))
+            {
+                return;
+            }
+
             var created = await userManager.CreateAsync(user, password);
             if (!created.Succeeded)
             {
                 var msg = string.Join("; ", created.Errors.Select(e => $"{e.Code}:{e.Description}"));
                 logger.LogError("Failed seeding user {Email}: {Errors}", email, msg);
-                throw new InvalidOperationException($"Failed seeding user {email}: {msg}");
+                return;
             }
         }
         else
         {
             if (syncPasswords)
             {
+                if (!await ValidateSeedPasswordAsync(userManager, user, password, email, account.Label, logger))
+                {
+                    return;
+                }
+
                 var rem = await userManager.RemovePasswordAsync(user);
                 if (!rem.Succeeded)
                 {
                     var msg = string.Join("; ", rem.Errors.Select(e => $"{e.Code}:{e.Description}"));
                     logger.LogError("Failed removing password for seeded user {Email}: {Errors}", email, msg);
-                    throw new InvalidOperationException($"Failed removing password for seeded user {email}: {msg}");
+                    return;
                 }
 
                 var add = await userManager.AddPasswordAsync(user, password);
@@ -177,7 +200,7 @@ public static class SeedData
                 {
                     var msg = string.Join("; ", add.Errors.Select(e => $"{e.Code}:{e.Description}"));
                     logger.LogError("Failed setting password for seeded user {Email}: {Errors}", email, msg);
-                    throw new InvalidOperationException($"Failed setting password for seeded user {email}: {msg}");
+                    return;
                 }
             }
         }
@@ -190,8 +213,41 @@ public static class SeedData
 
         if (!await userManager.IsInRoleAsync(user, account.Role))
         {
-            await userManager.AddToRoleAsync(user, account.Role);
+            var roleAdd = await userManager.AddToRoleAsync(user, account.Role);
+            if (!roleAdd.Succeeded)
+            {
+                var msg = string.Join("; ", roleAdd.Errors.Select(e => $"{e.Code}:{e.Description}"));
+                logger.LogError("Failed adding role {Role} to seeded user {Email}: {Errors}", account.Role, email, msg);
+            }
         }
+    }
+
+    private static async Task<bool> ValidateSeedPasswordAsync(
+        UserManager<AppUser> userManager,
+        AppUser user,
+        string password,
+        string email,
+        string label,
+        ILogger logger
+    )
+    {
+        foreach (var validator in userManager.PasswordValidators)
+        {
+            var vr = await validator.ValidateAsync(userManager, user, password);
+            if (!vr.Succeeded)
+            {
+                var msg = string.Join("; ", vr.Errors.Select(e => $"{e.Code}: {e.Description}"));
+                logger.LogError(
+                    "Seed password for {Label} ({Email}) failed Identity validation: {Errors}. " +
+                    "Azure: set Seed__AdminPassword (etc.) to at least the length in Identity:Password:RequiredLength with upper, lower, digit, and a symbol.",
+                    label,
+                    email,
+                    msg);
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static async Task EnsureDemoDataAsync(AppDbContext db)
