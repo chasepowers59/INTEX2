@@ -78,7 +78,7 @@ export function ContactPage() {
             safety and recovery. Please do not include identifying survivor details in public contact messages.
           </p>
           <div className="donor-hero-actions">
-            <a className="btn primary donor-primary-cta" href="mailto:support@stepsofhope.org">
+            <a className="btn primary" href="mailto:support@stepsofhope.org">
               Contact us
             </a>
             <Link className="btn" to="/impact">
@@ -153,7 +153,7 @@ export function ContactPage() {
         <article className="way-card featured">
           <h3>Ready to support care now?</h3>
           <p>Make a gift that helps fund safe shelter, counseling support, and reintegration planning.</p>
-          <Link className="btn primary" to="/give">
+          <Link className="btn primary donor-primary-cta" to="/donate">
             Donate now
           </Link>
         </article>

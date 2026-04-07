@@ -73,7 +73,7 @@ export function AboutPage() {
             trauma-informed follow-up, wellbeing services, education support, and careful reintegration planning.
           </p>
           <div className="donor-hero-actions">
-            <Link className="btn primary donor-primary-cta" to="/give">
+            <Link className="btn primary donor-primary-cta" to="/donate">
               Support the mission
             </Link>
             <Link className="btn" to="/impact">
@@ -192,7 +192,7 @@ export function AboutPage() {
       <section className="cta-ribbon donor-final-cta">
         <div className="sub-kicker">Your support helps make the pathway possible</div>
         <h2>Help fund shelter, care, and reintegration support for survivors.</h2>
-        <Link className="btn primary donor-primary-cta" to="/give">
+        <Link className="btn primary donor-primary-cta" to="/donate">
           Donate now
         </Link>
       </section>

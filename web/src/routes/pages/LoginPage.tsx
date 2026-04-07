@@ -24,7 +24,7 @@ export function LoginPage() {
       <div className="card auth-panel">
         <h1 style={{ marginTop: 0, fontSize: 26, letterSpacing: "-0.02em" }}>Sign in</h1>
         <p className="muted" style={{ marginTop: 0 }}>
-          Email and password for your Steps of Hope account.
+          Enter your email and password to access your Steps of Hope account.
         </p>
 
         <label className="field-stack" style={{ marginTop: 18 }}>
@@ -53,7 +53,6 @@ export function LoginPage() {
           <label className="muted" style={{ fontSize: 12 }}>
             <input type="checkbox" style={{ marginRight: 6 }} /> Remember me
           </label>
-          <span className="auth-link-subtle">Forgot password?</span>
         </div>
 
         {error ? (
@@ -62,7 +61,7 @@ export function LoginPage() {
           </div>
         ) : null}
 
-        <div className="row" style={{ marginTop: 20, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+        <div className="row" style={{ marginTop: 20, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
           <button
             className="btn primary"
             disabled={loading}
@@ -89,9 +88,15 @@ export function LoginPage() {
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>
-          <Link className="btn" to="/register" state={from ? { from } : undefined}>
-            Donor registration
-          </Link>
+          <span style={{ display: "grid", gap: 8, justifyItems: "end" }}>
+            <span className="auth-link-subtle">Forgot password?</span>
+            <span className="muted" style={{ fontSize: 12 }}>
+              New donor?{" "}
+              <Link className="auth-link-subtle" to="/register" state={from ? { from } : undefined}>
+                Create an account
+              </Link>
+            </span>
+          </span>
         </div>
       </div>
     </div>

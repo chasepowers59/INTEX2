@@ -42,40 +42,26 @@ export function PublicLayout() {
 
   return (
     <>
-      <div className="public-top-strip">
-        <div className="container public-top-strip-inner">
-          <span>South Korea Victim Support Line: +82 02-555-0147</span>
-          <div className="public-top-strip-actions">
-            <span>Email: support@stepsofhope.org · Donor Relations: donors@stepsofhope.org</span>
-            <button className="theme-toggle-link" type="button" onClick={toggleTheme}>
-              Toggle theme
-            </button>
-          </div>
-        </div>
-      </div>
       <header className="public-header">
         <div className="container public-header-inner">
           <Link to="/" className="public-brand">
             <span className="public-brand-mark" aria-hidden>
-              <img src="/logo-steps-of-hope.svg" alt="Steps of Hope logo" />
+              <img className="public-brand-logo public-brand-logo-light" src="/lightmodelogo.png" alt="" />
+              <img className="public-brand-logo public-brand-logo-dark" src="/darkmodelogo.png" alt="" />
             </span>
             <span className="public-brand-text">
               <span className="public-brand-title">Steps of Hope</span>
-              <span className="public-brand-sub">Support for South Korean survivors</span>
-              <span className="public-slogan">Safety · Healing · Justice · Empowerment</span>
+              <span className="public-brand-sub">Survivor support nonprofit</span>
             </span>
           </Link>
           <div className="nav-pill-actions" aria-label="Donation and account actions">
-            <Link className="nav-pill nav-pill-secondary" to="/give">
-              Give
-            </Link>
             {auth.isAuthenticated ? (
               <Link className="nav-pill nav-pill-primary" to={portalTo}>
                 My portal
               </Link>
             ) : (
               <>
-                <Link className="nav-pill nav-pill-glow" to="/register">
+                <Link className="nav-pill nav-pill-glow" to="/donate">
                   Donate
                 </Link>
                 <Link className="nav-pill nav-pill-outline-accent" to="/login">
@@ -88,44 +74,27 @@ export function PublicLayout() {
             <Link className="nav-pill" to="/">
               Home
             </Link>
+            <Link className="nav-pill" to="/programs">
+              How We Help
+            </Link>
+            <Link className="nav-pill" to="/impact">
+              Impact
+            </Link>
             <Link className="nav-pill" to="/about">
               About
             </Link>
             <Link className="nav-pill" to="/contact">
               Contact
             </Link>
-            <div className="nav-dropdown">
-              <span className="nav-pill">Programs</span>
-              <div className="nav-dropdown-menu" role="menu" aria-label="Programs">
-                <Link className="nav-dropdown-item" to="/impact">
-                  Survivor safety and shelter
-                </Link>
-                <Link className="nav-dropdown-item" to="/impact">
-                  Healing and reintegration
-                </Link>
-                <Link className="nav-dropdown-item" to="/about">
-                  Education and wellbeing support
-                </Link>
-                <Link className="nav-dropdown-item" to="/give">
-                  Donor funding pathways
-                </Link>
-              </div>
-            </div>
-            <Link className="nav-pill" to="/impact">
-              Impact
-            </Link>
           </nav>
         </div>
       </header>
 
       <main className="container public-main">
-        <div className="mission-banner">
-          Your support helps South Korean victims access safe shelter, case follow-up, and recovery pathways.
-        </div>
         <Outlet />
       </main>
 
-      <Footer />
+      <Footer onToggleTheme={toggleTheme} />
       <CookieConsentBanner />
     </>
   );
@@ -305,11 +274,11 @@ export function AppLayout() {
                 </svg>
                 My Impact
               </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/give">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/donate">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
-                Give
+                Donate
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/impact">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
@@ -333,11 +302,11 @@ export function AppLayout() {
                 </svg>
                 Donor Portal View
               </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/give">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/donate">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
-                Public Give Page
+                Public Donate Page
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/impact">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
