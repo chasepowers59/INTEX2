@@ -15,7 +15,22 @@ Region guidance (team decision):
 
 An older build created a **minimal** `ImpactAllocations` table with raw SQL **before** EF migrations finished. SQL Server then blocked the real migration (table already exists), so you never got `AspNetUsers`, `Supporters`, etc.
 
-**Fix (empty / school DB only — deletes that patch table and migration history):**
+**If `/health/migrations` shows** `"There is already an object named 'ImpactAllocations' in the database."` **(your case):** in **Azure Portal → SQL database → Query editor** (or SSMS), run **this first** (school / empty DB only — you will lose any rows in that old patch table):
+
+```sql
+DROP TABLE IF EXISTS dbo.ImpactAllocations;
+```
+
+Then **restart** the App Service. `MigrateAsync` should apply the two pending migrations; recheck `/health/migrations` (`pending` empty) and `/health/schema`.
+
+**If it still fails**, also clear migration history so EF can start clean (same safety: school DB only):
+
+```sql
+IF OBJECT_ID(N'dbo.__EFMigrationsHistory', N'U') IS NOT NULL
+    DROP TABLE dbo.__EFMigrationsHistory;
+```
+
+**Full cleanup (recommended if you are unsure)** — drops the patch table **and** history in one go:
 
 1. In **Azure Portal → your SQL database → Query editor** (or SSMS), connect and run:
 
