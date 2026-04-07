@@ -11,10 +11,16 @@ type Recording = {
   sessionDate: string;
   socialWorkerName: string;
   sessionType: string;
+  sessionDurationMinutes: number | null;
   emotionalStateObserved: string | null;
+  emotionalStateEnd: string | null;
   narrativeSummary: string;
   interventionsApplied: string | null;
   followUpActions: string | null;
+  progressNoted: boolean;
+  concernsFlagged: boolean;
+  referralMade: boolean;
+  notesRestricted: string | null;
 };
 
 type Paged<T> = { page: number; pageSize: number; total: number; items: T[] };
@@ -36,6 +42,12 @@ export function ResidentProcessRecordingsPage() {
     narrativeSummary: "",
     interventionsApplied: "",
     followUpActions: "",
+    sessionDurationMinutes: "",
+    emotionalStateEnd: "",
+    progressNoted: false,
+    concernsFlagged: false,
+    referralMade: false,
+    notesRestricted: "",
   });
   const keywordHits = highRiskWords.filter((w) => form.narrativeSummary.toLowerCase().includes(w));
 
@@ -128,6 +140,10 @@ export function ResidentProcessRecordingsPage() {
             ) : null}
 
             <div className="row" style={{ marginTop: 10 }}>
+              <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
+                <span className="muted">Duration (minutes)</span>
+                <input className="input" value={form.sessionDurationMinutes} onChange={(e) => setForm((p) => ({ ...p, sessionDurationMinutes: e.target.value }))} />
+              </label>
               <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
                 <span className="muted">Interventions applied</span>
                 <input
@@ -144,7 +160,20 @@ export function ResidentProcessRecordingsPage() {
                   onChange={(e) => setForm((p) => ({ ...p, followUpActions: e.target.value }))}
                 />
               </label>
+              <label style={{ display: "grid", gap: 6, minWidth: 220, flex: 1 }}>
+                <span className="muted">Emotional state at end</span>
+                <input className="input" value={form.emotionalStateEnd} onChange={(e) => setForm((p) => ({ ...p, emotionalStateEnd: e.target.value }))} />
+              </label>
             </div>
+            <div className="row" style={{ marginTop: 10 }}>
+              <label className="row"><input type="checkbox" checked={form.progressNoted} onChange={(e) => setForm((p) => ({ ...p, progressNoted: e.target.checked }))} /> Progress noted</label>
+              <label className="row"><input type="checkbox" checked={form.concernsFlagged} onChange={(e) => setForm((p) => ({ ...p, concernsFlagged: e.target.checked }))} /> Concerns flagged</label>
+              <label className="row"><input type="checkbox" checked={form.referralMade} onChange={(e) => setForm((p) => ({ ...p, referralMade: e.target.checked }))} /> Referral made</label>
+            </div>
+            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+              <span className="muted">Restricted notes</span>
+              <input className="input" value={form.notesRestricted} onChange={(e) => setForm((p) => ({ ...p, notesRestricted: e.target.value }))} />
+            </label>
 
             <div className="row" style={{ marginTop: 12, justifyContent: "flex-end" }}>
               <button
@@ -165,12 +194,18 @@ export function ResidentProcessRecordingsPage() {
                         socialWorkerName: form.socialWorkerName.trim() || auth.displayName || "Admin",
                         sessionType: form.sessionType,
                         emotionalStateObserved: form.emotionalStateObserved.trim() || null,
+                        emotionalStateEnd: form.emotionalStateEnd.trim() || null,
                         narrativeSummary: form.narrativeSummary.trim(),
                         interventionsApplied: form.interventionsApplied.trim() || null,
                         followUpActions: form.followUpActions.trim() || null,
+                        sessionDurationMinutes: form.sessionDurationMinutes.trim() ? Number(form.sessionDurationMinutes) : null,
+                        progressNoted: form.progressNoted,
+                        concernsFlagged: form.concernsFlagged,
+                        referralMade: form.referralMade,
+                        notesRestricted: form.notesRestricted.trim() || null,
                       }),
                     });
-                    setForm((p) => ({ ...p, narrativeSummary: "", emotionalStateObserved: "", interventionsApplied: "", followUpActions: "" }));
+                    setForm((p) => ({ ...p, narrativeSummary: "", emotionalStateObserved: "", emotionalStateEnd: "", interventionsApplied: "", followUpActions: "", notesRestricted: "" }));
                     await load();
                   } catch (e) {
                     setError((e as Error).message);

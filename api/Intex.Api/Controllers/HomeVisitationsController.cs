@@ -52,9 +52,17 @@ public sealed class HomeVisitationsController(AppDbContext db) : ControllerBase
         if (item is null) return NotFound();
 
         item.VisitDate = input.VisitDate;
+        item.SocialWorkerName = input.SocialWorkerName;
         item.VisitType = input.VisitType;
+        item.LocationVisited = input.LocationVisited;
+        item.FamilyMembersPresent = input.FamilyMembersPresent;
+        item.Purpose = input.Purpose;
         item.Observations = input.Observations;
         item.FamilyCooperationLevel = input.FamilyCooperationLevel;
+        item.SafetyConcernsNoted = input.SafetyConcernsNoted;
+        item.FollowUpNeeded = input.FollowUpNeeded;
+        item.FollowUpNotes = input.FollowUpNotes;
+        item.VisitOutcome = input.VisitOutcome;
         item.SafetyConcerns = input.SafetyConcerns;
         item.FollowUpActions = input.FollowUpActions;
 

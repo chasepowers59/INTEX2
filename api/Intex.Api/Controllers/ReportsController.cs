@@ -143,4 +143,39 @@ public sealed class ReportsController(AppDbContext db) : ControllerBase
         var rate = total == 0 ? 0 : (double)reintegrated / total;
         return Ok(new { total, reintegrated, rate });
     }
+
+    [HttpGet("annual-accomplishment")]
+    public async Task<ActionResult> AnnualAccomplishment([FromQuery] int year = 0)
+    {
+        if (year <= 0) year = DateTime.UtcNow.Year;
+        var start = new DateOnly(year, 1, 1);
+        var end = new DateOnly(year, 12, 31);
+
+        var caring = await db.HomeVisitations.AsNoTracking().CountAsync(x => x.VisitDate >= start && x.VisitDate <= end);
+        var healing = await db.ProcessRecordings.AsNoTracking().CountAsync(x => x.SessionDate >= start && x.SessionDate <= end);
+        var teaching = await db.EducationRecords.AsNoTracking().CountAsync(x => x.RecordDate >= start && x.RecordDate <= end);
+
+        var bySafehouse = await db.Residents.AsNoTracking()
+            .GroupBy(x => x.SafehouseId)
+            .Select(g => new
+            {
+                safehouseId = g.Key,
+                activeResidents = g.Count(x => x.CaseStatus == "Active"),
+                reintegrated = g.Count(x => x.IsReintegrated)
+            })
+            .OrderBy(x => x.safehouseId)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            year,
+            pillars = new[]
+            {
+                new { pillar = "Caring", metric = "Home visits completed", value = caring },
+                new { pillar = "Healing", metric = "Counseling process recordings", value = healing },
+                new { pillar = "Teaching", metric = "Education records logged", value = teaching }
+            },
+            bySafehouse
+        });
+    }
 }

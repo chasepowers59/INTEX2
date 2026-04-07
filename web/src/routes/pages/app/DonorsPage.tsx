@@ -264,27 +264,37 @@ export function DonorsPage() {
                 <button
                   className="btn primary"
                   onClick={async () => {
-                    const amountStr = prompt("Monetary amount?");
-                    if (!amountStr) return;
-                    const amount = Number(amountStr);
-                    if (!Number.isFinite(amount)) {
-                      setError("Amount must be a number.");
-                      return;
-                    }
+                    const contributionType = prompt("Contribution type? Monetary | InKind | Time | Skills | Advocacy", "Monetary") ?? "Monetary";
+                    const amountStr = prompt("Amount (for Monetary) or leave blank", "");
+                    const estimatedValueStr = prompt("Estimated value (for non-monetary) or leave blank", "");
+                    const amount = amountStr ? Number(amountStr) : null;
+                    const estimatedValue = estimatedValueStr ? Number(estimatedValueStr) : null;
                     try {
-                      await apiFetch<void>("/api/contributions", {
+                      const created = await apiFetch<any>("/api/contributions", {
                         method: "POST",
                         token: auth.token ?? undefined,
                         body: JSON.stringify({
                           supporterId: selectedSupporter.supporterId,
-                          contributionType: "Monetary",
+                          contributionType,
                           amount,
+                          estimatedValue,
+                          impactUnit: contributionType === "Time" ? "hours" : contributionType === "Advocacy" ? "posts" : null,
                           currency: "PHP",
                           contributionDate: new Date().toISOString().slice(0, 10),
                           campaignName: null,
                           notes: null,
                         }),
                       });
+                      if (contributionType === "InKind") {
+                        const itemName = prompt("In-kind item name?", "Care kit");
+                        if (itemName) {
+                          await apiFetch<void>(`/api/contributions/${created.contributionId}/in-kind-items`, {
+                            method: "POST",
+                            token: auth.token ?? undefined,
+                            body: JSON.stringify({ itemName, itemCategory: "General", quantity: 1, unitOfMeasure: "item" }),
+                          });
+                        }
+                      }
                       await loadContribs(selectedSupporter.supporterId);
                     } catch (e) {
                       setError((e as Error).message);

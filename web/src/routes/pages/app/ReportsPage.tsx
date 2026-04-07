@@ -24,6 +24,10 @@ type AuditItem = {
   area: string;
   target: string;
 };
+type AarSummary = {
+  year: number;
+  pillars: { pillar: string; metric: string; value: number }[];
+};
 
 export function ReportsPage() {
   const auth = useAuth();
@@ -40,9 +44,14 @@ export function ReportsPage() {
   const [snapSummary, setSnapSummary] = useState<string>(
     "This snapshot is aggregated and anonymized to protect residents, staff, and partners."
   );
-  const [snapMetrics, setSnapMetrics] = useState<string>("{}");
+  const [snapMetricActiveResidents, setSnapMetricActiveResidents] = useState<number>(0);
+  const [snapMetricDonations30d, setSnapMetricDonations30d] = useState<number>(0);
+  const [snapMetricCheckinsDue30d, setSnapMetricCheckinsDue30d] = useState<number>(0);
+  const [snapMetricProcess7d, setSnapMetricProcess7d] = useState<number>(0);
+  const [snapMetricNarrative, setSnapMetricNarrative] = useState<string>("Anonymized and aggregate-only metrics.");
   const [snapPublish, setSnapPublish] = useState<boolean>(true);
   const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
+  const [aar, setAar] = useState<AarSummary | null>(null);
   const [snapshotsPage, setSnapshotsPage] = useState(1);
   const [auditPage, setAuditPage] = useState(1);
 
@@ -63,6 +72,8 @@ export function ReportsPage() {
           setSnapshots(list.items);
           const audit = await apiFetch<{ items: AuditItem[] }>("/api/reports/audit-activity?take=80", { token: auth.token ?? undefined });
           setAuditItems(audit.items);
+          const aarRes = await apiFetch<AarSummary>("/api/reports/annual-accomplishment", { token: auth.token ?? undefined });
+          setAar(aarRes);
         }
       } catch (e) {
         setError((e as Error).message);
@@ -236,10 +247,39 @@ export function ReportsPage() {
             <textarea className="input" rows={3} value={snapSummary} onChange={(e) => setSnapSummary(e.target.value)} />
           </label>
 
+          <div className="row" style={{ marginTop: 10 }}>
+            <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
+              <span className="muted">Active residents</span>
+              <input className="input" value={snapMetricActiveResidents} onChange={(e) => setSnapMetricActiveResidents(Number(e.target.value) || 0)} />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
+              <span className="muted">Donations (30d)</span>
+              <input className="input" value={snapMetricDonations30d} onChange={(e) => setSnapMetricDonations30d(Number(e.target.value) || 0)} />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
+              <span className="muted">Check-ins due (30d)</span>
+              <input className="input" value={snapMetricCheckinsDue30d} onChange={(e) => setSnapMetricCheckinsDue30d(Number(e.target.value) || 0)} />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
+              <span className="muted">Process recordings (7d)</span>
+              <input className="input" value={snapMetricProcess7d} onChange={(e) => setSnapMetricProcess7d(Number(e.target.value) || 0)} />
+            </label>
+          </div>
           <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-            <span className="muted">Metrics (JSON)</span>
-            <textarea className="input" rows={5} value={snapMetrics} onChange={(e) => setSnapMetrics(e.target.value)} />
+            <span className="muted">Metric context note</span>
+            <input className="input" value={snapMetricNarrative} onChange={(e) => setSnapMetricNarrative(e.target.value)} />
           </label>
+          <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
+            <div className="muted">Preview card</div>
+            <div style={{ fontWeight: 700 }}>{snapHeadline}</div>
+            <div className="muted">{snapSummary}</div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <span className="badge">Active residents: {snapMetricActiveResidents}</span>
+              <span className="badge">Donations 30d: {snapMetricDonations30d}</span>
+              <span className="badge">Check-ins due 30d: {snapMetricCheckinsDue30d}</span>
+              <span className="badge">Process 7d: {snapMetricProcess7d}</span>
+            </div>
+          </div>
 
           <div className="reports-actions-row" style={{ marginTop: 12 }}>
             <button
@@ -270,15 +310,10 @@ export function ReportsPage() {
                 setError(null);
                 try {
                   const overview = await apiFetch<any>("/api/analytics/overview", { token: auth.token ?? undefined });
-                  const payload = {
-                    asOfUtc: overview.asOfUtc,
-                    activeResidents: overview.activeResidents,
-                    checkInsDue30d: overview.checkInsDue30d,
-                    processRecordings7d: overview.processRecordings7d,
-                    donations30d: overview.donations30d,
-                    reintegration,
-                  };
-                  setSnapMetrics(JSON.stringify(payload, null, 2));
+                  setSnapMetricActiveResidents(overview.activeResidents ?? 0);
+                  setSnapMetricCheckinsDue30d(overview.checkInsDue30d ?? 0);
+                  setSnapMetricProcess7d(overview.processRecordings7d ?? 0);
+                  setSnapMetricDonations30d(overview.donations30d ?? 0);
                 } catch (e) {
                   setError((e as Error).message);
                 }
@@ -292,6 +327,13 @@ export function ReportsPage() {
               onClick={async () => {
                 setError(null);
                 try {
+                  const metricPayloadJson = JSON.stringify({
+                    activeResidents: snapMetricActiveResidents,
+                    donations30d: snapMetricDonations30d,
+                    checkInsDue30d: snapMetricCheckinsDue30d,
+                    processRecordings7d: snapMetricProcess7d,
+                    note: snapMetricNarrative,
+                  });
                   await apiFetch<{ snapshotId: number }>("/api/impact-snapshots", {
                     method: "POST",
                     token: auth.token ?? undefined,
@@ -299,7 +341,7 @@ export function ReportsPage() {
                       snapshotDate: snapDate,
                       headline: snapHeadline,
                       summaryText: snapSummary,
-                      metricPayloadJson: snapMetrics,
+                      metricPayloadJson,
                       publish: snapPublish,
                     }),
                   });
@@ -395,6 +437,27 @@ export function ReportsPage() {
               </button>
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {auth.hasRole("Admin") ? (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Annual accomplishment report panel</h2>
+          <p className="muted">Caring, Healing, and Teaching grouped metrics for narrative reporting and export-ready review.</p>
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Pillar</th><th>Metric</th><th>Value</th></tr></thead>
+              <tbody>
+                {(aar?.pillars ?? []).map((p) => (
+                  <tr key={`${p.pillar}-${p.metric}`}>
+                    <td><span className="badge">{p.pillar}</span></td>
+                    <td className="muted">{p.metric}</td>
+                    <td>{p.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : null}
 

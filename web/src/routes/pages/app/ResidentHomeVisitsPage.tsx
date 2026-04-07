@@ -9,9 +9,17 @@ type Visit = {
   homeVisitationId: number;
   residentId: number;
   visitDate: string;
+  socialWorkerName: string | null;
   visitType: string;
+  locationVisited: string | null;
+  familyMembersPresent: string | null;
+  purpose: string | null;
   observations: string | null;
   familyCooperationLevel: string | null;
+  safetyConcernsNoted: boolean;
+  followUpNeeded: boolean;
+  followUpNotes: string | null;
+  visitOutcome: string | null;
   safetyConcerns: string | null;
   followUpActions: string | null;
 };
@@ -40,8 +48,16 @@ export function ResidentHomeVisitsPage() {
   const [visitForm, setVisitForm] = useState({
     visitDate: new Date().toISOString().slice(0, 10),
     visitType: "RoutineFollowUp",
+    socialWorkerName: "",
+    locationVisited: "",
+    familyMembersPresent: "",
+    purpose: "",
     observations: "",
     familyCooperationLevel: "",
+    safetyConcernsNoted: false,
+    followUpNeeded: false,
+    followUpNotes: "",
+    visitOutcome: "",
     safetyConcerns: "",
     followUpActions: "",
   });
@@ -102,8 +118,26 @@ export function ResidentHomeVisitsPage() {
                   <option value="Emergency">Emergency</option>
                 </select>
               </label>
+              <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+                <span className="muted">Social worker</span>
+                <input className="input" value={visitForm.socialWorkerName} onChange={(e) => setVisitForm((p) => ({ ...p, socialWorkerName: e.target.value }))} />
+              </label>
+            </div>
+            <div className="row" style={{ marginTop: 10 }}>
+              <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
+                <span className="muted">Location visited</span>
+                <input className="input" value={visitForm.locationVisited} onChange={(e) => setVisitForm((p) => ({ ...p, locationVisited: e.target.value }))} />
+              </label>
+              <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
+                <span className="muted">Family members present</span>
+                <input className="input" value={visitForm.familyMembersPresent} onChange={(e) => setVisitForm((p) => ({ ...p, familyMembersPresent: e.target.value }))} />
+              </label>
             </div>
 
+            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+              <span className="muted">Purpose</span>
+              <input className="input" value={visitForm.purpose} onChange={(e) => setVisitForm((p) => ({ ...p, purpose: e.target.value }))} />
+            </label>
             <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
               <span className="muted">Observations</span>
               <textarea
@@ -135,6 +169,18 @@ export function ResidentHomeVisitsPage() {
             </div>
 
             <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+              <span className="muted">Visit outcome</span>
+              <input className="input" value={visitForm.visitOutcome} onChange={(e) => setVisitForm((p) => ({ ...p, visitOutcome: e.target.value }))} />
+            </label>
+            <div className="row" style={{ marginTop: 8 }}>
+              <label className="row"><input type="checkbox" checked={visitForm.safetyConcernsNoted} onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcernsNoted: e.target.checked }))} /> Safety concerns noted</label>
+              <label className="row"><input type="checkbox" checked={visitForm.followUpNeeded} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNeeded: e.target.checked }))} /> Follow-up needed</label>
+            </div>
+            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+              <span className="muted">Follow-up notes</span>
+              <input className="input" value={visitForm.followUpNotes} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNotes: e.target.value }))} />
+            </label>
+            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
               <span className="muted">Follow-up actions</span>
               <input
                 className="input"
@@ -159,14 +205,22 @@ export function ResidentHomeVisitsPage() {
                       body: JSON.stringify({
                         residentId,
                         visitDate: visitForm.visitDate,
+                        socialWorkerName: visitForm.socialWorkerName.trim() || null,
                         visitType: visitForm.visitType,
+                        locationVisited: visitForm.locationVisited.trim() || null,
+                        familyMembersPresent: visitForm.familyMembersPresent.trim() || null,
+                        purpose: visitForm.purpose.trim() || null,
                         observations: visitForm.observations.trim(),
                         familyCooperationLevel: visitForm.familyCooperationLevel.trim() || null,
+                        safetyConcernsNoted: visitForm.safetyConcernsNoted,
+                        followUpNeeded: visitForm.followUpNeeded,
+                        followUpNotes: visitForm.followUpNotes.trim() || null,
+                        visitOutcome: visitForm.visitOutcome.trim() || null,
                         safetyConcerns: visitForm.safetyConcerns.trim() || null,
                         followUpActions: visitForm.followUpActions.trim() || null,
                       }),
                     });
-                    setVisitForm((p) => ({ ...p, observations: "", familyCooperationLevel: "", safetyConcerns: "", followUpActions: "" }));
+                    setVisitForm((p) => ({ ...p, observations: "", familyCooperationLevel: "", followUpNotes: "", visitOutcome: "", safetyConcerns: "", followUpActions: "" }));
                     await load();
                   } catch (e) {
                     setError((e as Error).message);

@@ -54,10 +54,16 @@ public sealed class ProcessRecordingsController(AppDbContext db) : ControllerBas
         item.SessionDate = input.SessionDate;
         item.SocialWorkerName = input.SocialWorkerName;
         item.SessionType = input.SessionType;
+        item.SessionDurationMinutes = input.SessionDurationMinutes;
         item.EmotionalStateObserved = input.EmotionalStateObserved;
+        item.EmotionalStateEnd = input.EmotionalStateEnd;
         item.NarrativeSummary = input.NarrativeSummary;
         item.InterventionsApplied = input.InterventionsApplied;
         item.FollowUpActions = input.FollowUpActions;
+        item.ProgressNoted = input.ProgressNoted;
+        item.ConcernsFlagged = input.ConcernsFlagged;
+        item.ReferralMade = input.ReferralMade;
+        item.NotesRestricted = input.NotesRestricted;
 
         await db.SaveChangesAsync();
         return NoContent();

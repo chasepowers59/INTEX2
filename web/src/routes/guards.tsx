@@ -57,24 +57,9 @@ export function RequireRole(props: { role: string; children: React.ReactNode }) 
     return <>{props.children}</>;
   }
 
-  if (props.role === "Donor" && (auth.hasRole("Admin") || auth.hasRole("Employee"))) {
-    return (
-      <div className="card" style={{ maxWidth: 560 }}>
-        <h2 style={{ marginTop: 0 }}>You’re signed in as staff</h2>
-        <p className="muted">
-          The donor portal is for supporter accounts with the <strong>Donor</strong> role. Your staff login uses the
-          operations dashboard instead.
-        </p>
-        <div className="row" style={{ marginTop: 14 }}>
-          <Link className="btn primary" to="/app/dashboard">
-            Open dashboard
-          </Link>
-          <Link className="btn" to="/give">
-            Give (use a donor login to record personal gifts)
-          </Link>
-        </div>
-      </div>
-    );
+  // Admin should be able to view normal donor-facing app pages.
+  if (props.role === "Donor" && auth.hasRole("Admin")) {
+    return <>{props.children}</>;
   }
 
   return (

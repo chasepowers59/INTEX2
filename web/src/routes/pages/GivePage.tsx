@@ -11,6 +11,11 @@ export function GivePage() {
   const loc = useLocation();
 
   const [amount, setAmount] = useState<string>("");
+  const [contributionType, setContributionType] = useState<string>("Monetary");
+  const [impactUnit, setImpactUnit] = useState<string>("");
+  const [estimatedValue, setEstimatedValue] = useState<string>("");
+  const [inKindItemName, setInKindItemName] = useState<string>("");
+  const [inKindQty, setInKindQty] = useState<string>("1");
   const [campaignName, setCampaignName] = useState<string>("General Fund");
   const [notes, setNotes] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -141,15 +146,49 @@ export function GivePage() {
               </div>
 
               <div className="row" style={{ alignItems: "end", marginTop: 12 }}>
+                <label style={{ display: "grid", gap: 6, minWidth: 200 }}>
+                  <span className="muted">Contribution type</span>
+                  <select className="input" value={contributionType} onChange={(e) => setContributionType(e.target.value)}>
+                    <option value="Monetary">Monetary</option>
+                    <option value="InKind">In-kind items</option>
+                    <option value="Time">Volunteer time</option>
+                    <option value="Skills">Skills-based support</option>
+                    <option value="Advocacy">Social advocacy</option>
+                  </select>
+                </label>
                 <label style={{ display: "grid", gap: 6, minWidth: 240 }}>
                   <span className="muted">Amount in PHP</span>
-                  <input className="input" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 15000" />
+                  <input className="input" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 15000" disabled={contributionType !== "Monetary"} />
                 </label>
                 <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 260 }}>
                   <span className="muted">Campaign</span>
                   <input className="input" value={campaignName} onChange={(e) => setCampaignName(e.target.value)} />
                 </label>
               </div>
+              {contributionType !== "Monetary" ? (
+                <div className="row" style={{ marginTop: 10 }}>
+                  <label style={{ display: "grid", gap: 6, minWidth: 220, flex: 1 }}>
+                    <span className="muted">Impact unit</span>
+                    <input className="input" value={impactUnit} onChange={(e) => setImpactUnit(e.target.value)} placeholder="e.g., hours, kits, posts" />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+                    <span className="muted">Estimated value (PHP)</span>
+                    <input className="input" value={estimatedValue} onChange={(e) => setEstimatedValue(e.target.value)} />
+                  </label>
+                </div>
+              ) : null}
+              {contributionType === "InKind" ? (
+                <div className="row" style={{ marginTop: 10 }}>
+                  <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
+                    <span className="muted">In-kind item name</span>
+                    <input className="input" value={inKindItemName} onChange={(e) => setInKindItemName(e.target.value)} placeholder="e.g., hygiene kit" />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, minWidth: 140 }}>
+                    <span className="muted">Quantity</span>
+                    <input className="input" value={inKindQty} onChange={(e) => setInKindQty(e.target.value)} />
+                  </label>
+                </div>
+              ) : null}
 
               <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
                 <span className="muted">Notes, optional</span>
@@ -169,7 +208,7 @@ export function GivePage() {
                     setBusy(true);
                     try {
                       const amt = Number(amount.trim());
-                      if (!Number.isFinite(amt) || amt <= 0) {
+                      if (contributionType === "Monetary" && (!Number.isFinite(amt) || amt <= 0)) {
                         setError("Amount must be a positive number.");
                         return;
                       }
@@ -178,10 +217,17 @@ export function GivePage() {
                         method: "POST",
                         token: auth.token ?? undefined,
                         body: JSON.stringify({
-                          amount: amt,
+                          contributionType,
+                          amount: contributionType === "Monetary" ? amt : null,
+                          estimatedValue: estimatedValue.trim() ? Number(estimatedValue) : null,
+                          impactUnit: impactUnit.trim() || null,
                           currency: "PHP",
                           campaignName: campaignName.trim() || null,
                           notes: notes.trim() || null,
+                          inKindItems:
+                            contributionType === "InKind" && inKindItemName.trim()
+                              ? [{ itemName: inKindItemName.trim(), itemCategory: "General", quantity: Number(inKindQty) || 1, unitOfMeasure: "item" }]
+                              : [],
                         }),
                       });
                       setSuccessId(res.contributionId);

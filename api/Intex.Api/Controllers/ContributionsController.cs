@@ -41,8 +41,12 @@ public sealed class ContributionsController(AppDbContext db) : ControllerBase
                 SupporterName = x.Supporter!.FullName,
                 x.ContributionType,
                 x.Amount,
+                x.EstimatedValue,
+                x.ImpactUnit,
                 x.Currency,
                 x.ContributionDate,
+                x.ChannelSource,
+                x.IsRecurring,
                 x.CampaignName,
                 x.Notes
             })
@@ -78,11 +82,51 @@ public sealed class ContributionsController(AppDbContext db) : ControllerBase
         item.SupporterId = input.SupporterId;
         item.ContributionType = input.ContributionType;
         item.Amount = input.Amount;
+        item.EstimatedValue = input.EstimatedValue;
+        item.ImpactUnit = input.ImpactUnit;
         item.Currency = input.Currency;
         item.ContributionDate = input.ContributionDate;
+        item.ChannelSource = input.ChannelSource;
+        item.IsRecurring = input.IsRecurring;
         item.CampaignName = input.CampaignName;
         item.Notes = input.Notes;
 
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpGet("{contributionId:int}/in-kind-items")]
+    public async Task<ActionResult> GetInKindItems([FromRoute] int contributionId)
+    {
+        var items = await db.InKindDonationItems.AsNoTracking()
+            .Where(x => x.ContributionId == contributionId)
+            .OrderBy(x => x.ItemId)
+            .ToListAsync();
+        return Ok(new { items });
+    }
+
+    [HttpPost("{contributionId:int}/in-kind-items")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult> AddInKindItem([FromRoute] int contributionId, [FromBody] InKindDonationItem input)
+    {
+        var exists = await db.Contributions.AsNoTracking().AnyAsync(x => x.ContributionId == contributionId);
+        if (!exists) return NotFound(new { message = "Contribution not found." });
+
+        input.ItemId = 0;
+        input.ContributionId = contributionId;
+        db.InKindDonationItems.Add(input);
+        await db.SaveChangesAsync();
+        return Ok(input);
+    }
+
+    [HttpDelete("in-kind-items/{itemId:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
+    public async Task<ActionResult> DeleteInKindItem([FromRoute] int itemId, [FromQuery] bool confirm = false)
+    {
+        if (!confirm) return BadRequest(new { message = "Deletion requires confirm=true." });
+        var item = await db.InKindDonationItems.FirstOrDefaultAsync(x => x.ItemId == itemId);
+        if (item is null) return NotFound();
+        db.InKindDonationItems.Remove(item);
         await db.SaveChangesAsync();
         return NoContent();
     }

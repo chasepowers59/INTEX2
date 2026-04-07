@@ -43,6 +43,19 @@ export function CaseloadPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState<string>("OnHold");
   const [page, setPage] = useState(1);
+  const [newResident, setNewResident] = useState({
+    displayName: "",
+    caseCategory: "",
+    referralSource: "",
+    referringAgencyPerson: "",
+    assignedSocialWorker: "",
+    initialRiskLevel: "Medium",
+    currentRiskLevel: "Medium",
+    familyIs4ps: false,
+    familySoloParent: false,
+    familyIndigenous: false,
+    familyInformalSettler: false,
+  });
 
   const load = async () => {
     setError(null);
@@ -100,37 +113,57 @@ export function CaseloadPage() {
             Apply
           </button>
           <RequireRole role="Admin">
-            <button
-              className="btn primary"
-              style={{ alignSelf: "end" }}
-              onClick={async () => {
-                const displayName = prompt("Resident display name (anonymized)?");
-                if (!displayName) return;
-                try {
-                  await apiFetch<void>("/api/residents", {
-                    method: "POST",
-                    token: auth.token ?? undefined,
-                    body: JSON.stringify({
-                      displayName,
-                      caseStatus: "Active",
-                      caseCategory: null,
-                      subCategory: null,
-                      safehouseId: 1,
-                      admissionDate: null,
-                      assignedSocialWorker: null,
-                      isReintegrated: false,
-                    }),
-                  });
-                  await load();
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Add resident
-            </button>
+            <button className="btn primary" style={{ alignSelf: "end" }} onClick={async () => {
+              if (!newResident.displayName.trim()) return setError("Display name required.");
+              try {
+                await apiFetch<void>("/api/residents", {
+                  method: "POST",
+                  token: auth.token ?? undefined,
+                  body: JSON.stringify({
+                    displayName: newResident.displayName.trim(),
+                    caseStatus: "Active",
+                    caseCategory: newResident.caseCategory.trim() || null,
+                    subCategory: null,
+                    safehouseId: 1,
+                    admissionDate: null,
+                    assignedSocialWorker: newResident.assignedSocialWorker.trim() || null,
+                    referralSource: newResident.referralSource.trim() || null,
+                    referringAgencyPerson: newResident.referringAgencyPerson.trim() || null,
+                    initialRiskLevel: newResident.initialRiskLevel,
+                    currentRiskLevel: newResident.currentRiskLevel,
+                    familyIs4ps: newResident.familyIs4ps,
+                    familySoloParent: newResident.familySoloParent,
+                    familyIndigenous: newResident.familyIndigenous,
+                    familyInformalSettler: newResident.familyInformalSettler,
+                    isReintegrated: false,
+                  }),
+                });
+                await load();
+              } catch (e) { setError((e as Error).message); }
+            }}>Add resident</button>
           </RequireRole>
         </div>
+        <RequireRole role="Admin">
+          <div className="row" style={{ marginTop: 10 }}>
+            <input className="input" placeholder="Display name" value={newResident.displayName} onChange={(e) => setNewResident((p) => ({ ...p, displayName: e.target.value }))} />
+            <input className="input" placeholder="Case category" value={newResident.caseCategory} onChange={(e) => setNewResident((p) => ({ ...p, caseCategory: e.target.value }))} />
+            <input className="input" placeholder="Referral source" value={newResident.referralSource} onChange={(e) => setNewResident((p) => ({ ...p, referralSource: e.target.value }))} />
+            <input className="input" placeholder="Referring agency/person" value={newResident.referringAgencyPerson} onChange={(e) => setNewResident((p) => ({ ...p, referringAgencyPerson: e.target.value }))} />
+            <input className="input" placeholder="Assigned social worker" value={newResident.assignedSocialWorker} onChange={(e) => setNewResident((p) => ({ ...p, assignedSocialWorker: e.target.value }))} />
+          </div>
+          <div className="row" style={{ marginTop: 8 }}>
+            <select className="input" value={newResident.initialRiskLevel} onChange={(e) => setNewResident((p) => ({ ...p, initialRiskLevel: e.target.value }))}>
+              <option value="Low">Initial risk: Low</option><option value="Medium">Initial risk: Medium</option><option value="High">Initial risk: High</option>
+            </select>
+            <select className="input" value={newResident.currentRiskLevel} onChange={(e) => setNewResident((p) => ({ ...p, currentRiskLevel: e.target.value }))}>
+              <option value="Low">Current risk: Low</option><option value="Medium">Current risk: Medium</option><option value="High">Current risk: High</option>
+            </select>
+            <label className="row"><input type="checkbox" checked={newResident.familyIs4ps} onChange={(e) => setNewResident((p) => ({ ...p, familyIs4ps: e.target.checked }))} /> 4Ps</label>
+            <label className="row"><input type="checkbox" checked={newResident.familySoloParent} onChange={(e) => setNewResident((p) => ({ ...p, familySoloParent: e.target.checked }))} /> Solo parent</label>
+            <label className="row"><input type="checkbox" checked={newResident.familyIndigenous} onChange={(e) => setNewResident((p) => ({ ...p, familyIndigenous: e.target.checked }))} /> Indigenous</label>
+            <label className="row"><input type="checkbox" checked={newResident.familyInformalSettler} onChange={(e) => setNewResident((p) => ({ ...p, familyInformalSettler: e.target.checked }))} /> Informal settler</label>
+          </div>
+        </RequireRole>
       </div>
 
       <div className="card">
