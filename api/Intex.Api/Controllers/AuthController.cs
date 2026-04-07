@@ -26,15 +26,44 @@ public sealed class AuthController(
     {
         try
         {
-            var user = await userManager.FindByNameAsync(request.Username)
-                       ?? await userManager.FindByEmailAsync(request.Username);
+            var loginId = (request.Username ?? "").Trim();
+            if (loginId.Length == 0 || string.IsNullOrEmpty(request.Password))
+            {
+                return BadRequest(new { message = "Email (or username) and password are required." });
+            }
+
+            var user = await userManager.FindByNameAsync(loginId)
+                       ?? await userManager.FindByEmailAsync(loginId);
 
             if (user is null)
             {
+                if (!await userManager.Users.AnyAsync())
+                {
+                    return Unauthorized(new
+                    {
+                        message =
+                            "No accounts exist in this database yet. In Azure App Service set Seed__AdminEmail and Seed__AdminPassword (12+ characters with upper, lower, digit, and a symbol), restart the API, then sign in with that email. Or use donor registration."
+                    });
+                }
+
                 return Unauthorized(new { message = "Invalid username or password." });
             }
 
             var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+            if (result.IsLockedOut)
+            {
+                return Unauthorized(new
+                {
+                    message =
+                        "This account is temporarily locked after failed sign-in attempts. Wait about 10 minutes, or set Seed__ClearLockouts to true for one API restart (seeded accounts), then try again."
+                });
+            }
+
+            if (result.IsNotAllowed)
+            {
+                return Unauthorized(new { message = "Sign-in is not allowed for this account." });
+            }
+
             if (!result.Succeeded)
             {
                 return Unauthorized(new { message = "Invalid username or password." });

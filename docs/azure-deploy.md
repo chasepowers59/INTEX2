@@ -70,9 +70,9 @@ Alternatively, from your PC (firewall allowing your IP):
 4. Verify connectivity:
    - API `GET /health` should return `{ "status": "ok" }`
    - API `GET /health/db` should return `200` when SQL is reachable (and `503` when not)
-   - `GET /health/info` — shows `jwtKeyUtf8Bytes` / `jwtKeyConfigured` (not the secret) and CORS origins
+   - `GET /health/info` — shows `jwtKeyUtf8Bytes` / `jwtKeyConfigured` (not the secret), CORS origins, and **`seedAdminCredentialsConfigured`** / **`seed*CredentialsConfigured`** (if `false`, login will fail until you set `Seed__AdminEmail` + `Seed__AdminPassword` and restart)
    - `GET /health/migrations` — **`pending` must be empty** after deploy; if not, run `dotnet ef database update` against this SQL database. If **`startupMigrate.outcome`** is **`failed`**, read **`startupMigrate.error`** and fix the database (often the two-table cleanup above), then restart.
-   - `GET /health/schema` — **`AspNetUsers` / `Supporters` should be `true`**; if false, migrations never applied to this DB
+   - `GET /health/schema` — **`AspNetUsers` / `Supporters` should be `true`**; if false, migrations never applied to this DB. Check **`aspNetUserCount`**: if `0`, seed users were not created (fix `Seed__*` settings and restart, or register a donor)
 
 5. Seed users (all use the same startup path in `SeedData`):
 

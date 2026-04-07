@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Intex.Api.Auth;
 using Intex.Api.Data;
 using Intex.Api.Diagnostics;
@@ -16,7 +17,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddProblemDetails();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o =>
+{
+    o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+});
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -166,6 +171,21 @@ app.Use(async (context, next) =>
 
 app.UseCors();
 
+// Ensure anonymous login/register are never pre-empted by a bad Bearer token (browser extensions, old clients).
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsPost(context.Request.Method))
+    {
+        var p = context.Request.Path;
+        if (p.StartsWithSegments("/api/auth/login") || p.StartsWithSegments("/api/auth/register-donor"))
+        {
+            context.Request.Headers.Remove("Authorization");
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -178,6 +198,9 @@ app.MapGet("/health/info", (IConfiguration config) =>
     var corsOrigins = config.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     var jwtKey = config["Jwt:Key"] ?? "";
     var jwtKeyUtf8Bytes = Encoding.UTF8.GetByteCount(jwtKey);
+    static bool SeedPair(IConfiguration c, string emailKey, string pwdKey) =>
+        !string.IsNullOrWhiteSpace(c[$"Seed:{emailKey}"]) && !string.IsNullOrWhiteSpace(c[$"Seed:{pwdKey}"]);
+
     return Results.Ok(new
     {
         status = "ok",
@@ -187,6 +210,9 @@ app.MapGet("/health/info", (IConfiguration config) =>
         jwtKeyUtf8Bytes,
         jwtKeyConfigured = jwtKeyUtf8Bytes >= 32,
         databaseAutoMigrate = config.GetValue("Database:AutoMigrate", true),
+        seedAdminCredentialsConfigured = SeedPair(config, "AdminEmail", "AdminPassword"),
+        seedEmployeeCredentialsConfigured = SeedPair(config, "EmployeeEmail", "EmployeePassword"),
+        seedDonorCredentialsConfigured = SeedPair(config, "DonorEmail", "DonorPassword"),
         nowUtc = DateTime.UtcNow
     });
 });
@@ -274,11 +300,20 @@ app.MapGet("/health/schema", async (IServiceProvider sp) =>
             dict[t] = n == 1;
         }
 
+        int? aspNetUserCount = null;
+        if (dict["AspNetUsers"])
+        {
+            await using var countCmd = conn.CreateCommand();
+            countCmd.CommandText = "SELECT CAST(COUNT(*) AS int) FROM dbo.AspNetUsers";
+            aspNetUserCount = Convert.ToInt32(await countCmd.ExecuteScalarAsync());
+        }
+
         return Results.Ok(new
         {
             status = "ok",
             tables = dict,
-            allCoreTablesPresent = dict["AspNetUsers"] && dict["AspNetRoles"] && dict["Supporters"]
+            allCoreTablesPresent = dict["AspNetUsers"] && dict["AspNetRoles"] && dict["Supporters"],
+            aspNetUserCount
         });
     }
     finally
