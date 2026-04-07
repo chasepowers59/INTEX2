@@ -43,14 +43,13 @@ export function HomePage() {
     <div className="donor-landing">
       <section className="donor-hero card">
         <div className="donor-hero-copy">
-          <div className="badge brand">Privacy-first support for South Korean survivors</div>
           <h1>Help survivors find safety, healing, and a path forward.</h1>
           <p>
             Your gift helps Steps of Hope fund safe shelter, counseling support, education and wellbeing services,
             home visitation, and reintegration planning while protecting every survivor's identity.
           </p>
           <div className="donor-hero-actions">
-            <Link className="btn primary donor-primary-cta" to="/give">
+            <Link className="btn primary donor-primary-cta" to="/donate">
               Donate now
             </Link>
             <Link className="btn" to="/impact">
@@ -99,7 +98,7 @@ export function HomePage() {
             </article>
           ))}
         </div>
-        <Link className="btn primary donor-inline-cta" to="/give">
+        <Link className="btn primary donor-inline-cta" to="/donate">
           Choose a gift amount
         </Link>
       </section>
@@ -181,7 +180,7 @@ export function HomePage() {
           <article className="way-card featured">
             <h3>Give once</h3>
             <p>Make an immediate gift to support urgent care needs and safehouse operations.</p>
-            <Link className="btn primary" to="/give">
+            <Link className="btn primary donor-primary-cta" to="/donate">
               Donate now
             </Link>
           </article>
@@ -205,7 +204,7 @@ export function HomePage() {
       <section className="cta-ribbon donor-final-cta">
         <div className="sub-kicker">Stand with survivors today</div>
         <h2>Your donation can help turn fear into safety and recovery into possibility.</h2>
-        <Link className="btn primary donor-primary-cta" to="/give">
+        <Link className="btn primary donor-primary-cta" to="/donate">
           Donate now
         </Link>
       </section>

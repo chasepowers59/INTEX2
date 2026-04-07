@@ -1,5 +1,5 @@
-import React from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider } from "../lib/auth";
 import { AppLayout, PublicLayout } from "./layouts";
 import { RequireAdmin, RequireAuth, RequireStaff } from "./guards";
@@ -11,6 +11,7 @@ import { RegisterDonorPage } from "./pages/RegisterDonorPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ContactPage } from "./pages/ContactPage";
+import { ProgramsPage } from "./pages/ProgramsPage";
 import { RoleGuidePage } from "./pages/RoleGuidePage";
 import { AppDashboardPage } from "./pages/app/AppDashboardPage";
 import { DonorsPage } from "./pages/app/DonorsPage";
@@ -28,20 +29,41 @@ import { AdminPartnersPage } from "./pages/app/AdminPartnersPage";
 import { AdminPartnerAssignmentsPage } from "./pages/app/AdminPartnerAssignmentsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
+function ScrollToTop() {
+  const { hash, pathname, search } = useLocation();
+
+  useEffect(() => {
+    if (hash) {
+      const id = hash.slice(1);
+      window.requestAnimationFrame(() => {
+        document.getElementById(id)?.scrollIntoView({ block: "start" });
+      });
+      return;
+    }
+
+    window.scrollTo({ top: 0, left: 0 });
+  }, [hash, pathname, search]);
+
+  return null;
+}
+
 export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/app" element={<Navigate to="/" replace />} />
             <Route path="/impact" element={<ImpactPage />} />
+            <Route path="/donate" element={<GivePage />} />
             <Route path="/give" element={<GivePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterDonorPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/programs" element={<ProgramsPage />} />
             <Route path="/roles" element={<RoleGuidePage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
           </Route>

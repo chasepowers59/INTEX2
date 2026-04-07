@@ -110,8 +110,8 @@ export function DonorPortalPage() {
             safe shelter, counseling, and reintegration support while resident identities stay in the staff-only portal.
           </p>
           <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
-            <Link className="btn primary" to="/give">
-              Give again
+            <Link className="btn primary donor-primary-cta" to="/donate">
+              Donate again
             </Link>
             <Link className="btn" to="/impact">
               Public impact
