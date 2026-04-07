@@ -10,6 +10,8 @@ export function LoginPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,10 +47,33 @@ export function LoginPage() {
             className="input"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (!needsTwoFactor) return;
+              setNeedsTwoFactor(false);
+              setTwoFactorCode("");
+            }}
             autoComplete="current-password"
           />
         </label>
+
+        {needsTwoFactor ? (
+          <label className="field-stack" style={{ marginTop: 14 }}>
+            <span className="field-label">Authenticator code</span>
+            <input
+              className="input"
+              value={twoFactorCode}
+              onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              placeholder="123456"
+            />
+            <span className="muted" style={{ fontSize: 12 }}>
+              Enter the current 6-digit code from your authenticator app.
+            </span>
+          </label>
+        ) : null}
+
         <div className="auth-inline-row" style={{ marginTop: 10 }}>
           <label className="muted" style={{ fontSize: 12 }}>
             <input type="checkbox" style={{ marginRight: 6 }} /> Remember me
@@ -61,7 +86,10 @@ export function LoginPage() {
           </div>
         ) : null}
 
-        <div className="row" style={{ marginTop: 20, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}>
+        <div
+          className="row"
+          style={{ marginTop: 20, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 14 }}
+        >
           <button
             className="btn primary"
             disabled={loading}
@@ -69,7 +97,7 @@ export function LoginPage() {
               setError(null);
               setLoading(true);
               try {
-                const roles = await auth.login(username.trim(), password);
+                const roles = await auth.login(username.trim(), password, needsTwoFactor ? twoFactorCode : undefined);
                 const isStaff = roles.includes("Admin") || roles.includes("Employee");
                 const donorOnly = roles.includes("Donor") && !isStaff;
                 const dest =
@@ -80,13 +108,17 @@ export function LoginPage() {
                       : "/app/dashboard";
                 nav(dest, { replace: true });
               } catch (e) {
-                setError((e as Error).message);
+                const err = e as Error & { requiresTwoFactor?: boolean };
+                if (err.requiresTwoFactor) {
+                  setNeedsTwoFactor(true);
+                }
+                setError(err.message);
               } finally {
                 setLoading(false);
               }
             }}
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing in..." : needsTwoFactor ? "Verify and sign in" : "Sign in"}
           </button>
           <span style={{ display: "grid", gap: 8, justifyItems: "end" }}>
             <span className="auth-link-subtle">Forgot password?</span>

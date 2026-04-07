@@ -20,56 +20,127 @@ type ProgramInsights = {
   };
 };
 
+type SocialPredictionRow = {
+  postId: number;
+  platform: string;
+  postType: string;
+  campaignName: string | null;
+  predictedValuePhp: number;
+  valueBand: string | null;
+  contentTopic: string | null;
+  callToActionType: string | null;
+  estimatedValuePhp: number | null;
+  donationReferrals: number | null;
+  isBoosted: boolean | null;
+};
+
 export function SocialMediaStrategyPage() {
   const auth = useAuth();
+  const token = auth.token ?? undefined;
   const [data, setData] = useState<ProgramInsights | null>(null);
+  const [predictions, setPredictions] = useState<SocialPredictionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [storyTheme, setStoryTheme] = useState("Survivor progress milestone");
-  const [needItem, setNeedItem] = useState("School uniforms");
-  const [gratitudeFocus, setGratitudeFocus] = useState("Donor-funded counseling outcomes");
+  const [storyTheme, setStoryTheme] = useState("Reintegration progress update");
+  const [needItem, setNeedItem] = useState("Emergency shelter essentials");
+  const [gratitudeFocus, setGratitudeFocus] = useState("Counseling sessions funded this month");
 
   useEffect(() => {
     (async () => {
-      try {
-        const d = await apiFetch<ProgramInsights>("/api/analytics/program-insights", { token: auth.token ?? undefined });
-        setData(d);
-      } catch (e) {
-        setError((e as Error).message);
-      }
+      const [insightsRes, predictionsRes] = await Promise.allSettled([
+        apiFetch<ProgramInsights>("/api/analytics/program-insights", { token }),
+        apiFetch<SocialPredictionRow[]>("/api/ml/social-post-value/top?take=10", { token }),
+      ]);
+
+      const errs: string[] = [];
+      if (insightsRes.status === "fulfilled") setData(insightsRes.value);
+      else errs.push(`Program insights: ${(insightsRes.reason as Error).message}`);
+      if (predictionsRes.status === "fulfilled") setPredictions(predictionsRes.value);
+      else errs.push(`Social post value: ${(predictionsRes.reason as Error).message}`);
+      setError(errs.length ? errs.join(" | ") : null);
     })();
-  }, [auth.token]);
+  }, [token]);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <div className="card">
         <h1 style={{ marginTop: 0 }}>Social media strategy center</h1>
         <p className="muted">
-          Use these insights to decide what to post, where to post, and which campaigns convert to meaningful donor action.
+          This page now combines observed social ROI with the ML post-value pipeline, so content planning is tied to both
+          actual conversions and predicted donation value.
         </p>
         {error ? <div className="badge danger">{error}</div> : null}
       </div>
 
       <div className="row">
         <div className="card tone-aqua" style={{ flex: "1 1 260px" }}>
-          <div className="muted">Estimated donation value from social</div>
+          <div className="muted">Observed donation value from social</div>
           <div style={{ fontSize: 28, fontWeight: 900 }}>
-            {data ? `₱${data.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+            {data ? `PHP ${data.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "-"}
           </div>
         </div>
         <div className="card tone-peach" style={{ flex: "1 1 260px" }}>
           <div className="muted">Boost spend total</div>
           <div style={{ fontSize: 28, fontWeight: 900 }}>
-            {data ? `₱${data.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}
+            {data ? `PHP ${data.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "-"}
           </div>
+        </div>
+        <div className="card tone-berry" style={{ flex: "1 1 260px" }}>
+          <div className="muted">Predicted high-value posts loaded</div>
+          <div style={{ fontSize: 28, fontWeight: 900 }}>{predictions.length}</div>
         </div>
       </div>
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Top converting post patterns</h2>
+        <h2 style={{ marginTop: 0 }}>Predicted top-value content</h2>
+        <p className="muted">
+          Use this list to prioritize story formats, campaign themes, and calls to action before spending more on boosts.
+        </p>
+        <div className="table-wrap" style={{ marginTop: 10 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Post</th>
+                <th>Platform</th>
+                <th>Predicted value</th>
+                <th>Value band</th>
+                <th>Topic / CTA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {predictions.map((post) => (
+                <tr key={post.postId}>
+                  <td data-label="Post" style={{ fontWeight: 700 }}>
+                    #{post.postId} {post.postType}
+                    {post.campaignName ? <span className="muted"> · {post.campaignName}</span> : null}
+                  </td>
+                  <td data-label="Platform" className="muted">{post.platform}</td>
+                  <td data-label="Predicted value">
+                    PHP {post.predictedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </td>
+                  <td data-label="Value band"><span className="badge">{post.valueBand ?? "Review"}</span></td>
+                  <td data-label="Topic / CTA" className="muted">
+                    {[post.contentTopic, post.callToActionType].filter(Boolean).join(" / ") || "-"}
+                  </td>
+                </tr>
+              ))}
+              {predictions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="muted">
+                    Import `post_donation_value` to rank content before the next campaign sprint.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>Observed top converting post patterns</h2>
         <ul className="muted trust-list">
-          <li>Prioritize impact story format and clear campaign intent.</li>
-          <li>Promote high-referral posts with moderate boost rather than broad untargeted spend.</li>
-          <li>Repurpose top-performing themes across platforms weekly.</li>
+          <li>Use survivor-progress stories to convert attention into intent.</li>
+          <li>Match the donation ask to one clear campaign purpose instead of broad generic messaging.</li>
+          <li>Boost only the posts that already show referral traction or strong predicted value.</li>
         </ul>
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">
@@ -79,7 +150,7 @@ export function SocialMediaStrategyPage() {
                 <th>Platform</th>
                 <th>Campaign</th>
                 <th>Referrals</th>
-                <th>Estimated value</th>
+                <th>Observed value</th>
               </tr>
             </thead>
             <tbody>
@@ -89,11 +160,11 @@ export function SocialMediaStrategyPage() {
                   <td data-label="Platform" className="muted">{p.platform}</td>
                   <td data-label="Campaign" className="muted">{p.campaignName ?? "General"}</td>
                   <td data-label="Referrals">{p.referrals}</td>
-                  <td data-label="Estimated value">₱{p.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                  <td data-label="Observed value">PHP {p.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                 </tr>
               ))}
               {!data?.socialRoi.topPosts?.length ? (
-                <tr><td colSpan={5} className="muted">No social conversion rows available yet.</td></tr>
+                <tr><td colSpan={5} className="muted">No observed social conversion rows available yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -101,8 +172,8 @@ export function SocialMediaStrategyPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Content pillars coach · 3-post formula</h2>
-        <p className="muted">Use one Story post, one Need post, and one Gratitude post weekly to keep messaging balanced and sustainable.</p>
+        <h2 style={{ marginTop: 0 }}>Content pillars coach</h2>
+        <p className="muted">Keep one story, one concrete need, and one gratitude proof point in every weekly content cycle.</p>
         <div className="row">
           <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
             <span className="muted">Story post idea</span>
@@ -138,27 +209,27 @@ export function SocialMediaStrategyPage() {
         {(() => {
           const rows = data?.socialRoi.topPosts ?? [];
           const byPlatform = new Map<string, { referrals: number; value: number }>();
-          for (const r of rows) {
-            const cur = byPlatform.get(r.platform) ?? { referrals: 0, value: 0 };
-            cur.referrals += r.referrals;
-            cur.value += r.estimatedValuePhp;
-            byPlatform.set(r.platform, cur);
+          for (const row of rows) {
+            const current = byPlatform.get(row.platform) ?? { referrals: 0, value: 0 };
+            current.referrals += row.referrals;
+            current.value += row.estimatedValuePhp;
+            byPlatform.set(row.platform, current);
           }
           const ranked = [...byPlatform.entries()].sort((a, b) => b[1].value - a[1].value);
           const top = ranked[0];
           return (
             <>
               <ul className="trust-list muted">
-                {ranked.map(([platform, v]) => (
+                {ranked.map(([platform, value]) => (
                   <li key={platform}>
-                    {platform}: ₱{v.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} estimated value · {v.referrals} referrals
+                    {platform}: PHP {value.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} estimated value and {value.referrals} referrals
                   </li>
                 ))}
                 {ranked.length === 0 ? <li>No channel comparison rows yet.</li> : null}
               </ul>
               {top ? (
                 <div className="badge ok" style={{ marginTop: 8 }}>
-                  Recommendation: prioritize {top[0]} next week, then repurpose to your second-best channel.
+                  Recommendation: lead next week with {top[0]}, then repurpose the winning creative into the second-best channel.
                 </div>
               ) : null}
             </>

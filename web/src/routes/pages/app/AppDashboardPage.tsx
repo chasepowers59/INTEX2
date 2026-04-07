@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../../../lib/auth";
-import { apiFetch } from "../../../lib/api";
-import { StatCard } from "../../../components/ui/StatCard";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth";
 import { InlineBarChart } from "../../../components/ui/InlineBarChart";
+import { StatCard } from "../../../components/ui/StatCard";
 
 type Overview = {
   asOfUtc: string;
@@ -23,9 +23,6 @@ type OpsAlerts = {
     displayName: string;
     safehouseId: number;
     assignedSocialWorker: string | null;
-    lastHomeVisitDate: string | null;
-    lastProcessRecordingDate: string | null;
-    riskScore: number | null;
     riskBand: string | null;
     reasons: string[];
   }[];
@@ -48,66 +45,100 @@ type ProgramInsights = {
       campaignName: string | null;
       referrals: number;
       estimatedValuePhp: number;
-      isBoosted: boolean;
-      boostPhp: number;
     }[];
   };
+};
+
+type MlPredictionRow = {
+  label: string | null;
+};
+
+type SafehouseForecast = {
+  safehouseId: number;
+  name: string;
+  city: string | null;
+  currentOccupancy: number | null;
+  capacityGirls: number | null;
+  predictedIncidentsNextMonth: number;
 };
 
 export function AppDashboardPage() {
   const auth = useAuth();
   const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
+  const token = auth.token ?? undefined;
+
   const [data, setData] = useState<Overview | null>(null);
   const [alerts, setAlerts] = useState<OpsAlerts | null>(null);
   const [insights, setInsights] = useState<ProgramInsights | null>(null);
+  const [safehouseForecast, setSafehouseForecast] = useState<SafehouseForecast[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [readinessBands, setReadinessBands] = useState<string>("—");
+  const [readinessBands, setReadinessBands] = useState<string>("-");
 
   useEffect(() => {
-    if (!auth.token || !staff) return;
+    if (!token || !staff) return;
+
     (async () => {
-      const [res, ops, prog, readiness] = await Promise.allSettled([
-        apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined }),
-        apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token: auth.token ?? undefined }),
-        apiFetch<ProgramInsights>("/api/analytics/program-insights", { token: auth.token ?? undefined }),
-        apiFetch<any[]>("/api/ml/predictions?type=resident_reintegration_readiness&take=200", { token: auth.token ?? undefined }),
+      const [overviewRes, alertsRes, insightsRes, readinessRes, safehouseRes] = await Promise.allSettled([
+        apiFetch<Overview>("/api/analytics/overview", { token }),
+        apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token }),
+        apiFetch<ProgramInsights>("/api/analytics/program-insights", { token }),
+        apiFetch<MlPredictionRow[]>("/api/ml/predictions?type=resident_reintegration_readiness&take=200", { token }),
+        apiFetch<SafehouseForecast[]>("/api/ml/safehouse-forecast/top?take=5", { token }),
       ]);
 
-      if (res.status === "fulfilled") setData(res.value);
-      if (ops.status === "fulfilled") setAlerts(ops.value);
-      if (prog.status === "fulfilled") setInsights(prog.value);
-      if (readiness.status === "fulfilled") {
+      const errs: string[] = [];
+
+      if (overviewRes.status === "fulfilled") setData(overviewRes.value);
+      else errs.push(`Overview: ${(overviewRes.reason as Error).message}`);
+
+      if (alertsRes.status === "fulfilled") setAlerts(alertsRes.value);
+      else errs.push(`Operational alerts: ${(alertsRes.reason as Error).message}`);
+
+      if (insightsRes.status === "fulfilled") setInsights(insightsRes.value);
+      else errs.push(`Program insights: ${(insightsRes.reason as Error).message}`);
+
+      if (safehouseRes.status === "fulfilled") setSafehouseForecast(safehouseRes.value);
+      else errs.push(`Safehouse forecast: ${(safehouseRes.reason as Error).message}`);
+
+      if (readinessRes.status === "fulfilled") {
         const counts = new Map<string, number>();
-        for (const row of readiness.value) {
-          const band = (row.label ?? "Unknown") as string;
+        for (const row of readinessRes.value) {
+          const band = row.label ?? "Unknown";
           counts.set(band, (counts.get(band) ?? 0) + 1);
         }
-        const txt = [...counts.entries()]
+        const summary = [...counts.entries()]
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
-          .map(([k, v]) => `${k}:${v}`)
-          .join(" · ");
-        setReadinessBands(txt || "—");
+          .map(([label, count]) => `${label}:${count}`)
+          .join(" | ");
+        setReadinessBands(summary || "-");
+      } else {
+        errs.push(`Readiness: ${(readinessRes.reason as Error).message}`);
       }
 
-      const errs: string[] = [];
-      if (res.status === "rejected") errs.push(`Overview: ${(res.reason as Error)?.message ?? "failed"}`);
-      if (ops.status === "rejected") errs.push(`Operational alerts: ${(ops.reason as Error)?.message ?? "failed"}`);
-      if (prog.status === "rejected") errs.push(`Program insights: ${(prog.reason as Error)?.message ?? "failed"}`);
-      if (readiness.status === "rejected") errs.push(`Readiness: ${(readiness.reason as Error)?.message ?? "failed"}`);
-      if (errs.length > 0) {
-        setError(errs.join(" | "));
-      }
+      setError(errs.length ? errs.join(" | ") : null);
     })();
-  }, [auth.token, staff]);
+  }, [staff, token]);
+
+  const followUpCoveragePct =
+    data && data.activeResidents > 0
+      ? Math.max(0, ((data.activeResidents - data.checkInsDue30d) / data.activeResidents) * 100)
+      : null;
+
+  const readinessChart =
+    readinessBands === "-"
+      ? []
+      : readinessBands.split(" | ").map((entry) => {
+          const [label, raw] = entry.split(":");
+          return { label: label ?? "Unknown", value: Number(raw ?? 0) || 0 };
+        });
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <div className="card">
         <h1 style={{ marginTop: 0 }}>Operations Dashboard</h1>
         <p className="muted">
-          High-signal, privacy-first view of operations supporting South Korean victims: follow-up health, donor momentum,
-          and safety-critical alerts.
+          Leadership view across resident follow-up health, donor momentum, social ROI, and the current ML triage layer.
         </p>
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
@@ -124,30 +155,19 @@ export function AppDashboardPage() {
       <div className="card panel2-bg">
         <h2 style={{ marginTop: 0 }}>Operational trend charts</h2>
         <p className="muted" style={{ marginTop: 6 }}>
-          Live chart view for resident risk, readiness, and activity load. Use this section for daily triage and staffing decisions.
+          Daily triage view for resident risk, reintegration readiness, and workload.
         </p>
         <div className="row" style={{ marginTop: 12, alignItems: "stretch", gap: 12 }}>
           <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
             <div style={{ fontWeight: 800 }}>Resident incident risk distribution</div>
             <div style={{ marginTop: 10 }}>
-              <InlineBarChart
-                data={(data?.residentRisk.byBand ?? []).map((x) => ({ label: x.band, value: x.count }))}
-              />
+              <InlineBarChart data={(data?.residentRisk.byBand ?? []).map((x) => ({ label: x.band, value: x.count }))} />
             </div>
           </div>
           <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
             <div style={{ fontWeight: 800 }}>Reintegration readiness distribution</div>
             <div style={{ marginTop: 10 }}>
-              <InlineBarChart
-                data={(() => {
-                  if (readinessBands === "—") return [];
-                  return readinessBands.split(" · ").map((entry) => {
-                    const [label, raw] = entry.split(":");
-                    const value = Number(raw ?? 0);
-                    return { label: label ?? "Unknown", value: Number.isFinite(value) ? value : 0 };
-                  });
-                })()}
-              />
+              <InlineBarChart data={readinessChart} />
             </div>
           </div>
           <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
@@ -155,9 +175,9 @@ export function AppDashboardPage() {
             <div style={{ marginTop: 10 }}>
               <InlineBarChart
                 data={[
-                  { label: "Check-ins due (30d)", value: data?.checkInsDue30d ?? 0 },
-                  { label: "Process recordings (7d)", value: data?.processRecordings7d ?? 0 },
-                  { label: "Conferences (14d)", value: data?.upcomingConferences14d ?? 0 },
+                  { label: "Check-ins due", value: data?.checkInsDue30d ?? 0 },
+                  { label: "Process recordings", value: data?.processRecordings7d ?? 0 },
+                  { label: "Conferences", value: data?.upcomingConferences14d ?? 0 },
                   { label: "Open alerts", value: alerts?.items.length ?? 0 },
                 ]}
               />
@@ -169,18 +189,25 @@ export function AppDashboardPage() {
       <div className="admin-overview-grid">
         <div className="admin-overview-card">
           <div className="muted">Residents</div>
-          <div className="admin-overview-kpi">{data?.activeResidents ?? "—"}</div>
+          <div className="admin-overview-kpi">{data?.activeResidents ?? "-"}</div>
           <div className="muted">Active caseload count</div>
         </div>
         <div className="admin-overview-card">
           <div className="muted">Donations 30d</div>
-          <div className="admin-overview-kpi">{data?.donations30d.count ?? "—"}</div>
-          <div className="muted">{data ? `₱${data.donations30d.totalAmount.toFixed(0)} total` : "—"}</div>
+          <div className="admin-overview-kpi">{data?.donations30d.count ?? "-"}</div>
+          <div className="muted">
+            {data ? `PHP ${data.donations30d.totalAmount.toFixed(0)} total` : "-"}
+          </div>
         </div>
         <div className="admin-overview-card">
           <div className="muted">Check-ins due</div>
-          <div className="admin-overview-kpi">{data?.checkInsDue30d ?? "—"}</div>
+          <div className="admin-overview-kpi">{data?.checkInsDue30d ?? "-"}</div>
           <div className="muted">30-day follow-up window</div>
+        </div>
+        <div className="admin-overview-card">
+          <div className="muted">Follow-up coverage</div>
+          <div className="admin-overview-kpi">{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</div>
+          <div className="muted">Residents not overdue</div>
         </div>
         <div className="admin-overview-card">
           <div className="muted">Readiness bands</div>
@@ -192,49 +219,95 @@ export function AppDashboardPage() {
       <div className="card panel2-bg">
         <div style={{ fontWeight: 800 }}>Executive note</div>
         <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-          Use this dashboard to brief staff and partners on outcomes, risks, and stewardship while preserving survivor
-          privacy. Data shown here is operational and staff-only.
+          The strongest north-star operational metric in the current app is follow-up coverage. If that number drops,
+          residents are missing timely contact and the rest of the workflow quality follows it down.
         </p>
         <div className="row" style={{ marginTop: 10 }}>
           <Link className="btn" to="/app/cases">Employee case workflow</Link>
+          <Link className="btn" to="/app/action-center">ML action center</Link>
           <Link className="btn" to="/app/reports">Admin reporting and snapshots</Link>
-          <Link className="btn" to="/app/admin/users">Admin user CRUD</Link>
         </div>
       </div>
 
       <div className="kpi-grid">
-        <StatCard label="Active residents" value={data?.activeResidents ?? "—"} />
+        <StatCard label="Active residents" value={data?.activeResidents ?? "-"} />
         <StatCard
           label="Donations in last 30 days"
-          value={data ? `${data.donations30d.count}` : "—"}
-          hint={data ? `₱${data.donations30d.totalAmount.toFixed(2)} total` : undefined}
+          value={data ? `${data.donations30d.count}` : "-"}
+          hint={data ? `PHP ${data.donations30d.totalAmount.toFixed(2)} total` : undefined}
           tone="brand"
         />
-        <StatCard label="Check-ins due in 30 days" value={data?.checkInsDue30d ?? "—"} tone="warn" />
-        <StatCard label="Process recordings in 7 days" value={data?.processRecordings7d ?? "—"} tone="ok" />
-        <StatCard label="Case conferences in 14 days" value={data?.upcomingConferences14d ?? "—"} />
+        <StatCard label="Check-ins due in 30 days" value={data?.checkInsDue30d ?? "-"} tone="warn" />
+        <StatCard
+          label="Follow-up coverage"
+          value={followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}
+          hint="Share of active residents not overdue for a check-in"
+          tone="ok"
+        />
+        <StatCard label="Process recordings in 7 days" value={data?.processRecordings7d ?? "-"} tone="ok" />
+        <StatCard label="Case conferences in 14 days" value={data?.upcomingConferences14d ?? "-"} />
         <StatCard
           label="Resident incident risk bands"
-          value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" · ") || "—" : "—"}
+          value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" | ") || "-" : "-"}
           hint={data?.residentRisk.asOfUtc ? `As of ${new Date(data.residentRisk.asOfUtc).toLocaleString()}` : "No ML import yet"}
         />
         <StatCard label="Reintegration readiness bands" value={readinessBands} hint="From resident readiness ML imports" tone="ok" />
       </div>
 
+      <div className="card">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Safehouse forecast</h2>
+          <Link className="btn" to="/app/action-center">Full ML action center</Link>
+        </div>
+        <p className="muted" style={{ marginTop: 8 }}>
+          Forward-looking incident pressure from the ML pipeline, surfaced for staffing and capacity planning.
+        </p>
+        <div className="table-wrap" style={{ marginTop: 10 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Safehouse</th>
+                <th>Predicted incidents</th>
+                <th>Occupancy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {safehouseForecast.map((row) => (
+                <tr key={row.safehouseId}>
+                  <td data-label="Safehouse" style={{ fontWeight: 800 }}>
+                    {row.name}
+                    {row.city ? <span className="muted"> · {row.city}</span> : null}
+                  </td>
+                  <td data-label="Predicted incidents">{row.predictedIncidentsNextMonth.toFixed(2)}</td>
+                  <td data-label="Occupancy" className="muted">
+                    {row.currentOccupancy ?? "-"}
+                    {row.capacityGirls != null ? ` / ${row.capacityGirls}` : ""}
+                  </td>
+                </tr>
+              ))}
+              {safehouseForecast.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="muted">
+                    No safehouse forecast imported yet. Import `safehouse_incident_next_month` to populate this view.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {insights ? (
         <div className="card">
-          <h2 style={{ marginTop: 0 }}>Program outcomes &amp; stewardship signals</h2>
+          <h2 style={{ marginTop: 0 }}>Program outcomes and stewardship signals</h2>
           <p className="muted" style={{ marginTop: 6 }}>
-            Pulled from intervention plans, allocations, education/health records, incidents, and social posts—use this to
-            brief teams and tune campaigns. Updated {new Date(insights.asOfUtc).toLocaleString()}.
+            Pulled from intervention plans, allocations, education and health records, incidents, and social posts.
+            Updated {new Date(insights.asOfUtc).toLocaleString()}.
           </p>
 
           <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
             <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
-              <div style={{ fontWeight: 800 }}>Annual-report style pillars</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Mentions in services provided, plans can match multiple pillars.
-              </p>
+              <div style={{ fontWeight: 800 }}>Program pillars</div>
               <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
                 <li>Caring: {insights.servicesPillarMentions.caring}</li>
                 <li>Healing: {insights.servicesPillarMentions.healing}</li>
@@ -243,83 +316,59 @@ export function AppDashboardPage() {
               </ul>
             </div>
             <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
-              <div style={{ fontWeight: 800 }}>Resident outcomes (records)</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Education progress &amp; health scores across all monthly rows.
-              </p>
+              <div style={{ fontWeight: 800 }}>Resident outcomes</div>
               <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                <li>Avg education progress: {insights.education.avgProgressPercent ?? "—"}%</li>
+                <li>Avg education progress: {insights.education.avgProgressPercent ?? "-"}%</li>
                 <li>Completed education records: {insights.education.recordsCompleted}</li>
-                <li>Avg general health score: {insights.health.avgGeneralHealthScore ?? "—"}</li>
+                <li>Avg general health score: {insights.health.avgGeneralHealthScore ?? "-"}</li>
               </ul>
             </div>
             <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
               <div style={{ fontWeight: 800 }}>Safety in 90 days</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Open follow-ups: {insights.incidents90d.openFollowUps}
-              </p>
               <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                {insights.incidents90d.byType.slice(0, 5).map((r) => (
-                  <li key={r.incidentType}>
-                    {r.incidentType}: {r.count}
+                <li>Open follow-ups: {insights.incidents90d.openFollowUps}</li>
+                {insights.incidents90d.byType.slice(0, 4).map((row) => (
+                  <li key={row.incidentType}>
+                    {row.incidentType}: {row.count}
                   </li>
                 ))}
-                {insights.incidents90d.byType.length === 0 ? <li>No incidents in window</li> : null}
               </ul>
             </div>
           </div>
 
           <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
             <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>Donation allocations by program area</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Where pledged value is directed—helps explain impact to donors.
-              </p>
-              {(() => {
-                const rows = insights.donationAllocationsByProgram;
-                const max = Math.max(...rows.map((r) => r.totalPhp), 1);
-                return (
-                  <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-                    {rows.length === 0 ? <div className="muted">No allocation rows yet.</div> : null}
-                    {rows.map((r) => (
-                      <div key={r.programArea}>
-                        <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}>
-                          <span>{r.programArea}</span>
-                          <span className="muted">₱{r.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                        </div>
-                        <div className="mini-track">
-                          <div
-                            style={{
-                              width: `${Math.min(100, (r.totalPhp / max) * 100)}%`,
-                              height: "100%",
-                              background: "var(--brand)",
-                              borderRadius: 4,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+              <div style={{ fontWeight: 800 }}>Donation allocations by program</div>
+              <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                {insights.donationAllocationsByProgram.length === 0 ? <div className="muted">No allocation rows yet.</div> : null}
+                {insights.donationAllocationsByProgram.map((row) => (
+                  <div key={row.programArea}>
+                    <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}>
+                      <span>{row.programArea}</span>
+                      <span className="muted">PHP {row.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    </div>
+                    <div className="mini-track">
+                      <div
+                        style={{
+                          width: `${Math.min(100, (row.totalPhp / Math.max(...insights.donationAllocationsByProgram.map((r) => r.totalPhp), 1)) * 100)}%`,
+                          height: "100%",
+                          background: "var(--brand)",
+                          borderRadius: 4,
+                        }}
+                      />
+                    </div>
                   </div>
-                );
-              })()}
+                ))}
+              </div>
             </div>
             <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>Outreach ROI, dataset estimates</div>
-              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                Boost spend vs. modeled donation value from social posts.
-              </p>
+              <div style={{ fontWeight: 800 }}>Social ROI</div>
               <ul className="muted" style={{ margin: "10px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                <li>Total boost spend: ₱{insights.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
-                <li>Est. donation value: ₱{insights.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
-              </ul>
-              <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>Top referral posts</div>
-              <ul className="muted" style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.6 }}>
-                {insights.socialRoi.topPosts.length === 0 ? <li>None yet</li> : null}
-                {insights.socialRoi.topPosts.map((p) => (
-                  <li key={p.postId}>
-                    #{p.postId} {p.platform} · {p.postType}
-                    {p.campaignName ? ` · ${p.campaignName}` : ""} — ₱{p.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}{" "}
-                    {p.referrals} referrals
+                <li>Total boost spend: PHP {insights.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
+                <li>Estimated donation value: PHP {insights.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
+                {insights.socialRoi.topPosts.map((post) => (
+                  <li key={post.postId}>
+                    #{post.postId} {post.platform} {post.postType} - PHP {post.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })} from {post.referrals} referrals
                   </li>
                 ))}
               </ul>
@@ -327,12 +376,8 @@ export function AppDashboardPage() {
           </div>
 
           <div className="row" style={{ marginTop: 12, gap: 10 }}>
-            <Link className="btn" to="/app/reports">
-              Full reports &amp; publish snapshots
-            </Link>
-            <Link className="btn" to="/impact">
-              Preview public impact page
-            </Link>
+            <Link className="btn" to="/app/reports">Full reports and snapshots</Link>
+            <Link className="btn" to="/impact">Preview public impact page</Link>
           </div>
         </div>
       ) : null}
@@ -340,11 +385,8 @@ export function AppDashboardPage() {
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ marginTop: 0, marginBottom: 0 }}>Operational alerts</h2>
-          <Link className="btn" to="/app/action-center">
-            View ML Action Center
-          </Link>
+          <Link className="btn" to="/app/action-center">View ML action center</Link>
         </div>
-
         <p className="muted" style={{ marginTop: 8 }}>
           Prioritize follow-ups without exposing sensitive details.
         </p>
@@ -357,44 +399,27 @@ export function AppDashboardPage() {
                   <th>Resident</th>
                   <th>Safehouse</th>
                   <th>Worker</th>
+                  <th>Risk</th>
                   <th>Reasons</th>
-                  <th style={{ width: 260 }}>Quick links</th>
                 </tr>
               </thead>
               <tbody>
-                {alerts.items.map((x) => (
-                  <tr key={x.residentId}>
-                    <td data-label="Resident" style={{ fontWeight: 800 }}>
-                      {x.displayName}
-                    </td>
-                    <td data-label="Safehouse" className="muted">
-                      {x.safehouseId}
-                    </td>
-                    <td data-label="Worker" className="muted">
-                      {x.assignedSocialWorker ?? "—"}
-                    </td>
+                {alerts.items.map((row) => (
+                  <tr key={row.residentId}>
+                    <td data-label="Resident" style={{ fontWeight: 800 }}>{row.displayName}</td>
+                    <td data-label="Safehouse" className="muted">{row.safehouseId}</td>
+                    <td data-label="Worker" className="muted">{row.assignedSocialWorker ?? "-"}</td>
+                    <td data-label="Risk"><span className="badge">{row.riskBand ?? "Review"}</span></td>
                     <td data-label="Reasons">
                       <div className="row" style={{ gap: 8 }}>
-                        {x.reasons.map((r) => (
+                        {row.reasons.map((reason) => (
                           <span
-                            key={r}
-                            className={`badge ${
-                              r.includes("High incident risk") ? "danger" : r.includes("due") ? "warn" : "ok"
-                            }`}
+                            key={reason}
+                            className={`badge ${reason.includes("High incident risk") ? "danger" : reason.includes("due") ? "warn" : "ok"}`}
                           >
-                            {r}
+                            {reason}
                           </span>
                         ))}
-                      </div>
-                    </td>
-                    <td data-label="Quick links">
-                      <div className="row">
-                        <Link className="btn" to={`/app/residents/${x.residentId}/process-recordings`}>
-                          Process recordings
-                        </Link>
-                        <Link className="btn" to={`/app/residents/${x.residentId}/home-visits`}>
-                          Home visits
-                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -404,7 +429,7 @@ export function AppDashboardPage() {
           </div>
         ) : (
           <div className="muted" style={{ marginTop: 10 }}>
-            No alerts yet. Add home visits/process recordings, or import `resident_incident_30d` predictions.
+            No alerts yet. Add home visits and process recordings, or import `resident_incident_30d` predictions.
           </div>
         )}
       </div>

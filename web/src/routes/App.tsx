@@ -23,10 +23,12 @@ import { DonorPortalPage } from "./pages/app/DonorPortalPage";
 import { MlInsightsPage } from "./pages/app/MlInsightsPage";
 import { MlActionCenterPage } from "./pages/app/MlActionCenterPage";
 import { SocialMediaStrategyPage } from "./pages/app/SocialMediaStrategyPage";
+import { AccountSecurityPage } from "./pages/app/AccountSecurityPage";
 import { AdminUsersPage } from "./pages/app/AdminUsersPage";
 import { AdminAllocationsPage } from "./pages/app/AdminAllocationsPage";
 import { AdminPartnersPage } from "./pages/app/AdminPartnersPage";
 import { AdminPartnerAssignmentsPage } from "./pages/app/AdminPartnerAssignmentsPage";
+import { AdminLighthouseImportPage } from "./pages/app/AdminLighthouseImportPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 function ScrollToTop() {
@@ -71,6 +73,7 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route element={<AppLayout />}>
               <Route path="/app/donor" element={<DonorPortalPage />} />
+              <Route path="/app/security" element={<AccountSecurityPage />} />
               <Route element={<RequireStaff />}>
                 <Route path="/app/dashboard" element={<AppDashboardPage />} />
                 <Route path="/app/donors" element={<DonorsPage />} />
@@ -86,6 +89,7 @@ export function App() {
                   <Route path="/app/admin/allocations" element={<AdminAllocationsPage />} />
                   <Route path="/app/admin/partners" element={<AdminPartnersPage />} />
                   <Route path="/app/admin/partner-assignments" element={<AdminPartnerAssignmentsPage />} />
+                  <Route path="/app/admin/lighthouse-import" element={<AdminLighthouseImportPage />} />
                 </Route>
               </Route>
             </Route>
