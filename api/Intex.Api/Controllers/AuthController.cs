@@ -26,7 +26,7 @@ public sealed class AuthController(
     {
         try
         {
-            var loginId = (request.Username ?? "").Trim();
+            var loginId = (request.Username ?? request.Email ?? "").Trim();
             if (loginId.Length == 0 || string.IsNullOrEmpty(request.Password))
             {
                 return BadRequest(new { message = "Email (or username) and password are required." });
