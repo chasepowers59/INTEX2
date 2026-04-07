@@ -25,8 +25,8 @@ export function LoginPage() {
       </p>
 
       <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-        <span className="muted">Username</span>
-        <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+        <span className="muted">Email</span>
+        <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" type="email" />
       </label>
 
       <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
