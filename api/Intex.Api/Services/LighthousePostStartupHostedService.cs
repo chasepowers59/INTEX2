@@ -5,8 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Intex.Api.Services;
 
 /// <summary>
-/// Runs Lighthouse CSV import after the web server is listening so Azure startup probes succeed.
-/// Heavy import before <c>app.Run()</c> can exceed the platform startup window and surface as HTTP 503.
+/// When <c>LighthouseImport:SyncBeforeSeed</c> is <see langword="false"/>, runs Lighthouse CSV import after the server listens
+/// (avoids long startup / HTTP 503 on Azure). When <see langword="true"/> (default), import runs in <c>Program.cs</c> before seed;
+/// this service only reconciles migration diagnostics.
 /// </summary>
 public sealed class LighthousePostStartupHostedService(
     IServiceProvider services,
@@ -49,6 +50,11 @@ public sealed class LighthousePostStartupHostedService(
         }
 
         if (!configuration.GetValue("LighthouseImport:AutoImportIfEmpty", true))
+        {
+            return;
+        }
+
+        if (configuration.GetValue("LighthouseImport:SyncBeforeSeed", true))
         {
             return;
         }

@@ -21,6 +21,7 @@
   },
   "LighthouseImport": {
     "AutoImportIfEmpty": true,
+    "SyncBeforeSeed": true,
     "SourceDirectory": ""
   },
   "Seed": {

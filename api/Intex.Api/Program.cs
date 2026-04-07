@@ -204,15 +204,25 @@ app.MapGet("/health/info", async (IConfiguration config, IServiceProvider sp) =>
 
     var seedAdminOk = SeedPair(config, "AdminEmail", "AdminPassword");
     int? aspNetUserCount = null;
+    int? supporterRowCount = null;
+    int? residentRowCount = null;
+    int? safehouseRowCount = null;
     try
     {
         await using var scope = sp.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var um = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        aspNetUserCount = await um.Users.CountAsync();
+        if (await db.Database.CanConnectAsync())
+        {
+            aspNetUserCount = await um.Users.CountAsync();
+            supporterRowCount = await db.Supporters.CountAsync();
+            residentRowCount = await db.Residents.CountAsync();
+            safehouseRowCount = await db.Safehouses.CountAsync();
+        }
     }
     catch
     {
-        // DB unavailable — leave null
+        // DB unavailable — leave nulls
     }
 
     return Results.Ok(new
@@ -231,6 +241,10 @@ app.MapGet("/health/info", async (IConfiguration config, IServiceProvider sp) =>
         seedAdminConfiguredButNoUsers = seedAdminOk && aspNetUserCount == 0,
         identityPasswordRequiredLength = config.GetValue("Identity:Password:RequiredLength", 12),
         lighthouseAutoImportIfEmpty = config.GetValue("LighthouseImport:AutoImportIfEmpty", true),
+        lighthouseSyncBeforeSeed = config.GetValue("LighthouseImport:SyncBeforeSeed", true),
+        supporterRowCount,
+        residentRowCount,
+        safehouseRowCount,
         nowUtc = DateTime.UtcNow
     });
 });
@@ -415,10 +429,43 @@ else
     StartupMigrationDiagnostics.ErrorMessage = null;
 }
 
-// Lighthouse CSV import runs in LighthousePostStartupHostedService after the server listens (avoids Azure 503 during long import).
+// Lighthouse CSV: run before SeedData when SyncBeforeSeed=true (default). Otherwise seed (e.g. donor Supporter) can make
+// Supporters non-empty and the post-startup import skips — leaving charts empty. Set LighthouseImport:SyncBeforeSeed=false
+// to defer import until after app.Run (avoids long startup on Azure; do not combine with donor seed before import).
 
 if (app.Configuration.GetValue("Database:AutoMigrate", true))
 {
+    try
+    {
+        await using (var reconcileScope = app.Services.CreateAsyncScope())
+        {
+            var db = reconcileScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            if (await db.Database.CanConnectAsync())
+            {
+                var pending = await db.Database.GetPendingMigrationsAsync();
+                StartupMigrationDiagnostics.ReconcileStaleFailureIfNoPendingMigrations(pending.Count());
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not reconcile EF migration diagnostics before Lighthouse CSV import.");
+    }
+
+    if ((StartupMigrationDiagnostics.Outcome == StartupMigrationDiagnostics.OutcomeOk
+         || StartupMigrationDiagnostics.Outcome == StartupMigrationDiagnostics.OutcomeSkipped)
+        && app.Configuration.GetValue("LighthouseImport:SyncBeforeSeed", true))
+    {
+        try
+        {
+            await LighthouseStartupImport.TryAutoImportIfEmptyAsync(app.Services, app.Configuration, app.Logger);
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Lighthouse CSV auto-import failed with an unexpected error.");
+        }
+    }
+
     try
     {
         await SeedData.EnsureSeededAsync(app.Services, app.Configuration);
