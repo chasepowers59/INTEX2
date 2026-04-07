@@ -116,9 +116,6 @@ export function DonorPortalPage() {
             <Link className="btn" to="/impact">
               Public impact
             </Link>
-            <Link className="btn" to="/app/ml">
-              View ML transparency
-            </Link>
           </div>
 
           <div className="donor-hero-metrics">

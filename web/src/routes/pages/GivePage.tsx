@@ -38,6 +38,7 @@ export function GivePage() {
   const signInToDonate = () => {
     nav("/login", { state: { from: loc.pathname } });
   };
+  const donorLoggedIn = auth.isAuthenticated && auth.hasRole("Donor");
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -49,17 +50,39 @@ export function GivePage() {
           Give with confidence and compassion
         </h1>
         <p className="muted" style={{ fontSize: 16, lineHeight: 1.6, maxWidth: 760, margin: 0 }}>
-          Your gift supports safe shelter, case follow-up, and recovery services for South Korean victims. Create a{" "}
-          <strong>donor account</strong> in one minute—we assign the <strong>Donor</strong> role automatically so you can
-          donate here and open <em>your</em> portal with receipts and anonymized allocations. No resident-level data.
+          Your gift supports safe shelter, case follow-up, and recovery services for South Korean victims.{" "}
+          {donorLoggedIn ? (
+            <>
+              You are signed in as a <strong>Donor</strong>, so you can donate now and open <em>your</em> portal with
+              receipts and anonymized allocations.
+            </>
+          ) : (
+            <>
+              Create a <strong>donor account</strong> in one minute—we assign the <strong>Donor</strong> role
+              automatically so you can donate here and open <em>your</em> portal with receipts and anonymized allocations.
+            </>
+          )}{" "}
+          No resident-level data.
         </p>
         <div className="row" style={{ marginTop: 18, flexWrap: "wrap" }}>
-          <Link className="btn primary" to="/register" state={{ from: loc.pathname }}>
-            Create donor account
-          </Link>
-          <button className="btn" type="button" onClick={signInToDonate}>
-            Sign in to donate
-          </button>
+          {!auth.isAuthenticated ? (
+            <>
+              <Link className="btn primary" to="/register" state={{ from: loc.pathname }}>
+                Create donor account
+              </Link>
+              <button className="btn" type="button" onClick={signInToDonate}>
+                Sign in to donate
+              </button>
+            </>
+          ) : donorLoggedIn ? (
+            <Link className="btn primary" to="/app/donor">
+              Open donor portal
+            </Link>
+          ) : (
+            <Link className="btn primary" to="/app/dashboard">
+              Staff dashboard
+            </Link>
+          )}
           <Link className="btn" to="/impact">
             Public impact first
           </Link>

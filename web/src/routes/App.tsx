@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "../lib/auth";
 import { AppLayout, PublicLayout } from "./layouts";
-import { RequireAuth, RequireStaff } from "./guards";
+import { RequireAdmin, RequireAuth, RequireStaff } from "./guards";
 import { HomePage } from "./pages/HomePage";
 import { ImpactPage } from "./pages/ImpactPage";
 import { GivePage } from "./pages/GivePage";
@@ -59,10 +59,12 @@ export function App() {
                 <Route path="/app/ml" element={<MlInsightsPage />} />
                 <Route path="/app/social-media" element={<SocialMediaStrategyPage />} />
                 <Route path="/app/action-center" element={<MlActionCenterPage />} />
-                <Route path="/app/admin/users" element={<AdminUsersPage />} />
-                <Route path="/app/admin/allocations" element={<AdminAllocationsPage />} />
-                <Route path="/app/admin/partners" element={<AdminPartnersPage />} />
-                <Route path="/app/admin/partner-assignments" element={<AdminPartnerAssignmentsPage />} />
+                <Route element={<RequireAdmin />}>
+                  <Route path="/app/admin/users" element={<AdminUsersPage />} />
+                  <Route path="/app/admin/allocations" element={<AdminAllocationsPage />} />
+                  <Route path="/app/admin/partners" element={<AdminPartnersPage />} />
+                  <Route path="/app/admin/partner-assignments" element={<AdminPartnerAssignmentsPage />} />
+                </Route>
               </Route>
             </Route>
           </Route>

@@ -50,6 +50,29 @@ export function RequireStaff() {
   );
 }
 
+export function RequireAdmin() {
+  const auth = useAuth();
+  const loc = useLocation();
+
+  if (!auth.isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  }
+
+  if (auth.hasRole("Admin")) {
+    return <Outlet />;
+  }
+
+  if (auth.hasRole("Employee")) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
+
+  if (auth.hasRole("Donor")) {
+    return <Navigate to="/app/donor" replace />;
+  }
+
+  return <Navigate to="/" replace />;
+}
+
 export function RequireRole(props: { role: string; children: React.ReactNode }) {
   const auth = useAuth();
 

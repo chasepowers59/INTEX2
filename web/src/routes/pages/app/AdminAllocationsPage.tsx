@@ -47,6 +47,12 @@ export function AdminAllocationsPage() {
   const [selectedAllocations, setSelectedAllocations] = useState<number[]>([]);
   const [page, setPage] = useState(1);
   const [recentContributions, setRecentContributions] = useState<RecentContribution[]>([]);
+  const [confirmation, setConfirmation] = useState<{
+    allocationId: number;
+    supporterId: number;
+    category: string;
+    amount: string;
+  } | null>(null);
 
   const load = async () => {
     setError(null);
@@ -165,7 +171,7 @@ export function AdminAllocationsPage() {
                   return;
                 }
                 try {
-                  await apiFetch("/api/impact-allocations", {
+                  const res = await apiFetch<{ impactAllocationId: number }>("/api/impact-allocations", {
                     method: "POST",
                     token: auth.token ?? undefined,
                     body: JSON.stringify({
@@ -178,6 +184,12 @@ export function AdminAllocationsPage() {
                       currency: currency.trim() || "PHP",
                       notes: notes.trim() || null,
                     }),
+                  });
+                  setConfirmation({
+                    allocationId: res.impactAllocationId,
+                    supporterId: sid,
+                    category: category.trim(),
+                    amount: `${amt} ${currency.trim() || "PHP"}`,
                   });
                   setAmount("");
                   setNotes("");
@@ -317,6 +329,37 @@ export function AdminAllocationsPage() {
           />
         </div>
       </div>
+      {confirmation ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(5,8,20,0.55)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 1000,
+            padding: 16,
+          }}
+        >
+          <div className="card" style={{ maxWidth: 520, width: "100%" }}>
+            <h2 style={{ marginTop: 0 }}>Allocation confirmed</h2>
+            <p className="muted" style={{ lineHeight: 1.6 }}>
+              The allocation was saved successfully and is now visible in donor-facing allocation views.
+            </p>
+            <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
+              <span className="badge ok">Allocation ID: {confirmation.allocationId}</span>
+              <span className="badge">Supporter #{confirmation.supporterId}</span>
+              <span className="badge">{confirmation.category}</span>
+              <span className="badge">{confirmation.amount}</span>
+            </div>
+            <div className="row" style={{ marginTop: 14 }}>
+              <button className="btn primary" onClick={() => setConfirmation(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </RequireRole>
   );
 }

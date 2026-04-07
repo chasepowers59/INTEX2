@@ -20,25 +20,7 @@ export function LoginPage() {
   }, [auth, nav]);
 
   return (
-    <div className="auth-split">
-      <div className="auth-aside">
-        <h2>Welcome back</h2>
-        <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
-          <strong>Staff</strong> sign in for operations tools. <strong>Donors</strong> sign in for giving history and impact.
-        </p>
-        <div className="badge brand" style={{ marginTop: 16 }}>
-          Role-based access: Admin · Employee · Donor
-        </div>
-        <div className="row" style={{ marginTop: 20 }}>
-          <Link className="btn primary" to="/register">
-            New? Create donor account
-          </Link>
-          <Link className="btn" to="/impact">
-            Public impact
-          </Link>
-        </div>
-      </div>
-
+    <div style={{ maxWidth: 540, margin: "0 auto" }}>
       <div className="card auth-panel">
         <h1 style={{ marginTop: 0, fontSize: 26, letterSpacing: "-0.02em" }}>Sign in</h1>
         <p className="muted" style={{ marginTop: 0 }}>
