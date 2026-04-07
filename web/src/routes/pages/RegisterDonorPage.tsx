@@ -2,6 +2,16 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
+function validatePassword(password: string): string | null {
+  if (password.length < 12) return "Password must be at least 12 characters.";
+  if (!/[a-z]/.test(password)) return "Password must include a lowercase letter.";
+  if (!/[A-Z]/.test(password)) return "Password must include an uppercase letter.";
+  if (!/\d/.test(password)) return "Password must include a number.";
+  if (!/[^A-Za-z0-9]/.test(password)) return "Password must include a symbol.";
+  if (new Set(password).size < 4) return "Password must include at least 4 unique characters.";
+  return null;
+}
+
 export function RegisterDonorPage() {
   const auth = useAuth();
   const nav = useNavigate();
@@ -29,6 +39,11 @@ export function RegisterDonorPage() {
     setError(null);
     if (password !== confirm) {
       setError("Passwords do not match.");
+      return;
+    }
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     setLoading(true);
@@ -122,7 +137,7 @@ export function RegisterDonorPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              placeholder="At least 14 characters"
+              placeholder="12+ chars with upper, lower, number, symbol"
             />
           </label>
           <label className="field-stack">
@@ -139,7 +154,8 @@ export function RegisterDonorPage() {
         </div>
 
         <p className="password-hint">
-          Passwords must be at least <strong>14 characters</strong>. No symbol, number, or capitalization mix is required.
+          Passwords must be at least <strong>12 characters</strong> and include an uppercase letter, lowercase letter,
+          number, symbol, and at least 4 unique characters.
         </p>
 
         <details className="optional-block register-optional-block">

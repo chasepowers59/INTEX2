@@ -31,6 +31,7 @@ output/ml-predictions/eda-plots/
 
 # Python
 __pycache__/
+*.pyc
 
 # IDE
 .idea/
