@@ -19,6 +19,7 @@ def code(s: str) -> dict[str, Any]:
 
 COMMON = r'''
 import json
+import os
 import re
 from pathlib import Path
 import warnings
@@ -60,6 +61,51 @@ def as_bool(series):
     if series.dtype == bool:
         return series.fillna(False)
     return series.astype(str).str.lower().isin(["true", "1", "yes", "y"])
+# After POST /api/admin/lighthouse-import, train from Azure SQL by setting INTEX_ODBC to your ODBC connection string.
+SQL_TABLE_BY_STEM = {
+    "supporters": "Supporters",
+    "donations": "Contributions",
+    "social_media_posts": "SocialMediaPosts",
+    "safehouse_monthly_metrics": "SafehouseMonthlyMetrics",
+    "residents": "Residents",
+    "incident_reports": "IncidentReports",
+    "home_visitations": "HomeVisitations",
+    "process_recordings": "ProcessRecordings",
+    "education_records": "EducationRecords",
+    "health_wellbeing_records": "HealthWellbeingRecords",
+}
+
+
+def load_df(stem: str) -> pd.DataFrame:
+    odbc = os.environ.get("INTEX_ODBC")
+    table = SQL_TABLE_BY_STEM.get(stem)
+    if odbc and table:
+        try:
+            import pyodbc
+
+            with pyodbc.connect(odbc, timeout=120) as cnx:
+                df = pd.read_sql(f"SELECT * FROM [{table}]", cnx)
+            print(f"DB [{table}] rows:", len(df))
+            if len(df) > 0:
+
+                def pascal_to_snake(name: str) -> str:
+                    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+                df = df.rename(columns={c: pascal_to_snake(str(c)) for c in df.columns})
+                if stem == "donations":
+                    df = df.rename(columns={"contribution_id": "donation_id"})
+                if stem == "process_recordings":
+                    df = df.rename(columns={"process_recording_id": "recording_id"})
+                if stem == "home_visitations":
+                    df = df.rename(columns={"home_visitation_id": "visitation_id"})
+                return df
+        except Exception as ex:
+            print("INTEX_ODBC failed, using CSV:", ex)
+    return require_csv(stem)
+
+
+def to_date(s: pd.Series) -> pd.Series:
+    return pd.to_datetime(s, errors="coerce").dt.date
 
 def numeric(series, fill_value=0.0):
     return pd.to_numeric(series, errors="coerce").fillna(fill_value)
@@ -377,6 +423,10 @@ DONOR_LAPSE = {
 r'''
 supporters = require_csv("supporters")
 donations = require_csv("donations")
+PIPELINE_1 = [
+    r"""
+supporters = load_df("supporters")
+        donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 donations = donations.dropna(subset=["donation_date", "supporter_id"]).copy()
 donations["amount"] = numeric(donations["amount"])
@@ -474,6 +524,10 @@ DONOR_UPGRADE = {
 r'''
 supporters = require_csv("supporters")
 donations = require_csv("donations")
+PIPELINE_2 = [
+    r"""
+supporters = load_df("supporters")
+        donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 mon = donations[donations["donation_type"] == "Monetary"].copy()
 mon["amount"] = numeric(mon["amount"])
@@ -581,6 +635,10 @@ NEXT_BEST_CHANNEL = {
 r'''
 supporters = require_csv("supporters")
 donations = require_csv("donations")
+PIPELINE_3 = [
+    r"""
+supporters = load_df("supporters")
+        donations = load_df("donations")
 donations["donation_date"] = pd.to_datetime(donations["donation_date"], errors="coerce")
 donations = donations.dropna(subset=["donation_date","supporter_id","channel_source"]).sort_values(["supporter_id","donation_date"]).copy()
 donations["amount"] = numeric(donations["amount"])
@@ -678,6 +736,9 @@ SOCIAL_REFERRALS = {
     "data": [
 r'''
 posts = require_csv("social_media_posts")
+PIPELINE_4 = [
+    r"""
+posts = load_df("social_media_posts")
 posts["created_at"] = pd.to_datetime(posts["created_at"], errors="coerce")
 posts = posts.dropna(subset=["created_at"]).sort_values("created_at").copy()
 target = "estimated_donation_value_php"
@@ -757,6 +818,9 @@ SAFEHOUSE_FORECAST = {
     "data": [
 r'''
 metrics = require_csv("safehouse_monthly_metrics")
+PIPELINE_5 = [
+    r"""
+metrics = load_df("safehouse_monthly_metrics")
 metrics["month_start"] = pd.to_datetime(metrics["month_start"], errors="coerce")
 metrics = metrics.dropna(subset=["month_start"]).sort_values(["safehouse_id","month_start"]).copy()
 num_base = ["active_residents","avg_education_progress","avg_health_score","process_recording_count","home_visitation_count","incident_count"]
@@ -839,6 +903,15 @@ visits = require_csv("home_visitations")
 recordings = require_csv("process_recordings")
 edu = require_csv("education_records")
 health = require_csv("health_wellbeing_records")
+PIPELINE_6 = [
+    r"""
+residents = load_df("residents")
+        incidents = load_df("incident_reports")
+        visits = load_df("home_visitations")
+        recordings = load_df("process_recordings")
+        edu = load_df("education_records")
+        health = load_df("health_wellbeing_records")
+
 incidents["incident_date"] = pd.to_datetime(incidents["incident_date"], errors="coerce")
 visits["visit_date"] = pd.to_datetime(visits["visit_date"], errors="coerce")
 recordings["session_date"] = pd.to_datetime(recordings["session_date"], errors="coerce")

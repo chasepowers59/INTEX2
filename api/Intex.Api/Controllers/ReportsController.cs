@@ -1,3 +1,4 @@
+using Intex.Api.Auth;
 using Intex.Api.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/reports")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class ReportsController(AppDbContext db) : ControllerBase
 {
     [HttpGet("donations-by-month")]
@@ -24,7 +25,7 @@ public sealed class ReportsController(AppDbContext db) : ControllerBase
             {
                 year = g.Key.Year,
                 month = g.Key.Month,
-                totalAmount = g.Sum(x => x.Amount),
+                totalAmount = g.Sum(x => x.Amount ?? 0m),
                 count = g.Count()
             })
             .ToListAsync();

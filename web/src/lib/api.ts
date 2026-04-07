@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
-export type ApiError = { message: string };
+export type ApiError = { message?: string; log?: string[] };
 
 function requireApiBaseUrl(): string {
   if (!API_BASE_URL) throw new Error("Missing VITE_API_BASE_URL");
@@ -18,13 +18,21 @@ export async function apiFetch<T>(
   headers.set("Content-Type", "application/json");
   if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
 
-  const res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch {
+    throw new Error(
+      "Network error (Failed to fetch). Check API URL, HTTPS, and CORS settings on the API (App Service).",
+    );
+  }
 
   if (!res.ok) {
     let msg = `Request failed (${res.status})`;
     try {
       const json = (await res.json()) as ApiError;
       if (json?.message) msg = json.message;
+      if (json?.log?.length) msg += `\n\n${json.log.join("\n")}`;
     } catch {
       // ignore
     }
@@ -34,4 +42,3 @@ export async function apiFetch<T>(
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
-

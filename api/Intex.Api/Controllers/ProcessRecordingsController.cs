@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/process-recordings")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class ProcessRecordingsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]

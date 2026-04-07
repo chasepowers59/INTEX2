@@ -19,4 +19,3 @@ public sealed class PublicImpactSnapshot
 
     public DateOnly? PublishedAt { get; set; }
 }
-

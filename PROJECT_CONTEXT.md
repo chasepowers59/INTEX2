@@ -4,7 +4,7 @@ This file is a quick “memory” for future teammates (and AI assistants) so wo
 
 ## What we’re building
 
-Product: **Sanctuary Leadership Portal** for a safehouse nonprofit.
+Product: **Steps of Hope Leadership Portal** for a safehouse nonprofit.
 
 Operating location assumption for this team/project:
 - **South Korea** (use KR locale conventions where relevant: time zone, date/time formats, and Azure region selection).
@@ -158,7 +158,7 @@ Frontend:
 API:
 - `POST /api/auth/login`, `GET /api/auth/me`
 - Public impact snapshots: `GET /api/public/impact-snapshots`
-- Auth-protected CRUD endpoints for supporters, contributions, residents, process recordings, home visitations, case conferences
+- Auth-protected CRUD endpoints for supporters, contributions, residents, process recordings, home visitations, case conferences (**staff-only**: `Admin` or `Employee` via policy `StaffOnly`; `Donor` uses `/api/donor/*` only)
 - Delete confirmation enforced via `?confirm=true`
 - Dashboard/report endpoints: `/api/admin-dashboard/*`, `/api/reports/*`
 
@@ -170,10 +170,24 @@ API (App Service “Configuration”):
 - `ConnectionStrings__AppDb` (Azure SQL)
 - `Jwt__Key`, `Jwt__Issuer`, `Jwt__Audience`
 - `Cors__AllowedOrigins__0` = SWA URL
-- Optional seed users: `Seed__AdminEmail`, `Seed__AdminPassword`, `Seed__EmployeeEmail`, `Seed__EmployeePassword`
+- Optional seed users: `Seed__AdminEmail`, `Seed__AdminPassword`, `Seed__EmployeeEmail`, `Seed__EmployeePassword`, `Seed__DonorEmail`, `Seed__DonorPassword`
+- If a seeded user already exists, changing the App Service password alone does not update Identity until you set `Seed__SyncPasswords=true` for one restart (then turn off), or delete the user. Use `Seed__ClearLockouts=true` to recover from lockout after bad attempts.
 
 Web (SWA env vars):
 - `VITE_API_BASE_URL` = App Service API URL
+
+Operational checks:
+- API `GET /health` = API is up
+- API `GET /health/db` = API can connect to SQL (503 if not)
+
+Analytics endpoints:
+- `GET /api/analytics/overview` (dashboard KPIs)
+- `GET /api/analytics/ops-alerts` (follow-up alerts; anonymized)
+
+Admin features:
+- Admin-managed accounts (no public registration): `GET/POST /api/admin/users/*`
+- Passwords are hashed by ASP.NET Identity (never stored in plaintext).
+- Donor linking: Admin can link a donor login to `SupporterId` (`POST /api/admin/users/link-donor`) to enable donor portal history; **not allowed on Admin accounts**. With `Seed:DemoData` true and `Seed:DonorEmail` set, startup creates/links a `Supporter` and sample `Contribution` / `ImpactAllocation` rows for that donor when the seeded donor user exists.
 
 ## Deployment
 

@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/supporters")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class SupportersController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
@@ -45,6 +45,8 @@ public sealed class SupportersController(AppDbContext db) : ControllerBase
     {
         input.SupporterId = 0;
         input.CreatedAtUtc = DateTime.UtcNow;
+        if (string.IsNullOrWhiteSpace(input.DisplayName))
+            input.DisplayName = input.FullName;
 
         db.Supporters.Add(input);
         await db.SaveChangesAsync();
@@ -66,6 +68,7 @@ public sealed class SupportersController(AppDbContext db) : ControllerBase
         if (item is null) return NotFound();
 
         item.FullName = input.FullName;
+        item.DisplayName = string.IsNullOrWhiteSpace(input.DisplayName) ? input.FullName : input.DisplayName;
         item.Email = input.Email;
         item.SupporterType = input.SupporterType;
         item.IsActive = input.IsActive;

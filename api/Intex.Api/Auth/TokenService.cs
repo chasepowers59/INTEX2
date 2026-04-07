@@ -14,6 +14,14 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions)
 
     public string CreateToken(AppUser user, IList<string> roles)
     {
+        var keyBytes = Encoding.UTF8.GetBytes(_jwt.Key ?? "");
+        if (keyBytes.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "Jwt:Key must be at least 32 UTF-8 bytes for HMAC-SHA256. Without it, login succeeds in Identity then fails when signing the JWT (HTTP 500). " +
+                "Set Jwt__Key on the host (e.g. Azure App Settings) or Jwt:Key in appsettings.Development.json.");
+        }
+
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
@@ -26,8 +34,6 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
         }
-
-        var keyBytes = Encoding.UTF8.GetBytes(_jwt.Key);
         var signingKey = new SymmetricSecurityKey(keyBytes);
         var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 

@@ -1,83 +1,321 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth";
 import { apiFetch } from "../../../lib/api";
+import { StatCard } from "../../../components/ui/StatCard";
+import { Link } from "react-router-dom";
 
-type Summary = {
+type Overview = {
+  asOfUtc: string;
   activeResidents: number;
-  recentDonations: number;
-  upcomingConferences: number;
-  bySafehouse: { safehouseId: number; activeResidents: number }[];
+  donations30d: { count: number; totalAmount: number };
+  processRecordings7d: number;
+  upcomingConferences14d: number;
+  checkInsDue30d: number;
+  donorLapse: { asOfUtc: string | null; byBand: { band: string; count: number }[] };
+  residentRisk: { asOfUtc: string | null; byBand: { band: string; count: number }[] };
+};
+
+type OpsAlerts = {
+  asOfUtc: string;
+  items: {
+    residentId: number;
+    displayName: string;
+    safehouseId: number;
+    assignedSocialWorker: string | null;
+    lastHomeVisitDate: string | null;
+    lastProcessRecordingDate: string | null;
+    riskScore: number | null;
+    riskBand: string | null;
+    reasons: string[];
+  }[];
+};
+
+type ProgramInsights = {
+  asOfUtc: string;
+  servicesPillarMentions: { caring: number; healing: number; teaching: number; legal: number; plansWithServicesText: number };
+  donationAllocationsByProgram: { programArea: string; totalPhp: number }[];
+  education: { avgProgressPercent: number | null; recordsCompleted: number };
+  health: { avgGeneralHealthScore: number | null };
+  incidents90d: { from: string; openFollowUps: number; byType: { incidentType: string; count: number }[] };
+  socialRoi: {
+    totalBoostSpendPhp: number;
+    totalEstimatedDonationValuePhp: number;
+    topPosts: {
+      postId: number;
+      platform: string;
+      postType: string;
+      campaignName: string | null;
+      referrals: number;
+      estimatedValuePhp: number;
+      isBoosted: boolean;
+      boostPhp: number;
+    }[];
+  };
 };
 
 export function AppDashboardPage() {
   const auth = useAuth();
-  const [data, setData] = useState<Summary | null>(null);
+  const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
+  const [data, setData] = useState<Overview | null>(null);
+  const [alerts, setAlerts] = useState<OpsAlerts | null>(null);
+  const [insights, setInsights] = useState<ProgramInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!auth.token || !staff) return;
     (async () => {
-      try {
-        const res = await apiFetch<Summary>("/api/admin-dashboard/summary", { token: auth.token ?? undefined });
-        setData(res);
-      } catch (e) {
-        setError((e as Error).message);
+      const [res, ops, prog] = await Promise.allSettled([
+        apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined }),
+        apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token: auth.token ?? undefined }),
+        apiFetch<ProgramInsights>("/api/analytics/program-insights", { token: auth.token ?? undefined }),
+      ]);
+
+      if (res.status === "fulfilled") setData(res.value);
+      if (ops.status === "fulfilled") setAlerts(ops.value);
+      if (prog.status === "fulfilled") setInsights(prog.value);
+
+      const errs: string[] = [];
+      if (res.status === "rejected") errs.push(`Overview: ${(res.reason as Error)?.message ?? "failed"}`);
+      if (ops.status === "rejected") errs.push(`Operational alerts: ${(ops.reason as Error)?.message ?? "failed"}`);
+      if (prog.status === "rejected") errs.push(`Program insights: ${(prog.reason as Error)?.message ?? "failed"}`);
+      if (errs.length > 0) {
+        setError(errs.join(" | "));
       }
     })();
-  }, [auth.token]);
+  }, [auth.token, staff]);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Admin Dashboard</h1>
+        <h1 style={{ marginTop: 0 }}>Leadership Dashboard</h1>
         <p className="muted">
-          Command center view for leadership: residents across safehouses, donation activity, and upcoming case
-          conferences.
+          High-signal, privacy-first view of operations supporting South Korean victims: follow-up health, donor momentum,
+          and safety-critical alerts.
         </p>
-        {error ? <div className="badge" style={{ borderColor: "var(--danger)" }}>{error}</div> : null}
+        {error ? (
+          <div className="badge danger" style={{ marginTop: 10 }}>
+            {error}
+          </div>
+        ) : null}
+        {data ? (
+          <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
+            Updated {new Date(data.asOfUtc).toLocaleString()}
+          </div>
+        ) : null}
       </div>
 
-      <div className="row">
-        <div className="card" style={{ flex: 1, minWidth: 220 }}>
-          <div className="muted">Active residents</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{data?.activeResidents ?? "—"}</div>
-        </div>
-        <div className="card" style={{ flex: 1, minWidth: 220 }}>
-          <div className="muted">Monetary donations (last 30d)</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{data?.recentDonations ?? "—"}</div>
-        </div>
-        <div className="card" style={{ flex: 1, minWidth: 220 }}>
-          <div className="muted">Upcoming conferences (14d)</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>{data?.upcomingConferences ?? "—"}</div>
-        </div>
+      <div className="card" style={{ background: "var(--panel2)" }}>
+        <div style={{ fontWeight: 800 }}>Executive note</div>
+        <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+          Use this dashboard to brief leadership and partners on outcomes, risks, and stewardship while preserving survivor
+          privacy. Data shown here is operational and staff-only.
+        </p>
       </div>
+
+      <div className="kpi-grid">
+        <StatCard label="Active residents" value={data?.activeResidents ?? "—"} />
+        <StatCard
+          label="Donations in last 30 days"
+          value={data ? `${data.donations30d.count}` : "—"}
+          hint={data ? `₱${data.donations30d.totalAmount.toFixed(2)} total` : undefined}
+          tone="brand"
+        />
+        <StatCard label="Check-ins due in 30 days" value={data?.checkInsDue30d ?? "—"} tone="warn" />
+        <StatCard label="Process recordings in 7 days" value={data?.processRecordings7d ?? "—"} tone="ok" />
+        <StatCard label="Case conferences in 14 days" value={data?.upcomingConferences14d ?? "—"} />
+        <StatCard
+          label="Resident incident risk bands"
+          value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" · ") || "—" : "—"}
+          hint={data?.residentRisk.asOfUtc ? `As of ${new Date(data.residentRisk.asOfUtc).toLocaleString()}` : "No ML import yet"}
+        />
+      </div>
+
+      {insights ? (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Program outcomes &amp; stewardship signals</h2>
+          <p className="muted" style={{ marginTop: 6 }}>
+            Pulled from intervention plans, allocations, education/health records, incidents, and social posts—use this to
+            brief leadership and tune campaigns. Updated {new Date(insights.asOfUtc).toLocaleString()}.
+          </p>
+
+          <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
+            <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
+              <div style={{ fontWeight: 800 }}>Annual-report style pillars</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Mentions in services provided, plans can match multiple pillars.
+              </p>
+              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>Caring: {insights.servicesPillarMentions.caring}</li>
+                <li>Healing: {insights.servicesPillarMentions.healing}</li>
+                <li>Teaching: {insights.servicesPillarMentions.teaching}</li>
+                <li>Legal: {insights.servicesPillarMentions.legal}</li>
+              </ul>
+            </div>
+            <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
+              <div style={{ fontWeight: 800 }}>Resident outcomes (records)</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Education progress &amp; health scores across all monthly rows.
+              </p>
+              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>Avg education progress: {insights.education.avgProgressPercent ?? "—"}%</li>
+                <li>Completed education records: {insights.education.recordsCompleted}</li>
+                <li>Avg general health score: {insights.health.avgGeneralHealthScore ?? "—"}</li>
+              </ul>
+            </div>
+            <div className="card" style={{ flex: "1 1 240px", boxShadow: "none", background: "var(--panel2)" }}>
+              <div style={{ fontWeight: 800 }}>Safety in 90 days</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Open follow-ups: {insights.incidents90d.openFollowUps}
+              </p>
+              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                {insights.incidents90d.byType.slice(0, 5).map((r) => (
+                  <li key={r.incidentType}>
+                    {r.incidentType}: {r.count}
+                  </li>
+                ))}
+                {insights.incidents90d.byType.length === 0 ? <li>No incidents in window</li> : null}
+              </ul>
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
+            <div className="card" style={{ flex: "1 1 280px", boxShadow: "none", background: "var(--panel2)" }}>
+              <div style={{ fontWeight: 800 }}>Donation allocations by program area</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Where pledged value is directed—helps explain impact to donors.
+              </p>
+              {(() => {
+                const rows = insights.donationAllocationsByProgram;
+                const max = Math.max(...rows.map((r) => r.totalPhp), 1);
+                return (
+                  <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                    {rows.length === 0 ? <div className="muted">No allocation rows yet.</div> : null}
+                    {rows.map((r) => (
+                      <div key={r.programArea}>
+                        <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}>
+                          <span>{r.programArea}</span>
+                          <span className="muted">₱{r.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        </div>
+                        <div style={{ height: 8, background: "var(--border)", borderRadius: 4, marginTop: 4 }}>
+                          <div
+                            style={{
+                              width: `${Math.min(100, (r.totalPhp / max) * 100)}%`,
+                              height: "100%",
+                              background: "rgba(124,108,255,0.85)",
+                              borderRadius: 4,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="card" style={{ flex: "1 1 280px", boxShadow: "none", background: "var(--panel2)" }}>
+              <div style={{ fontWeight: 800 }}>Outreach ROI, dataset estimates</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Boost spend vs. modeled donation value from social posts.
+              </p>
+              <ul className="muted" style={{ margin: "10px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>Total boost spend: ₱{insights.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
+                <li>Est. donation value: ₱{insights.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
+              </ul>
+              <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>Top referral posts</div>
+              <ul className="muted" style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.6 }}>
+                {insights.socialRoi.topPosts.length === 0 ? <li>None yet</li> : null}
+                {insights.socialRoi.topPosts.map((p) => (
+                  <li key={p.postId}>
+                    #{p.postId} {p.platform} · {p.postType}
+                    {p.campaignName ? ` · ${p.campaignName}` : ""} — ₱{p.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}{" "}
+                    {p.referrals} referrals
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 12, gap: 10 }}>
+            <Link className="btn" to="/app/reports">
+              Full reports &amp; publish snapshots
+            </Link>
+            <Link className="btn" to="/impact">
+              Preview public impact page
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>By safehouse (active residents)</h2>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Safehouse ID</th>
-                <th>Active residents</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.bySafehouse ?? []).map((x) => (
-                <tr key={x.safehouseId}>
-                  <td data-label="Safehouse ID">{x.safehouseId}</td>
-                  <td data-label="Active residents">{x.activeResidents}</td>
-                </tr>
-              ))}
-              {data && data.bySafehouse.length === 0 ? (
-                <tr>
-                  <td colSpan={2} className="muted">
-                    No data yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Operational alerts</h2>
+          <Link className="btn" to="/app/action-center">
+            View ML Action Center
+          </Link>
         </div>
+
+        <p className="muted" style={{ marginTop: 8 }}>
+          Prioritize follow-ups without exposing sensitive details.
+        </p>
+
+        {alerts?.items?.length ? (
+          <div className="table-wrap" style={{ marginTop: 10 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Resident</th>
+                  <th>Safehouse</th>
+                  <th>Worker</th>
+                  <th>Reasons</th>
+                  <th style={{ width: 260 }}>Quick links</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alerts.items.map((x) => (
+                  <tr key={x.residentId}>
+                    <td data-label="Resident" style={{ fontWeight: 800 }}>
+                      {x.displayName}
+                    </td>
+                    <td data-label="Safehouse" className="muted">
+                      {x.safehouseId}
+                    </td>
+                    <td data-label="Worker" className="muted">
+                      {x.assignedSocialWorker ?? "—"}
+                    </td>
+                    <td data-label="Reasons">
+                      <div className="row" style={{ gap: 8 }}>
+                        {x.reasons.map((r) => (
+                          <span
+                            key={r}
+                            className={`badge ${
+                              r.includes("High incident risk") ? "danger" : r.includes("due") ? "warn" : "ok"
+                            }`}
+                          >
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td data-label="Quick links">
+                      <div className="row">
+                        <Link className="btn" to={`/app/residents/${x.residentId}/process-recordings`}>
+                          Process recordings
+                        </Link>
+                        <Link className="btn" to={`/app/residents/${x.residentId}/home-visits`}>
+                          Home visits
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="muted" style={{ marginTop: 10 }}>
+            No alerts yet. Add home visits/process recordings, or import `resident_incident_30d` predictions.
+          </div>
+        )}
       </div>
     </div>
   );

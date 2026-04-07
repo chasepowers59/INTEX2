@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./api";
 
 type LoginResponse = {
@@ -6,6 +6,16 @@ type LoginResponse = {
   username: string;
   displayName: string;
   roles: string[];
+};
+
+export type DonorRegisterPayload = {
+  email: string;
+  password: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  organizationName?: string;
 };
 
 type MeResponse = {
@@ -24,7 +34,8 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   isAuthenticated: boolean;
   hasRole: (role: string) => boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<string[]>;
+  registerDonor: (payload: DonorRegisterPayload) => Promise<string[]>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -40,6 +51,25 @@ function loadInitial(): AuthState {
 
 export function AuthProvider(props: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(() => loadInitial());
+
+  useEffect(() => {
+    const t = sessionStorage.getItem(TOKEN_KEY);
+    if (!t) return;
+    (async () => {
+      try {
+        const me = await apiFetch<MeResponse>("/api/auth/me", { token: t });
+        setState({
+          token: t,
+          username: me.username,
+          displayName: me.displayName,
+          roles: me.roles,
+        });
+      } catch {
+        sessionStorage.removeItem(TOKEN_KEY);
+        setState({ token: null, username: null, displayName: null, roles: [] });
+      }
+    })();
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => {
     const isAuthenticated = !!state.token;
@@ -57,6 +87,30 @@ export function AuthProvider(props: { children: React.ReactNode }) {
         displayName: res.displayName,
         roles: res.roles,
       });
+      return res.roles;
+    };
+
+    const registerDonor = async (payload: DonorRegisterPayload) => {
+      const res = await apiFetch<LoginResponse>("/api/auth/register-donor", {
+        method: "POST",
+        body: JSON.stringify({
+          email: payload.email,
+          password: payload.password,
+          displayName: payload.displayName ?? null,
+          firstName: payload.firstName ?? null,
+          lastName: payload.lastName ?? null,
+          phone: payload.phone ?? null,
+          organizationName: payload.organizationName ?? null,
+        }),
+      });
+      sessionStorage.setItem(TOKEN_KEY, res.accessToken);
+      setState({
+        token: res.accessToken,
+        username: res.username,
+        displayName: res.displayName,
+        roles: res.roles,
+      });
+      return res.roles;
     };
 
     const logout = () => {
@@ -75,7 +129,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
       }));
     };
 
-    return { ...state, isAuthenticated, hasRole, login, logout, refreshMe };
+    return { ...state, isAuthenticated, hasRole, login, registerDonor, logout, refreshMe };
   }, [state]);
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;

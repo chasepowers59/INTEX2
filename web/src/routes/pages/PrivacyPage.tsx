@@ -11,7 +11,10 @@ export function PrivacyPage() {
 
       <h2>What we collect</h2>
       <ul className="muted" style={{ lineHeight: 1.6 }}>
-        <li>Account login information for staff/admin users (username, password hash, roles)</li>
+        <li>
+          Account login information (username/email, password hash, roles)—including donor self-registration, which creates
+          or links a supporter profile
+        </li>
         <li>Operational case management data (resident records, counseling notes, home visits, conferences)</li>
         <li>Donor/supporter and contribution records (as needed for internal reporting)</li>
         <li>Optional preference cookies (theme)</li>

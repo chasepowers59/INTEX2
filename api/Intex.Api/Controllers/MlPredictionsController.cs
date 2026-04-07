@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/ml")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
 {
     [HttpGet("types")]

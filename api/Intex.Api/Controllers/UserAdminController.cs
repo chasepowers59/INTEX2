@@ -62,11 +62,100 @@ public sealed class UserAdminController(
         return Ok(new { email, role, supporterId = req.SupporterId });
     }
 
+    [HttpGet]
+    public async Task<ActionResult> List([FromQuery] string? q = null, [FromQuery] int take = 50)
+    {
+        take = Math.Clamp(take, 1, 200);
+        q = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
+
+        var query = userManager.Users.AsNoTracking();
+        if (q is not null)
+        {
+            query = query.Where(u =>
+                (u.Email != null && u.Email.Contains(q)) ||
+                (u.UserName != null && u.UserName.Contains(q)) ||
+                (u.DisplayName != null && u.DisplayName.Contains(q)));
+        }
+
+        var users = await query
+            .OrderBy(u => u.Email)
+            .Take(take)
+            .Select(u => new
+            {
+                u.Id,
+                u.Email,
+                u.UserName,
+                u.DisplayName,
+                u.SupporterId,
+                u.LockoutEnd
+            })
+            .ToListAsync();
+
+        var withRoles = new List<object>(users.Count);
+        foreach (var u in users)
+        {
+            var user = await userManager.FindByIdAsync(u.Id);
+            var roles = user is null ? Array.Empty<string>() : (await userManager.GetRolesAsync(user)).ToArray();
+            withRoles.Add(new
+            {
+                u.Id,
+                u.Email,
+                u.UserName,
+                u.DisplayName,
+                u.SupporterId,
+                u.LockoutEnd,
+                roles
+            });
+        }
+
+        return Ok(new { items = withRoles });
+    }
+
+    public sealed record SetUserEnabledRequest(string Email, bool Enabled);
+
+    [HttpPost("set-enabled")]
+    public async Task<ActionResult> SetEnabled([FromBody] SetUserEnabledRequest req)
+    {
+        var email = req.Email.Trim();
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null) return NotFound(new { message = "User not found." });
+
+        user.LockoutEnabled = true;
+        user.LockoutEnd = req.Enabled ? null : DateTimeOffset.UtcNow.AddYears(100);
+        await userManager.UpdateAsync(user);
+        return Ok(new { email, enabled = req.Enabled });
+    }
+
+    public sealed record ResetPasswordRequest(string Email, string NewPassword);
+
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+    {
+        var email = req.Email.Trim();
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null) return NotFound(new { message = "User not found." });
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var res = await userManager.ResetPasswordAsync(user, token, req.NewPassword);
+        if (!res.Succeeded)
+        {
+            var msg = string.Join("; ", res.Errors.Select(e => $"{e.Code}:{e.Description}"));
+            return BadRequest(new { message = msg });
+        }
+
+        return Ok(new { email });
+    }
+
     [HttpPost("link-donor")]
     public async Task<ActionResult> LinkDonor([FromBody] LinkDonorRequest req)
     {
         var user = await userManager.FindByEmailAsync(req.Email.Trim());
         if (user is null) return NotFound(new { message = "User not found." });
+
+        if (await userManager.IsInRoleAsync(user, AppRoles.Admin))
+        {
+            return BadRequest(new { message = "Do not attach SupporterId to Admin accounts; create or use a Donor login for grading." });
+        }
 
         var exists = await db.Supporters.AsNoTracking().AnyAsync(x => x.SupporterId == req.SupporterId);
         if (!exists) return BadRequest(new { message = "SupporterId not found." });
@@ -82,4 +171,3 @@ public sealed class UserAdminController(
         return Ok(new { email = user.Email, supporterId = user.SupporterId, role = AppRoles.Donor });
     }
 }
-

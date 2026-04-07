@@ -1,4 +1,4 @@
-# INTEX W26 — Lighthouse Sanctuary (Team Project)
+# INTEX W26 — Steps of Hope (Team Project)
 
 Stack (per case requirements):
 - Frontend: React + TypeScript (Vite) deployed to Azure Static Web Apps
@@ -9,7 +9,7 @@ This repo contains:
 - `api/Intex.Api` — backend API + auth/RBAC
 - `web/` — React/TS frontend (SPA)
 - `data/raw/` — place provided CSVs here (not committed)
-- `ml-pipelines/` — (to be added) Jupyter notebooks for IS455
+- `ml-pipelines/` — Jupyter notebooks for IS455 (CSV or SQL-backed)
 
 ## Local dev (quick start)
 
@@ -26,10 +26,14 @@ Set environment variables:
 - `Jwt__Issuer` = e.g. `intex-w26`
 - `Jwt__Audience` = e.g. `intex-w26-web`
 - `Cors__AllowedOrigins__0` = `http://localhost:5173`
-- Optional seeded accounts:
+- Optional seeded accounts (same mechanism as Azure; see `api/Intex.Api/appsettings.Development.json.example`):
   - `Seed__AdminEmail`, `Seed__AdminPassword`
   - `Seed__EmployeeEmail`, `Seed__EmployeePassword`
   - `Seed__DonorEmail`, `Seed__DonorPassword`
+- If you change a seed password in config but the user already exists in the DB, set `Seed__SyncPasswords=true` for one run (then set back to `false`), or use `Seed__ClearLockouts=true` after failed login lockout.
+- Optional `LighthouseImport__SourceDirectory` — default folder on the API host for Lighthouse CSV import (see below).
+
+Copy `api/Intex.Api/appsettings.Development.json.example` to `api/Intex.Api/appsettings.Development.json` (gitignored) for local secrets. Passwords must satisfy `Identity:Password` in `appsettings.json` (minimum length 12, upper, lower, digit, non-alphanumeric, unique characters).
 
 Run:
 ```bash
@@ -48,9 +52,16 @@ npm install
 npm run dev
 ```
 
+## Lighthouse CSV → SQL (full case data)
+
+1. Apply EF migrations so Azure SQL (or local SQL) has the extended schema (`dotnet ef database update` from `api/Intex.Api`, or rely on `Database__AutoMigrate=true` on startup).
+2. Put the provided CSVs in `data/raw/` on the machine that runs the API (same filenames as the case packet; headers are matched case-insensitively).
+3. Sign in as **Admin** and open **`/app/admin/lighthouse-import`**, or call `POST /api/admin/lighthouse-import` with body `{ "sourceDirectory": null, "replace": true }` (optional `sourceDirectory` = absolute path on the API server). **Replace** clears operational case tables (not Identity accounts) then reloads from CSV.
+4. On Azure App Service, upload CSVs to a path the API can read (e.g. Kudu `site/wwwroot/data/raw` or another folder) and set **`LighthouseImport__SourceDirectory`** to that path, or pass `sourceDirectory` in the POST body.
+
 ## ML (IS455) quick path
 
-1. Put the provided CSVs in `data/raw/` (e.g., `data/raw/supporters.csv`, `data/raw/donations.csv`, etc.).
+1. **Either** put CSVs in `data/raw/` **or** train directly from the database: set environment variable **`INTEX_ODBC`** to an ODBC connection string for the same SQL database the API uses, install **`pip install pyodbc`**, then run notebooks — they load tables via `pandas.read_sql` when `INTEX_ODBC` is set.
 2. Run any notebook in `ml-pipelines/` top-to-bottom.
 3. Export predictions JSON to `output/ml-predictions/<type>.json` using the helper in the notebook.
 4. Import into the deployed API (admin-only):
@@ -66,6 +77,9 @@ High-level:
 3. Deploy `web/` to Azure Static Web Apps and set `VITE_API_BASE_URL` to your App Service URL.
 
 Step-by-step: `docs/azure-deploy.md`
+Operational validation checklist: `docs/operational-readiness.md`
+
+**Deployed frontend + API (CORS):** The API only allows origins listed under `Cors:AllowedOrigins`. In Azure App Service set `Cors__AllowedOrigins__0` to your **exact** Static Web Apps URL (e.g. `https://nice-coast-0c9d7ab10.2.azurestaticapps.net`). If it is missing or still set to only `http://localhost:5173`, the browser blocks `fetch` with a CORS error. Confirm with `GET /health/info` (`corsAllowedOrigins` in the JSON).
 
 Critical security notes for grading:
 - CSP header is set in `web/staticwebapp.config.json`.

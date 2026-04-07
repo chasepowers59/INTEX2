@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/case-conferences")]
-[Authorize]
+[Authorize(Policy = AppPolicies.StaffOnly)]
 public sealed class CaseConferencesController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
