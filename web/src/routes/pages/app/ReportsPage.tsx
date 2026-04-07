@@ -27,6 +27,7 @@ type AuditItem = {
 
 export function ReportsPage() {
   const auth = useAuth();
+  const PAGE_SIZE = 8;
   const [donations, setDonations] = useState<DonationsByMonth[]>([]);
   const [statuses, setStatuses] = useState<ResidentStatus[]>([]);
   const [safehouses, setSafehouses] = useState<SafehousePerf[]>([]);
@@ -42,6 +43,8 @@ export function ReportsPage() {
   const [snapMetrics, setSnapMetrics] = useState<string>("{}");
   const [snapPublish, setSnapPublish] = useState<boolean>(true);
   const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
+  const [snapshotsPage, setSnapshotsPage] = useState(1);
+  const [auditPage, setAuditPage] = useState(1);
 
   useEffect(() => {
     (async () => {
@@ -66,6 +69,11 @@ export function ReportsPage() {
       }
     })();
   }, [auth.token]);
+
+  const snapshotTotalPages = Math.max(1, Math.ceil(snapshots.length / PAGE_SIZE));
+  const auditTotalPages = Math.max(1, Math.ceil(auditItems.length / PAGE_SIZE));
+  const snapshotRows = snapshots.slice((snapshotsPage - 1) * PAGE_SIZE, snapshotsPage * PAGE_SIZE);
+  const auditRows = auditItems.slice((auditPage - 1) * PAGE_SIZE, auditPage * PAGE_SIZE);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -203,7 +211,7 @@ export function ReportsPage() {
           </p>
           <div className="badge ok">Privacy boundary: this tool outputs identity-stripped aggregate metrics only.</div>
 
-          <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
+          <div className="reports-snapshot-grid" style={{ marginTop: 10 }}>
             <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
               <span className="muted">Snapshot date</span>
               <input className="input" type="date" value={snapDate} onChange={(e) => setSnapDate(e.target.value)} />
@@ -233,7 +241,7 @@ export function ReportsPage() {
             <textarea className="input" rows={5} value={snapMetrics} onChange={(e) => setSnapMetrics(e.target.value)} />
           </label>
 
-          <div className="row" style={{ marginTop: 12, justifyContent: "space-between" }}>
+          <div className="reports-actions-row" style={{ marginTop: 12 }}>
             <button
               className="btn"
               onClick={() => {
@@ -297,6 +305,7 @@ export function ReportsPage() {
                   });
                   const list = await apiFetch<{ items: ImpactSnapshot[] }>("/api/impact-snapshots", { token: auth.token ?? undefined });
                   setSnapshots(list.items);
+                  setSnapshotsPage(1);
                 } catch (e) {
                   setError((e as Error).message);
                 }
@@ -317,7 +326,7 @@ export function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {snapshots.map((s) => (
+                {snapshotRows.map((s) => (
                   <tr key={s.snapshotId}>
                     <td data-label="Date" className="muted">
                       {s.snapshotDate}
@@ -353,7 +362,7 @@ export function ReportsPage() {
                     </td>
                   </tr>
                 ))}
-                {snapshots.length === 0 ? (
+                {snapshotRows.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="muted">
                       No snapshots created yet.
@@ -363,6 +372,29 @@ export function ReportsPage() {
               </tbody>
             </table>
           </div>
+          {snapshots.length > PAGE_SIZE ? (
+            <div className="reports-pagination">
+              <button
+                className="btn"
+                type="button"
+                disabled={snapshotsPage <= 1}
+                onClick={() => setSnapshotsPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <span className="muted">
+                Page {snapshotsPage} of {snapshotTotalPages}
+              </span>
+              <button
+                className="btn"
+                type="button"
+                disabled={snapshotsPage >= snapshotTotalPages}
+                onClick={() => setSnapshotsPage((p) => Math.min(snapshotTotalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -382,7 +414,7 @@ export function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {auditItems.map((x, idx) => (
+                {auditRows.map((x, idx) => (
                   <tr key={`${x.whenUtc}-${idx}`}>
                     <td data-label="When" className="muted">{new Date(x.whenUtc).toLocaleString()}</td>
                     <td data-label="Actor">{x.actor}</td>
@@ -391,12 +423,35 @@ export function ReportsPage() {
                     <td data-label="Target" className="muted">{x.target}</td>
                   </tr>
                 ))}
-                {auditItems.length === 0 ? (
+                {auditRows.length === 0 ? (
                   <tr><td colSpan={5} className="muted">No recent audit activity rows.</td></tr>
                 ) : null}
               </tbody>
             </table>
           </div>
+          {auditItems.length > PAGE_SIZE ? (
+            <div className="reports-pagination">
+              <button
+                className="btn"
+                type="button"
+                disabled={auditPage <= 1}
+                onClick={() => setAuditPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <span className="muted">
+                Page {auditPage} of {auditTotalPages}
+              </span>
+              <button
+                className="btn"
+                type="button"
+                disabled={auditPage >= auditTotalPages}
+                onClick={() => setAuditPage((p) => Math.min(auditTotalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

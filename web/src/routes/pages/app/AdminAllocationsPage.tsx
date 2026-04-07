@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { RequireRole } from "../../guards";
+import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type AllocationRow = {
   impactAllocationId: number;
@@ -18,6 +19,7 @@ type AllocationRow = {
 
 export function AdminAllocationsPage() {
   const auth = useAuth();
+  const PAGE_SIZE = 10;
   const [qSupporterId, setQSupporterId] = useState<string>("");
   const [qCategory, setQCategory] = useState<string>("");
   const [items, setItems] = useState<AllocationRow[]>([]);
@@ -30,6 +32,7 @@ export function AdminAllocationsPage() {
   const [currency, setCurrency] = useState<string>("PHP");
   const [notes, setNotes] = useState<string>("");
   const [selectedAllocations, setSelectedAllocations] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     setError(null);
@@ -48,6 +51,8 @@ export function AdminAllocationsPage() {
     void load().catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.token]);
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const rows = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <RequireRole role="Admin">
@@ -200,7 +205,7 @@ export function AdminAllocationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((x) => (
+                {rows.map((x) => (
                   <tr key={x.impactAllocationId}>
                     <td data-label="Select">
                       <input
@@ -252,7 +257,7 @@ export function AdminAllocationsPage() {
                     </td>
                   </tr>
                 ))}
-                {items.length === 0 ? (
+                {rows.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="muted">
                       No allocations found.
@@ -262,6 +267,12 @@ export function AdminAllocationsPage() {
               </tbody>
             </table>
           </div>
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          />
         </div>
       </div>
     </RequireRole>

@@ -36,7 +36,7 @@ export function RegisterDonorPage() {
           We assign the <strong>Donor</strong> role automatically. You can give, view receipts, and track anonymized impact.
         </p>
         <ul className="muted" style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-          <li>Use the <strong>same email</strong> as your supporter record after CSV import to link history.</li>
+          <li>Use the <strong>same email</strong> as your supporter record to link giving history.</li>
           <li>Password must be <strong>12+</strong> characters with upper, lower, number, and a symbol.</li>
         </ul>
         <div className="row" style={{ marginTop: 18 }}>

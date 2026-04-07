@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { RequireRole } from "../../guards";
+import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type Recording = {
   processRecordingId: number;
@@ -21,10 +22,12 @@ const highRiskWords = ["fear", "relapse", "danger", "unsafe", "threat", "abuse",
 
 export function ResidentProcessRecordingsPage() {
   const auth = useAuth();
+  const PAGE_SIZE = 10;
   const params = useParams();
   const residentId = Number(params.residentId);
   const [data, setData] = useState<Paged<Recording> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     sessionDate: new Date().toISOString().slice(0, 10),
     socialWorkerName: "",
@@ -47,6 +50,8 @@ export function ResidentProcessRecordingsPage() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [residentId]);
+  const totalPages = Math.max(1, Math.ceil((data?.items.length ?? 0) / PAGE_SIZE));
+  const rows = (data?.items ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -192,7 +197,7 @@ export function ResidentProcessRecordingsPage() {
               </tr>
             </thead>
             <tbody>
-              {(data?.items ?? []).map((x) => (
+              {rows.map((x) => (
                 <tr key={x.processRecordingId}>
                   <td data-label="Date">{x.sessionDate}</td>
                   <td data-label="Worker" className="muted">
@@ -248,7 +253,7 @@ export function ResidentProcessRecordingsPage() {
                   </td>
                 </tr>
               ))}
-              {data && data.items.length === 0 ? (
+              {data && rows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="muted">
                     No process recordings yet.
@@ -258,6 +263,12 @@ export function ResidentProcessRecordingsPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
       </div>
     </div>
   );

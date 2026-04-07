@@ -24,7 +24,6 @@ import { MlActionCenterPage } from "./pages/app/MlActionCenterPage";
 import { SocialMediaStrategyPage } from "./pages/app/SocialMediaStrategyPage";
 import { AdminUsersPage } from "./pages/app/AdminUsersPage";
 import { AdminAllocationsPage } from "./pages/app/AdminAllocationsPage";
-import { AdminLighthouseImportPage } from "./pages/app/AdminLighthouseImportPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 export function App() {
@@ -60,7 +59,6 @@ export function App() {
                 <Route path="/app/action-center" element={<MlActionCenterPage />} />
                 <Route path="/app/admin/users" element={<AdminUsersPage />} />
                 <Route path="/app/admin/allocations" element={<AdminAllocationsPage />} />
-                <Route path="/app/admin/lighthouse-import" element={<AdminLighthouseImportPage />} />
               </Route>
             </Route>
           </Route>

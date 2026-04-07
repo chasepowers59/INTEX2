@@ -25,6 +25,14 @@ export function PublicLayout() {
   const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
   const portalTo =
     staff ? "/app/dashboard" : auth.hasRole("Donor") ? "/app/donor" : "/app/dashboard";
+  const toggleTheme = () => {
+    const current = getCookie(THEME_COOKIE) === "light" ? "light" : "dark";
+    const next = current === "light" ? "dark" : "light";
+    if (getCookie(CONSENT_COOKIE) === "accepted") {
+      setCookie(THEME_COOKIE, next, 180);
+    }
+    document.documentElement.setAttribute("data-theme", next);
+  };
 
   return (
     <>
@@ -82,6 +90,9 @@ export function PublicLayout() {
             <Link className="nav-pill nav-pill-accent" to="/give">
               Give
             </Link>
+            <button className="nav-pill" type="button" onClick={toggleTheme}>
+              Toggle theme
+            </button>
             {auth.isAuthenticated ? (
               <Link className="nav-pill nav-pill-primary" to={portalTo}>
                 My portal
@@ -249,13 +260,6 @@ export function AppLayout() {
                   <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
                 Allocations
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/lighthouse-import">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3v12M8 11l4 4 4-4" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M5 21h14" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                CSV import
               </NavLink>
             </nav>
           </>

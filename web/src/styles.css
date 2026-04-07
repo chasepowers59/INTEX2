@@ -541,6 +541,8 @@ a {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
+  background: transparent;
+  cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
 }
 
@@ -1096,6 +1098,28 @@ details.optional-block[open] summary {
   box-shadow: var(--shadow);
 }
 
+.reports-snapshot-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(320px, 2fr) minmax(200px, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.reports-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.reports-pagination {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .staff-ml-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1156,6 +1180,10 @@ details.optional-block[open] summary {
   .hero-home-grid,
   .admin-overview-grid,
   .workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-snapshot-grid {
     grid-template-columns: 1fr;
   }
 }

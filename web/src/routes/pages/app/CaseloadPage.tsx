@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { RequireRole } from "../../guards";
+import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type ResidentRow = {
   residentId: number;
@@ -31,6 +32,7 @@ type ResidentFull = {
 
 export function CaseloadPage() {
   const auth = useAuth();
+  const PAGE_SIZE = 10;
   const [status, setStatus] = useState<string>("Active");
   const [q, setQ] = useState("");
   const [data, setData] = useState<Paged<ResidentRow> | null>(null);
@@ -40,6 +42,7 @@ export function CaseloadPage() {
   const [opsByResident, setOpsByResident] = useState<Map<number, string[]>>(new Map());
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState<string>("OnHold");
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     setError(null);
@@ -68,6 +71,9 @@ export function CaseloadPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const totalPages = Math.max(1, Math.ceil((data?.items.length ?? 0) / PAGE_SIZE));
+  const pageRows = (data?.items ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -143,7 +149,7 @@ export function CaseloadPage() {
               </tr>
             </thead>
             <tbody>
-              {(data?.items ?? []).map((x) => (
+              {pageRows.map((x) => (
                 <tr key={x.residentId}>
                   <td data-label="Select">
                     <RequireRole role="Admin">
@@ -207,7 +213,7 @@ export function CaseloadPage() {
                   </td>
                 </tr>
               ))}
-              {data && data.items.length === 0 ? (
+              {data && pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="muted">
                     No residents found.
@@ -217,6 +223,12 @@ export function CaseloadPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
         <RequireRole role="Admin">
           <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
             <label style={{ display: "grid", gap: 6, minWidth: 180 }}>

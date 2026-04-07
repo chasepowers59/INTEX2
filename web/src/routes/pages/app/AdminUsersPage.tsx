@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { RequireRole } from "../../guards";
+import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type AdminUser = {
   id: string;
@@ -15,12 +16,14 @@ type AdminUser = {
 
 export function AdminUsersPage() {
   const auth = useAuth();
+  const PAGE_SIZE = 10;
 
   const [q, setQ] = useState("");
   const [items, setItems] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
 
   const [createEmail, setCreateEmail] = useState("");
   const [createDisplayName, setCreateDisplayName] = useState("");
@@ -42,6 +45,8 @@ export function AdminUsersPage() {
     void load().catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.token]);
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const rows = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <RequireRole role="Admin">
@@ -216,7 +221,7 @@ export function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((u) => {
+                {rows.map((u) => {
                   const disabled = !!u.lockoutEnd;
                   return (
                     <tr key={u.id}>
@@ -333,7 +338,7 @@ export function AdminUsersPage() {
                     </tr>
                   );
                 })}
-                {items.length === 0 ? (
+                {rows.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="muted">
                       No users found.
@@ -343,6 +348,12 @@ export function AdminUsersPage() {
               </tbody>
             </table>
           </div>
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+          />
         </div>
       </div>
     </RequireRole>

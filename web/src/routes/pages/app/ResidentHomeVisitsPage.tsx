@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { RequireRole } from "../../guards";
+import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type Visit = {
   homeVisitationId: number;
@@ -28,11 +29,14 @@ type Paged<T> = { page: number; pageSize: number; total: number; items: T[] };
 
 export function ResidentHomeVisitsPage() {
   const auth = useAuth();
+  const PAGE_SIZE = 10;
   const params = useParams();
   const residentId = Number(params.residentId);
   const [data, setData] = useState<Paged<Visit> | null>(null);
   const [confs, setConfs] = useState<Paged<Conference> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [visitPage, setVisitPage] = useState(1);
+  const [confPage, setConfPage] = useState(1);
   const [visitForm, setVisitForm] = useState({
     visitDate: new Date().toISOString().slice(0, 10),
     visitType: "RoutineFollowUp",
@@ -57,6 +61,11 @@ export function ResidentHomeVisitsPage() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [residentId]);
+
+  const visitTotalPages = Math.max(1, Math.ceil((data?.items.length ?? 0) / PAGE_SIZE));
+  const visitRows = (data?.items ?? []).slice((visitPage - 1) * PAGE_SIZE, visitPage * PAGE_SIZE);
+  const confTotalPages = Math.max(1, Math.ceil((confs?.items.length ?? 0) / PAGE_SIZE));
+  const confRows = (confs?.items ?? []).slice((confPage - 1) * PAGE_SIZE, confPage * PAGE_SIZE);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -183,7 +192,7 @@ export function ResidentHomeVisitsPage() {
               </tr>
             </thead>
             <tbody>
-              {(data?.items ?? []).map((x) => (
+              {visitRows.map((x) => (
                 <tr key={x.homeVisitationId}>
                   <td data-label="Date">{x.visitDate}</td>
                   <td data-label="Type">
@@ -215,7 +224,7 @@ export function ResidentHomeVisitsPage() {
                   </td>
                 </tr>
               ))}
-              {data && data.items.length === 0 ? (
+              {data && visitRows.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="muted">
                     No home visitations yet.
@@ -225,6 +234,12 @@ export function ResidentHomeVisitsPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={visitPage}
+          totalPages={visitTotalPages}
+          onPrev={() => setVisitPage((p) => Math.max(1, p - 1))}
+          onNext={() => setVisitPage((p) => Math.min(visitTotalPages, p + 1))}
+        />
       </div>
 
       <div className="card">
@@ -272,7 +287,7 @@ export function ResidentHomeVisitsPage() {
               </tr>
             </thead>
             <tbody>
-              {(confs?.items ?? []).map((x) => (
+              {confRows.map((x) => (
                 <tr key={x.caseConferenceId}>
                   <td data-label="Scheduled (UTC)" className="muted">
                     {x.scheduledAtUtc}
@@ -323,7 +338,7 @@ export function ResidentHomeVisitsPage() {
                   </td>
                 </tr>
               ))}
-              {confs && confs.items.length === 0 ? (
+              {confs && confRows.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="muted">
                     No case conferences yet.
@@ -333,6 +348,12 @@ export function ResidentHomeVisitsPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={confPage}
+          totalPages={confTotalPages}
+          onPrev={() => setConfPage((p) => Math.max(1, p - 1))}
+          onNext={() => setConfPage((p) => Math.min(confTotalPages, p + 1))}
+        />
       </div>
     </div>
   );

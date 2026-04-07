@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { RequireRole } from "../../guards";
+import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type Supporter = {
   supporterId: number;
@@ -32,12 +33,15 @@ type DonorStewardship = {
 
 export function DonorsPage() {
   const auth = useAuth();
+  const PAGE_SIZE = 10;
   const [q, setQ] = useState("");
   const [data, setData] = useState<Paged<Supporter> | null>(null);
   const [selectedSupporter, setSelectedSupporter] = useState<Supporter | null>(null);
   const [contribs, setContribs] = useState<Paged<any> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stewardship, setStewardship] = useState<DonorStewardship | null>(null);
+  const [supporterPage, setSupporterPage] = useState(1);
+  const [contribPage, setContribPage] = useState(1);
 
   const load = async () => {
     setError(null);
@@ -61,6 +65,11 @@ export function DonorsPage() {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const supporterTotalPages = Math.max(1, Math.ceil((data?.items.length ?? 0) / PAGE_SIZE));
+  const supporterRows = (data?.items ?? []).slice((supporterPage - 1) * PAGE_SIZE, supporterPage * PAGE_SIZE);
+  const contribTotalPages = Math.max(1, Math.ceil((contribs?.items.length ?? 0) / PAGE_SIZE));
+  const contribRows = (contribs?.items ?? []).slice((contribPage - 1) * PAGE_SIZE, contribPage * PAGE_SIZE);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -148,7 +157,7 @@ export function DonorsPage() {
               </tr>
             </thead>
             <tbody>
-              {(data?.items ?? []).map((x) => (
+              {supporterRows.map((x) => (
                 <tr key={x.supporterId}>
                   <td data-label="Name">
                     <button
@@ -220,7 +229,7 @@ export function DonorsPage() {
                   </td>
                 </tr>
               ))}
-              {data && data.items.length === 0 ? (
+              {data && supporterRows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="muted">
                     No supporters found.
@@ -230,6 +239,12 @@ export function DonorsPage() {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          page={supporterPage}
+          totalPages={supporterTotalPages}
+          onPrev={() => setSupporterPage((p) => Math.max(1, p - 1))}
+          onNext={() => setSupporterPage((p) => Math.min(supporterTotalPages, p + 1))}
+        />
       </div>
 
       <div className="card">
@@ -293,7 +308,7 @@ export function DonorsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(contribs?.items ?? []).map((c: any) => (
+                  {contribRows.map((c: any) => (
                     <tr key={c.contributionId}>
                       <td data-label="Date" className="muted">
                         {c.contributionDate}
@@ -331,7 +346,7 @@ export function DonorsPage() {
                       </td>
                     </tr>
                   ))}
-                  {contribs && contribs.items.length === 0 ? (
+                  {contribs && contribRows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="muted">
                         No contributions found.
@@ -341,6 +356,12 @@ export function DonorsPage() {
                 </tbody>
               </table>
             </div>
+            <PaginationControls
+              page={contribPage}
+              totalPages={contribTotalPages}
+              onPrev={() => setContribPage((p) => Math.max(1, p - 1))}
+              onNext={() => setContribPage((p) => Math.min(contribTotalPages, p + 1))}
+            />
           </>
         )}
       </div>

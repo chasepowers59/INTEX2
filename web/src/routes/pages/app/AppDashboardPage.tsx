@@ -3,6 +3,7 @@ import { useAuth } from "../../../lib/auth";
 import { apiFetch } from "../../../lib/api";
 import { StatCard } from "../../../components/ui/StatCard";
 import { Link } from "react-router-dom";
+import { InlineBarChart } from "../../../components/ui/InlineBarChart";
 
 type Overview = {
   asOfUtc: string;
@@ -118,8 +119,50 @@ export function AppDashboardPage() {
             Updated {new Date(data.asOfUtc).toLocaleString()}
           </div>
         ) : null}
-        <div className="image-frame" style={{ marginTop: 12, maxHeight: 210 }}>
-          <img src="/photos/team-collaboration.jpg" alt="Operations staff collaboration and dashboard context." />
+      </div>
+
+      <div className="card panel2-bg">
+        <h2 style={{ marginTop: 0 }}>Operational trend charts</h2>
+        <p className="muted" style={{ marginTop: 6 }}>
+          Live chart view for resident risk, readiness, and activity load. Use this section for daily triage and staffing decisions.
+        </p>
+        <div className="row" style={{ marginTop: 12, alignItems: "stretch", gap: 12 }}>
+          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>Resident incident risk distribution</div>
+            <div style={{ marginTop: 10 }}>
+              <InlineBarChart
+                data={(data?.residentRisk.byBand ?? []).map((x) => ({ label: x.band, value: x.count }))}
+              />
+            </div>
+          </div>
+          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>Reintegration readiness distribution</div>
+            <div style={{ marginTop: 10 }}>
+              <InlineBarChart
+                data={(() => {
+                  if (readinessBands === "—") return [];
+                  return readinessBands.split(" · ").map((entry) => {
+                    const [label, raw] = entry.split(":");
+                    const value = Number(raw ?? 0);
+                    return { label: label ?? "Unknown", value: Number.isFinite(value) ? value : 0 };
+                  });
+                })()}
+              />
+            </div>
+          </div>
+          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>Current operations workload</div>
+            <div style={{ marginTop: 10 }}>
+              <InlineBarChart
+                data={[
+                  { label: "Check-ins due (30d)", value: data?.checkInsDue30d ?? 0 },
+                  { label: "Process recordings (7d)", value: data?.processRecordings7d ?? 0 },
+                  { label: "Conferences (14d)", value: data?.upcomingConferences14d ?? 0 },
+                  { label: "Open alerts", value: alerts?.items.length ?? 0 },
+                ]}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

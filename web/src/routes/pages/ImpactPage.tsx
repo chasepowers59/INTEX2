@@ -158,7 +158,7 @@ export function ImpactPage() {
             </div>
           ) : (
             <div className="card muted">
-              No <code>safehouse_monthly_metrics</code> rows yet. After CSV import, latest-month tiles will appear here.
+              No <code>safehouse_monthly_metrics</code> rows yet. Once operational metrics are recorded, latest-month tiles will appear here.
             </div>
           )}
         </>
