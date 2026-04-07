@@ -32,7 +32,7 @@ export function HomePage() {
           </span>
         </h1>
         <p className="muted" style={{ maxWidth: 720, fontSize: 17, lineHeight: 1.55, margin: 0 }}>
-          Steps of Hope coordinates survivor support for South Korean victims across safehouses, follow-up services, and
+          Steps of Hope coordinates support for South Korean victims across safehouses, follow-up services, and
           documented recovery milestones. Donors get a dedicated <strong>Donor</strong> experience to give, track allocations,
           and view aggregate impact safely.
         </p>
@@ -228,7 +228,7 @@ export function HomePage() {
             <div className="post-photo" />
             <div className="post-body">
               <div className="muted" style={{ fontSize: 12 }}>May 11, 2025</div>
-              <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>Highs and Lows of Lighthouse</div>
+              <div style={{ fontWeight: 800, fontSize: 24, marginTop: 6 }}>Highs and Lows of Survivor Care</div>
               <p className="muted">A reflection on field realities and the importance of consistent support systems.</p>
               <Link className="btn" to="/about">Read more</Link>
             </div>

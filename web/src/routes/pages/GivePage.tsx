@@ -92,7 +92,7 @@ export function GivePage() {
               <h2 style={{ marginTop: 0 }}>Next step: sign in or register</h2>
               <p className="muted">
                 Donating requires an account with the <strong>Donor</strong> role. Registration is free and takes about a
-                minute—use the same email as your supporter record if we imported Lighthouse data.
+                minute—use the same email as your supporter record if we imported legacy program data.
               </p>
               <div className="row" style={{ marginTop: 14 }}>
                 <Link className="btn primary" to="/register" state={{ from: loc.pathname }}>

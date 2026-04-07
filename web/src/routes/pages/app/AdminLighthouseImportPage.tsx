@@ -14,10 +14,10 @@ export function AdminLighthouseImportPage() {
   return (
     <RequireRole role="Admin">
       <div className="card" style={{ maxWidth: 720 }}>
-        <h1 style={{ marginTop: 0 }}>Lighthouse CSV → database</h1>
+        <h1 style={{ marginTop: 0 }}>Legacy CSV import to database</h1>
         <p className="muted">
           Loads INTEX CSV files from a folder on the <strong>API server</strong> into SQL (all case tables). Leave path empty to use{" "}
-          <code>LighthouseImport:SourceDirectory</code> or repo <code>data/raw</code>. <strong>Replace</strong> wipes operational tables (not
+          the configured source directory or repo <code>data/raw</code>. <strong>Replace</strong> wipes operational tables (not
           login accounts) then reloads.
         </p>
         {error ? (

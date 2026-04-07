@@ -25,8 +25,8 @@ export function LoginPage() {
         <h2>Welcome back</h2>
         <p className="muted" style={{ margin: 0, lineHeight: 1.65 }}>
           <strong>Staff</strong> use work email here for the leadership dashboard. <strong>Donors</strong> use the email
-          from registration—the same one as your supporter record if we imported Lighthouse data for South Korean victim
-          support operations.
+          from registration—the same one as your supporter record if we imported legacy operational data for
+          South Korean victim support.
         </p>
         <div className="badge" style={{ marginTop: 16, borderColor: "rgba(124,108,255,0.4)", background: "rgba(124,108,255,0.08)" }}>
           Role-based access: Admin · Employee · Donor

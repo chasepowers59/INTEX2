@@ -1,5 +1,7 @@
 # INTEX W26 — Steps of Hope (Team Project)
 
+This product is centered on a mission to support South Korean victims through a secure, data-driven leadership portal for safehouse operations, privacy-first donor impact reporting, and role-based staff workflows.
+
 Stack (per case requirements):
 - Frontend: React + TypeScript (Vite) deployed to Azure Static Web Apps
 - API: ASP.NET Core (.NET 10) deployed to Azure App Service
