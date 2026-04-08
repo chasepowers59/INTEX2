@@ -93,6 +93,7 @@ export function MlInsightsPage() {
   const [coverage, setCoverage] = useState<MlCoverage | null>(null);
   const [importBusy, setImportBusy] = useState<boolean>(false);
   const [importReplace, setImportReplace] = useState<boolean>(true);
+  const [showImportHelp, setShowImportHelp] = useState<boolean>(false);
 
   const canAdminImport = useMemo(() => auth.hasRole("Admin"), [auth]);
   const selectedGuide = type ? PIPELINE_GUIDE[type] : null;
@@ -246,18 +247,22 @@ export function MlInsightsPage() {
           <button
             className="btn primary"
             disabled={!canAdminImport}
-            onClick={async () => {
-              alert(
-                "Admin import is done from notebooks:\n\n" +
-                  "1) Run a notebook to export JSON predictions.\n" +
-                  "2) POST to /api/ml/import?replace=true with the JSON array as the body.\n\n" +
-                  "See ml-pipelines/ and PROJECT_CONTEXT.md for details."
-              );
-            }}
+            onClick={() => setShowImportHelp((current) => !current)}
           >
-            How to import
+            {showImportHelp ? "Hide import help" : "How to import"}
           </button>
         </div>
+
+        {showImportHelp ? (
+          <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
+            <div style={{ fontWeight: 900 }}>Notebook import steps</div>
+            <ol className="trust-list muted" style={{ marginTop: 8 }}>
+              <li>Run an ML notebook to export prediction rows as a JSON array.</li>
+              <li>Upload that file in the in-browser import panel below, or POST it to <code>/api/ml/import</code>.</li>
+              <li>Use replace mode when you are publishing a fresh batch for the same prediction type.</li>
+            </ol>
+          </div>
+        ) : null}
 
         {selectedGuide ? (
           <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>

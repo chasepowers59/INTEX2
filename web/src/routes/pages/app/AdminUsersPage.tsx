@@ -119,7 +119,11 @@ export function AdminUsersPage() {
             </label>
             <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
               <span className="muted">Role</span>
-              <select className="input" value={createRole} onChange={(e) => setCreateRole(e.target.value as any)}>
+              <select
+                className="input"
+                value={createRole}
+                onChange={(e) => setCreateRole(e.target.value as "Admin" | "Employee" | "Donor")}
+              >
                 <option value="Employee">Employee</option>
                 <option value="Admin">Admin</option>
                 <option value="Donor">Donor</option>

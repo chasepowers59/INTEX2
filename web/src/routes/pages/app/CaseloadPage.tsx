@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
-import { RequireRole } from "../../guards";
 import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type ResidentRow = {
@@ -258,7 +257,7 @@ export function CaseloadPage() {
           >
             Reset
           </button>
-          <RequireRole role="Admin">
+          {auth.hasRole("Admin") ? (
             <button
               className="btn primary"
               style={{ alignSelf: "end" }}
@@ -298,42 +297,44 @@ export function CaseloadPage() {
             >
               Add resident
             </button>
-          </RequireRole>
+          ) : null}
         </div>
         </div>
-        <RequireRole role="Admin">
-          <div className="row" style={{ marginTop: 10 }}>
-            <input className="input" placeholder="Display name" value={newResident.displayName} onChange={(e) => setNewResident((p) => ({ ...p, displayName: e.target.value }))} />
-            <input className="input" placeholder="Case category" value={newResident.caseCategory} onChange={(e) => setNewResident((p) => ({ ...p, caseCategory: e.target.value }))} />
-            <select className="input" value={newResident.safehouseId} onChange={(e) => setNewResident((p) => ({ ...p, safehouseId: e.target.value }))}>
-              <option value="">Select safehouse</option>
-              {safehouseOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-            <input className="input" placeholder="Referral source" value={newResident.referralSource} onChange={(e) => setNewResident((p) => ({ ...p, referralSource: e.target.value }))} />
-            <input className="input" placeholder="Referring agency/person" value={newResident.referringAgencyPerson} onChange={(e) => setNewResident((p) => ({ ...p, referringAgencyPerson: e.target.value }))} />
-            <input className="input" placeholder="Assigned social worker" value={newResident.assignedSocialWorker} onChange={(e) => setNewResident((p) => ({ ...p, assignedSocialWorker: e.target.value }))} />
-          </div>
-          <div className="row" style={{ marginTop: 8 }}>
-            <select className="input" value={newResident.initialRiskLevel} onChange={(e) => setNewResident((p) => ({ ...p, initialRiskLevel: e.target.value }))}>
-              <option value="Low">Initial risk: Low</option>
-              <option value="Medium">Initial risk: Medium</option>
-              <option value="High">Initial risk: High</option>
-            </select>
-            <select className="input" value={newResident.currentRiskLevel} onChange={(e) => setNewResident((p) => ({ ...p, currentRiskLevel: e.target.value }))}>
-              <option value="Low">Current risk: Low</option>
-              <option value="Medium">Current risk: Medium</option>
-              <option value="High">Current risk: High</option>
-            </select>
-            <label className="row"><input type="checkbox" checked={newResident.familyIs4ps} onChange={(e) => setNewResident((p) => ({ ...p, familyIs4ps: e.target.checked }))} /> 4Ps</label>
-            <label className="row"><input type="checkbox" checked={newResident.familySoloParent} onChange={(e) => setNewResident((p) => ({ ...p, familySoloParent: e.target.checked }))} /> Solo parent</label>
-            <label className="row"><input type="checkbox" checked={newResident.familyIndigenous} onChange={(e) => setNewResident((p) => ({ ...p, familyIndigenous: e.target.checked }))} /> Indigenous</label>
-            <label className="row"><input type="checkbox" checked={newResident.familyInformalSettler} onChange={(e) => setNewResident((p) => ({ ...p, familyInformalSettler: e.target.checked }))} /> Informal settler</label>
-          </div>
-        </RequireRole>
+        {auth.hasRole("Admin") ? (
+          <>
+            <div className="row" style={{ marginTop: 10 }}>
+              <input className="input" placeholder="Display name" value={newResident.displayName} onChange={(e) => setNewResident((p) => ({ ...p, displayName: e.target.value }))} />
+              <input className="input" placeholder="Case category" value={newResident.caseCategory} onChange={(e) => setNewResident((p) => ({ ...p, caseCategory: e.target.value }))} />
+              <select className="input" value={newResident.safehouseId} onChange={(e) => setNewResident((p) => ({ ...p, safehouseId: e.target.value }))}>
+                <option value="">Select safehouse</option>
+                {safehouseOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+              <input className="input" placeholder="Referral source" value={newResident.referralSource} onChange={(e) => setNewResident((p) => ({ ...p, referralSource: e.target.value }))} />
+              <input className="input" placeholder="Referring agency/person" value={newResident.referringAgencyPerson} onChange={(e) => setNewResident((p) => ({ ...p, referringAgencyPerson: e.target.value }))} />
+              <input className="input" placeholder="Assigned social worker" value={newResident.assignedSocialWorker} onChange={(e) => setNewResident((p) => ({ ...p, assignedSocialWorker: e.target.value }))} />
+            </div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <select className="input" value={newResident.initialRiskLevel} onChange={(e) => setNewResident((p) => ({ ...p, initialRiskLevel: e.target.value }))}>
+                <option value="Low">Initial risk: Low</option>
+                <option value="Medium">Initial risk: Medium</option>
+                <option value="High">Initial risk: High</option>
+              </select>
+              <select className="input" value={newResident.currentRiskLevel} onChange={(e) => setNewResident((p) => ({ ...p, currentRiskLevel: e.target.value }))}>
+                <option value="Low">Current risk: Low</option>
+                <option value="Medium">Current risk: Medium</option>
+                <option value="High">Current risk: High</option>
+              </select>
+              <label className="row"><input type="checkbox" checked={newResident.familyIs4ps} onChange={(e) => setNewResident((p) => ({ ...p, familyIs4ps: e.target.checked }))} /> 4Ps</label>
+              <label className="row"><input type="checkbox" checked={newResident.familySoloParent} onChange={(e) => setNewResident((p) => ({ ...p, familySoloParent: e.target.checked }))} /> Solo parent</label>
+              <label className="row"><input type="checkbox" checked={newResident.familyIndigenous} onChange={(e) => setNewResident((p) => ({ ...p, familyIndigenous: e.target.checked }))} /> Indigenous</label>
+              <label className="row"><input type="checkbox" checked={newResident.familyInformalSettler} onChange={(e) => setNewResident((p) => ({ ...p, familyInformalSettler: e.target.checked }))} /> Informal settler</label>
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="card">
@@ -355,7 +356,7 @@ export function CaseloadPage() {
               {pageRows.map((x) => (
                 <tr key={x.residentId}>
                   <td data-label="Select">
-                    <RequireRole role="Admin">
+                    {auth.hasRole("Admin") ? (
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(x.residentId)}
@@ -365,7 +366,7 @@ export function CaseloadPage() {
                           );
                         }}
                       />
-                    </RequireRole>
+                    ) : null}
                   </td>
                   <td data-label="Resident" style={{ fontWeight: 700 }}>
                     {x.displayName}
@@ -426,7 +427,7 @@ export function CaseloadPage() {
           onPrev={() => setPage((p) => Math.max(1, p - 1))}
           onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
         />
-        <RequireRole role="Admin">
+        {auth.hasRole("Admin") ? (
           <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
             <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
               <span className="muted">Bulk status update</span>
@@ -460,7 +461,7 @@ export function CaseloadPage() {
               Apply to {selectedIds.length} selected
             </button>
           </div>
-        </RequireRole>
+        ) : null}
       </div>
     </div>
   );

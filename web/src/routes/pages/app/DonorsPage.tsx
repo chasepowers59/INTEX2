@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
-import { RequireRole } from "../../guards";
 import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type Supporter = {
@@ -23,6 +22,9 @@ type Contribution = {
   contributionDate: string;
   campaignName: string | null;
   notes: string | null;
+};
+type CreatedContribution = {
+  contributionId: number;
 };
 type DonorStewardship = {
   watchlist: {
@@ -115,7 +117,7 @@ export function DonorsPage() {
           <button className="btn" onClick={() => void load()}>
             Search
           </button>
-          <RequireRole role="Admin">
+          {auth.hasRole("Admin") ? (
             <button
               className="btn primary"
               onClick={async () => {
@@ -140,9 +142,9 @@ export function DonorsPage() {
             >
               Add supporter
             </button>
-          </RequireRole>
+          ) : null}
         </div>
-        <RequireRole role="Admin">
+        {auth.hasRole("Admin") ? (
           <div className="row" style={{ marginTop: 10 }}>
             <input className="input" placeholder="Full name" value={newSupporter.fullName} onChange={(e) => setNewSupporter((p) => ({ ...p, fullName: e.target.value }))} />
             <input className="input" placeholder="Email (optional)" value={newSupporter.email} onChange={(e) => setNewSupporter((p) => ({ ...p, email: e.target.value }))} />
@@ -154,7 +156,7 @@ export function DonorsPage() {
               <option value="Advocacy">Advocacy</option>
             </select>
           </div>
-        </RequireRole>
+        ) : null}
       </div>
 
       {stewardship ? (
@@ -227,7 +229,7 @@ export function DonorsPage() {
                     {x.isActive ? <span className="badge">Active</span> : <span className="badge">Inactive</span>}
                   </td>
                   <td data-label="Actions">
-                    <RequireRole role="Admin">
+                    {auth.hasRole("Admin") ? (
                       <div className="row">
                         <button className="btn" onClick={() => {
                           setEditingSupporterId(x.supporterId);
@@ -256,7 +258,7 @@ export function DonorsPage() {
                           Delete
                         </button>
                       </div>
-                    </RequireRole>
+                    ) : null}
                     {!auth.hasRole("Admin") ? <span className="muted">View only</span> : null}
                   </td>
                 </tr>
@@ -360,14 +362,14 @@ export function DonorsPage() {
                   Supporter ID: {selectedSupporter.supporterId}
                 </div>
               </div>
-              <RequireRole role="Admin">
+              {auth.hasRole("Admin") ? (
                 <button
                   className="btn primary"
                   onClick={async () => {
                     const amount = newContribution.amount.trim() ? Number(newContribution.amount) : null;
                     const estimatedValue = newContribution.estimatedValue.trim() ? Number(newContribution.estimatedValue) : null;
                     try {
-                      const created = await apiFetch<any>("/api/contributions", {
+                      const created = await apiFetch<CreatedContribution>("/api/contributions", {
                         method: "POST",
                         token: auth.token ?? undefined,
                         body: JSON.stringify({
@@ -412,30 +414,32 @@ export function DonorsPage() {
                 >
                   Add contribution
                 </button>
-              </RequireRole>
-            </div>
-            <RequireRole role="Admin">
-              <div className="row" style={{ marginTop: 10 }}>
-                <select className="input" value={newContribution.contributionType} onChange={(e) => setNewContribution((p) => ({ ...p, contributionType: e.target.value }))}>
-                  <option value="Monetary">Monetary</option>
-                  <option value="InKind">InKind</option>
-                  <option value="Time">Time</option>
-                  <option value="Skills">Skills</option>
-                  <option value="Advocacy">Advocacy</option>
-                </select>
-                <input className="input" placeholder="Amount" value={newContribution.amount} onChange={(e) => setNewContribution((p) => ({ ...p, amount: e.target.value }))} />
-                <input className="input" placeholder="Estimated value" value={newContribution.estimatedValue} onChange={(e) => setNewContribution((p) => ({ ...p, estimatedValue: e.target.value }))} />
-                <input className="input" placeholder="Impact unit" value={newContribution.impactUnit} onChange={(e) => setNewContribution((p) => ({ ...p, impactUnit: e.target.value }))} />
-                <input className="input" placeholder="Campaign" value={newContribution.campaignName} onChange={(e) => setNewContribution((p) => ({ ...p, campaignName: e.target.value }))} />
-                <input className="input" placeholder="Notes" value={newContribution.notes} onChange={(e) => setNewContribution((p) => ({ ...p, notes: e.target.value }))} />
-              </div>
-              {newContribution.contributionType === "InKind" ? (
-                <div className="row" style={{ marginTop: 8 }}>
-                  <input className="input" placeholder="In-kind item name" value={newContribution.inKindItemName} onChange={(e) => setNewContribution((p) => ({ ...p, inKindItemName: e.target.value }))} />
-                  <input className="input" placeholder="In-kind quantity" value={newContribution.inKindQuantity} onChange={(e) => setNewContribution((p) => ({ ...p, inKindQuantity: e.target.value }))} />
-                </div>
               ) : null}
-            </RequireRole>
+            </div>
+            {auth.hasRole("Admin") ? (
+              <>
+                <div className="row" style={{ marginTop: 10 }}>
+                  <select className="input" value={newContribution.contributionType} onChange={(e) => setNewContribution((p) => ({ ...p, contributionType: e.target.value }))}>
+                    <option value="Monetary">Monetary</option>
+                    <option value="InKind">InKind</option>
+                    <option value="Time">Time</option>
+                    <option value="Skills">Skills</option>
+                    <option value="Advocacy">Advocacy</option>
+                  </select>
+                  <input className="input" placeholder="Amount" value={newContribution.amount} onChange={(e) => setNewContribution((p) => ({ ...p, amount: e.target.value }))} />
+                  <input className="input" placeholder="Estimated value" value={newContribution.estimatedValue} onChange={(e) => setNewContribution((p) => ({ ...p, estimatedValue: e.target.value }))} />
+                  <input className="input" placeholder="Impact unit" value={newContribution.impactUnit} onChange={(e) => setNewContribution((p) => ({ ...p, impactUnit: e.target.value }))} />
+                  <input className="input" placeholder="Campaign" value={newContribution.campaignName} onChange={(e) => setNewContribution((p) => ({ ...p, campaignName: e.target.value }))} />
+                  <input className="input" placeholder="Notes" value={newContribution.notes} onChange={(e) => setNewContribution((p) => ({ ...p, notes: e.target.value }))} />
+                </div>
+                {newContribution.contributionType === "InKind" ? (
+                  <div className="row" style={{ marginTop: 8 }}>
+                    <input className="input" placeholder="In-kind item name" value={newContribution.inKindItemName} onChange={(e) => setNewContribution((p) => ({ ...p, inKindItemName: e.target.value }))} />
+                    <input className="input" placeholder="In-kind quantity" value={newContribution.inKindQuantity} onChange={(e) => setNewContribution((p) => ({ ...p, inKindQuantity: e.target.value }))} />
+                  </div>
+                ) : null}
+              </>
+            ) : null}
 
             <div className="table-wrap">
               <table className="table" style={{ marginTop: 10 }}>
@@ -464,7 +468,7 @@ export function DonorsPage() {
                         {c.campaignName ?? "—"}
                       </td>
                       <td data-label="Actions">
-                        <RequireRole role="Admin">
+                        {auth.hasRole("Admin") ? (
                           <button
                             className="btn danger"
                             onClick={async () => {
@@ -482,7 +486,7 @@ export function DonorsPage() {
                           >
                             Delete
                           </button>
-                        </RequireRole>
+                        ) : null}
                         {!auth.hasRole("Admin") ? <span className="muted">View only</span> : null}
                       </td>
                     </tr>

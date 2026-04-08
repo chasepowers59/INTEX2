@@ -28,6 +28,12 @@ type RecentContribution = {
   contributionDate: string;
   campaignName: string | null;
 };
+type ContributionListResponse = {
+  items: RecentContribution[];
+};
+type AllocationListResponse = {
+  items: AllocationRow[];
+};
 
 export function AdminAllocationsPage() {
   const auth = useAuth();
@@ -61,16 +67,16 @@ export function AdminAllocationsPage() {
     if (qCategory.trim()) p.set("category", qCategory.trim());
     p.set("page", "1");
     p.set("pageSize", "50");
-    const res = await apiFetch<{ items: AllocationRow[] }>(`/api/impact-allocations?${p.toString()}`, {
+    const res = await apiFetch<AllocationListResponse>(`/api/impact-allocations?${p.toString()}`, {
       token: auth.token ?? undefined,
     });
-    setItems(res.items as any);
+    setItems(res.items);
   };
 
   useEffect(() => {
     void load().catch((e) => setError((e as Error).message));
-    void apiFetch<any>("/api/contributions?page=1&pageSize=80", { token: auth.token ?? undefined })
-      .then((res) => setRecentContributions((res.items ?? []) as RecentContribution[]))
+    void apiFetch<ContributionListResponse>("/api/contributions?page=1&pageSize=80", { token: auth.token ?? undefined })
+      .then((res) => setRecentContributions(res.items ?? []))
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.token]);

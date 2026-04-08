@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
-import { RequireRole } from "../../guards";
 import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type Visit = {
@@ -298,7 +297,7 @@ export function ResidentHomeVisitsPage() {
                     {row.observations ?? "-"}
                   </td>
                   <td data-label="Actions">
-                    <RequireRole role="Admin">
+                    {auth.hasRole("Admin") ? (
                       <button
                         className="btn danger"
                         onClick={async () => {
@@ -316,7 +315,7 @@ export function ResidentHomeVisitsPage() {
                       >
                         Delete
                       </button>
-                    </RequireRole>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -433,7 +432,7 @@ export function ResidentHomeVisitsPage() {
                       >
                         {row.isCompleted ? "Mark upcoming" : "Mark complete"}
                       </button>
-                      <RequireRole role="Admin">
+                      {auth.hasRole("Admin") ? (
                         <button
                           className="btn danger"
                           onClick={async () => {
@@ -451,7 +450,7 @@ export function ResidentHomeVisitsPage() {
                         >
                           Delete
                         </button>
-                      </RequireRole>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

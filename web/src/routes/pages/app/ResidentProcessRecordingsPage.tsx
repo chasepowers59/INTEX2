@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
-import { RequireRole } from "../../guards";
 import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type Recording = {
@@ -285,7 +284,7 @@ export function ResidentProcessRecordingsPage() {
                       >
                         Edit summary
                       </button>
-                      <RequireRole role="Admin">
+                      {auth.hasRole("Admin") ? (
                         <button
                           className="btn danger"
                           onClick={async () => {
@@ -303,7 +302,7 @@ export function ResidentProcessRecordingsPage() {
                         >
                           Delete
                         </button>
-                      </RequireRole>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
