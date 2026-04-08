@@ -194,7 +194,12 @@ export function CaseloadPage() {
 
         {error ? <div className="badge danger">{error}</div> : null}
 
-        <div className="row" style={{ marginTop: 8 }}>
+        <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
+          <div style={{ fontWeight: 800 }}>Resident filters</div>
+          <p className="muted" style={{ marginTop: 6, marginBottom: 0 }}>
+            Use status, search, safehouse, and category together to narrow the caseload quickly.
+          </p>
+        <div className="row" style={{ marginTop: 12, flexWrap: "wrap", alignItems: "end" }}>
           <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
             <span className="muted">Case status</span>
             <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -294,6 +299,7 @@ export function CaseloadPage() {
               Add resident
             </button>
           </RequireRole>
+        </div>
         </div>
         <RequireRole role="Admin">
           <div className="row" style={{ marginTop: 10 }}>
