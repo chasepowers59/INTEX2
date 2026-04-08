@@ -82,6 +82,7 @@ function getMilestoneSummary(reasons: string[], readinessLabel: string, riskBand
 export function CaseloadPage() {
   const auth = useAuth();
   const PAGE_SIZE = 10;
+  const isAdmin = auth.hasRole("Admin");
   const [status, setStatus] = useState<string>("Active");
   const [q, setQ] = useState("");
   const [safehouseId, setSafehouseId] = useState("");
@@ -95,6 +96,7 @@ export function CaseloadPage() {
   const [bulkStatus, setBulkStatus] = useState<string>("OnHold");
   const [page, setPage] = useState(1);
   const [filterCatalog, setFilterCatalog] = useState<FilterCatalogRow[]>([]);
+  const [showNewResidentForm, setShowNewResidentForm] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<CaseloadFilters>({
     status: "Active",
     q: "",
@@ -170,6 +172,15 @@ export function CaseloadPage() {
 
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE));
   const pageRows = data?.items ?? [];
+  const dueNowCount = pageRows.filter((row) => (opsByResident.get(row.residentId) ?? []).some((reason) => reason.toLowerCase().includes("check-in due"))).length;
+  const highRiskCount = pageRows.filter((row) => {
+    const riskBand = (riskByResident.get(row.residentId) ?? "").toLowerCase();
+    return riskBand === "high" || riskBand === "very high";
+  }).length;
+  const readinessWatchCount = pageRows.filter((row) => {
+    const readiness = (readinessByResident.get(row.residentId) ?? "").toLowerCase();
+    return readiness.includes("low") || readiness.includes("unknown");
+  }).length;
   const safehouseOptions = [...new Map(filterCatalog.map((row) => [row.safehouseId, row.safehouseName])).entries()]
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -177,28 +188,35 @@ export function CaseloadPage() {
     .sort((a, b) => a.localeCompare(b));
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="caseload-page">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Caseload Inventory</h1>
-        <p className="muted">Filter and search residents by status, safehouse, category, and more.</p>
+        <div className="caseload-header">
+          <div>
+            <h1 style={{ marginTop: 0 }}>Caseload Inventory</h1>
+            <p className="muted">Residents, milestones, and case activity.</p>
+          </div>
+          {isAdmin ? (
+            <button className="btn primary" onClick={() => setShowNewResidentForm((open) => !open)}>
+              {showNewResidentForm ? "Close" : "Add resident"}
+            </button>
+          ) : null}
+        </div>
         <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
           {milestoneBadge("Home visit", "Due now", "danger")}
           {milestoneBadge("Counseling", "Current", "ok")}
           {milestoneBadge("Reintegration", "In progress", "warn")}
           {milestoneBadge("Risk", "High", "danger")}
         </div>
-        <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-          Milestones now show operational meaning instead of raw color words: due now, current, in progress, or needs support.
+        <p className="muted caseload-helper-copy">
+          Due now, current, in progress, and needs support.
         </p>
 
         {error ? <div className="badge danger">{error}</div> : null}
 
-        <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
+        <div className="card caseload-filter-card">
           <div style={{ fontWeight: 800 }}>Resident filters</div>
-          <p className="muted" style={{ marginTop: 6, marginBottom: 0 }}>
-            Use status, search, safehouse, and category together to narrow the caseload quickly.
-          </p>
-        <div className="row" style={{ marginTop: 12, flexWrap: "wrap", alignItems: "end" }}>
+          <p className="muted" style={{ marginTop: 6, marginBottom: 0 }}>Status, search, safehouse, and category.</p>
+        <div className="caseload-filter-grid">
           <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
             <span className="muted">Case status</span>
             <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -207,7 +225,7 @@ export function CaseloadPage() {
               <option value="OnHold">OnHold</option>
             </select>
           </label>
-          <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 220 }}>
+          <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
             <span className="muted">Search</span>
             <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Resident name or social worker..." />
           </label>
@@ -233,9 +251,10 @@ export function CaseloadPage() {
               ))}
             </select>
           </label>
+        </div>
+        <div className="caseload-filter-actions">
           <button
             className="btn"
-            style={{ alignSelf: "end" }}
             onClick={() => {
               setPage(1);
               setAppliedFilters({ status, q, safehouseId, category });
@@ -245,7 +264,6 @@ export function CaseloadPage() {
           </button>
           <button
             className="btn"
-            style={{ alignSelf: "end" }}
             onClick={() => {
               setStatus("Active");
               setQ("");
@@ -257,52 +275,44 @@ export function CaseloadPage() {
           >
             Reset
           </button>
-          {auth.hasRole("Admin") ? (
-            <button
-              className="btn primary"
-              style={{ alignSelf: "end" }}
-              onClick={async () => {
-                if (!newResident.displayName.trim()) return setError("Display name required.");
-                const parsedSafehouseId = Number(newResident.safehouseId);
-                if (!Number.isFinite(parsedSafehouseId)) return setError("Select a safehouse for the resident.");
-                try {
-                  await apiFetch<void>("/api/residents", {
-                    method: "POST",
-                    token: auth.token ?? undefined,
-                    body: JSON.stringify({
-                      displayName: newResident.displayName.trim(),
-                      caseStatus: "Active",
-                      caseCategory: newResident.caseCategory.trim() || null,
-                      subCategory: null,
-                      safehouseId: parsedSafehouseId,
-                      admissionDate: null,
-                      assignedSocialWorker: newResident.assignedSocialWorker.trim() || null,
-                      referralSource: newResident.referralSource.trim() || null,
-                      referringAgencyPerson: newResident.referringAgencyPerson.trim() || null,
-                      initialRiskLevel: newResident.initialRiskLevel,
-                      currentRiskLevel: newResident.currentRiskLevel,
-                      familyIs4ps: newResident.familyIs4ps,
-                      familySoloParent: newResident.familySoloParent,
-                      familyIndigenous: newResident.familyIndigenous,
-                      familyInformalSettler: newResident.familyInformalSettler,
-                      isReintegrated: false,
-                    }),
-                  });
-                  await loadFilterCatalog();
-                  await load(page, appliedFilters);
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Add resident
-            </button>
-          ) : null}
         </div>
         </div>
-        {auth.hasRole("Admin") ? (
-          <>
-            <div className="row" style={{ marginTop: 10 }}>
+        <div className="caseload-summary-strip">
+          <div className="caseload-summary-chip">
+            <span>Residents shown</span>
+            <strong>{pageRows.length}</strong>
+          </div>
+          <div className="caseload-summary-chip">
+            <span>Due now</span>
+            <strong>{dueNowCount}</strong>
+          </div>
+          <div className="caseload-summary-chip">
+            <span>High risk</span>
+            <strong>{highRiskCount}</strong>
+          </div>
+          <div className="caseload-summary-chip">
+            <span>Needs support</span>
+            <strong>{readinessWatchCount}</strong>
+          </div>
+        </div>
+        {isAdmin && showNewResidentForm ? (
+          <div className="caseload-modal-backdrop" onClick={() => setShowNewResidentForm(false)}>
+          <div
+            className="card caseload-intake-card caseload-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="caseload-intake-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="caseload-intake-header">
+              <div>
+                <strong id="caseload-intake-title">Resident details</strong>
+              </div>
+              <button className="btn" onClick={() => setShowNewResidentForm(false)}>
+                Close
+              </button>
+            </div>
+            <div className="caseload-intake-grid">
               <input className="input" placeholder="Display name" value={newResident.displayName} onChange={(e) => setNewResident((p) => ({ ...p, displayName: e.target.value }))} />
               <input className="input" placeholder="Case category" value={newResident.caseCategory} onChange={(e) => setNewResident((p) => ({ ...p, caseCategory: e.target.value }))} />
               <select className="input" value={newResident.safehouseId} onChange={(e) => setNewResident((p) => ({ ...p, safehouseId: e.target.value }))}>
@@ -317,7 +327,7 @@ export function CaseloadPage() {
               <input className="input" placeholder="Referring agency/person" value={newResident.referringAgencyPerson} onChange={(e) => setNewResident((p) => ({ ...p, referringAgencyPerson: e.target.value }))} />
               <input className="input" placeholder="Assigned social worker" value={newResident.assignedSocialWorker} onChange={(e) => setNewResident((p) => ({ ...p, assignedSocialWorker: e.target.value }))} />
             </div>
-            <div className="row" style={{ marginTop: 8 }}>
+            <div className="caseload-intake-grid caseload-intake-grid--compact">
               <select className="input" value={newResident.initialRiskLevel} onChange={(e) => setNewResident((p) => ({ ...p, initialRiskLevel: e.target.value }))}>
                 <option value="Low">Initial risk: Low</option>
                 <option value="Medium">Initial risk: Medium</option>
@@ -328,12 +338,56 @@ export function CaseloadPage() {
                 <option value="Medium">Current risk: Medium</option>
                 <option value="High">Current risk: High</option>
               </select>
+            </div>
+            <div className="caseload-flag-row">
               <label className="row"><input type="checkbox" checked={newResident.familyIs4ps} onChange={(e) => setNewResident((p) => ({ ...p, familyIs4ps: e.target.checked }))} /> 4Ps</label>
               <label className="row"><input type="checkbox" checked={newResident.familySoloParent} onChange={(e) => setNewResident((p) => ({ ...p, familySoloParent: e.target.checked }))} /> Solo parent</label>
               <label className="row"><input type="checkbox" checked={newResident.familyIndigenous} onChange={(e) => setNewResident((p) => ({ ...p, familyIndigenous: e.target.checked }))} /> Indigenous</label>
               <label className="row"><input type="checkbox" checked={newResident.familyInformalSettler} onChange={(e) => setNewResident((p) => ({ ...p, familyInformalSettler: e.target.checked }))} /> Informal settler</label>
             </div>
-          </>
+            <div className="caseload-intake-actions">
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  if (!newResident.displayName.trim()) return setError("Display name required.");
+                  const parsedSafehouseId = Number(newResident.safehouseId);
+                  if (!Number.isFinite(parsedSafehouseId)) return setError("Select a safehouse for the resident.");
+                  try {
+                    await apiFetch<void>("/api/residents", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({
+                        displayName: newResident.displayName.trim(),
+                        caseStatus: "Active",
+                        caseCategory: newResident.caseCategory.trim() || null,
+                        subCategory: null,
+                        safehouseId: parsedSafehouseId,
+                        admissionDate: null,
+                        assignedSocialWorker: newResident.assignedSocialWorker.trim() || null,
+                        referralSource: newResident.referralSource.trim() || null,
+                        referringAgencyPerson: newResident.referringAgencyPerson.trim() || null,
+                        initialRiskLevel: newResident.initialRiskLevel,
+                        currentRiskLevel: newResident.currentRiskLevel,
+                        familyIs4ps: newResident.familyIs4ps,
+                        familySoloParent: newResident.familySoloParent,
+                        familyIndigenous: newResident.familyIndigenous,
+                        familyInformalSettler: newResident.familyInformalSettler,
+                        isReintegrated: false,
+                      }),
+                    });
+                    await loadFilterCatalog();
+                    await load(page, appliedFilters);
+                    setShowNewResidentForm(false);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              >
+                Add resident
+              </button>
+            </div>
+          </div>
+          </div>
         ) : null}
       </div>
 
@@ -356,7 +410,7 @@ export function CaseloadPage() {
               {pageRows.map((x) => (
                 <tr key={x.residentId}>
                   <td data-label="Select">
-                    {auth.hasRole("Admin") ? (
+                    {isAdmin ? (
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(x.residentId)}
@@ -384,7 +438,7 @@ export function CaseloadPage() {
                       const riskBand = riskByResident.get(x.residentId) ?? "Unknown";
                       const summary = getMilestoneSummary(reasons, readiness, riskBand);
                       return (
-                        <div className="row" style={{ gap: 6 }}>
+                        <div className="row caseload-milestone-row" style={{ gap: 6 }}>
                           {milestoneBadge("Home visit", summary.homeVisit.value, summary.homeVisit.tone)}
                           {milestoneBadge("Counseling", summary.counseling.value, summary.counseling.tone)}
                           {milestoneBadge("Reintegration", summary.readiness.value, summary.readiness.tone)}
@@ -400,9 +454,9 @@ export function CaseloadPage() {
                     {x.assignedSocialWorker ?? "-"}
                   </td>
                   <td data-label="Quick links">
-                    <div className="row">
-                      <Link className="btn" to={`/app/residents/${x.residentId}/process-recordings`}>
-                        Process recordings
+                    <div className="row caseload-action-row">
+                      <Link className="btn primary" to={`/app/residents/${x.residentId}/process-recordings`}>
+                        Open case
                       </Link>
                       <Link className="btn" to={`/app/residents/${x.residentId}/home-visits`}>
                         Home visits
@@ -427,7 +481,7 @@ export function CaseloadPage() {
           onPrev={() => setPage((p) => Math.max(1, p - 1))}
           onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
         />
-        {auth.hasRole("Admin") ? (
+        {isAdmin ? (
           <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
             <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
               <span className="muted">Bulk status update</span>

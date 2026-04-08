@@ -57,6 +57,8 @@ export function DonorsPage() {
   const [stewardship, setStewardship] = useState<DonorStewardship | null>(null);
   const [supporterPage, setSupporterPage] = useState(1);
   const [contribPage, setContribPage] = useState(1);
+  const [showSupporterForm, setShowSupporterForm] = useState(false);
+  const [showContributionForm, setShowContributionForm] = useState(false);
   const [newSupporter, setNewSupporter] = useState({ fullName: "", email: "", supporterType: "Monetary" });
   const [editingSupporterId, setEditingSupporterId] = useState<number | null>(null);
   const [editingSupporter, setEditingSupporter] = useState({
@@ -124,96 +126,125 @@ export function DonorsPage() {
   const contribRows = contribs?.items ?? [];
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="admin-page">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Donors & Contributions</h1>
-        <p className="muted">Employees can view. Only admins can create/update/delete.</p>
-        <div className="row" style={{ marginTop: 8 }}>
-          <span className="badge ok">Employee: view trends and histories</span>
-          <span className="badge warn">Admin: full supporter and contribution CRUD</span>
-        </div>
-        {error ? <div className="badge danger">{error}</div> : null}
-        {notice ? <div className="badge ok" style={{ marginTop: 8 }}>{notice}</div> : null}
-        <div className="row" style={{ marginTop: 8 }}>
-          <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search supporters…" />
-          <button className="btn" onClick={() => {
-            setNotice(null);
-            setSupporterPage(1);
-            setAppliedQ(q.trim());
-          }}>
-            Search
-          </button>
+        <div className="admin-header">
+          <div className="admin-header-copy">
+            <h1 style={{ marginTop: 0 }}>Donors & Contributions</h1>
+            <p className="muted">Supporters, stewardship, and contribution history.</p>
+          </div>
           {auth.hasRole("Admin") ? (
-            <button
-              className="btn primary"
-              onClick={async () => {
-                setNotice(null);
-                if (!newSupporter.fullName.trim()) return setError("Supporter full name is required.");
-                try {
-                  const created = await apiFetch<Supporter>("/api/supporters", {
-                    method: "POST",
-                    token: auth.token ?? undefined,
-                    body: JSON.stringify({
-                      fullName: newSupporter.fullName.trim(),
-                      email: newSupporter.email.trim() || null,
-                      supporterType: newSupporter.supporterType,
-                      isActive: true,
-                    }),
-                  });
-                  setNewSupporter({ fullName: "", email: "", supporterType: "Monetary" });
-                  setQ(created.fullName);
-                  setAppliedQ(created.fullName);
-                  setSupporterPage(1);
-                  setNotice(`Supporter created: ${created.fullName}`);
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Add supporter
+            <button className="btn primary" onClick={() => setShowSupporterForm((open) => !open)}>
+              {showSupporterForm ? "Close" : "Add supporter"}
             </button>
           ) : null}
         </div>
-        {auth.hasRole("Admin") ? (
-          <div className="row" style={{ marginTop: 10 }}>
-            <input className="input" placeholder="Full name" value={newSupporter.fullName} onChange={(e) => setNewSupporter((p) => ({ ...p, fullName: e.target.value }))} />
-            <input className="input" placeholder="Email (optional)" value={newSupporter.email} onChange={(e) => setNewSupporter((p) => ({ ...p, email: e.target.value }))} />
-            <select className="input" value={newSupporter.supporterType} onChange={(e) => setNewSupporter((p) => ({ ...p, supporterType: e.target.value }))}>
-              <option value="Monetary">Monetary</option>
-              <option value="InKind">In-kind</option>
-              <option value="Time">Time</option>
-              <option value="Skills">Skills</option>
-              <option value="Advocacy">Advocacy</option>
-            </select>
+        {error ? <div className="badge danger">{error}</div> : null}
+        {notice ? <div className="badge ok" style={{ marginTop: 8 }}>{notice}</div> : null}
+
+        <div className="admin-inline-grid" style={{ marginTop: 10 }}>
+          <input className="input span-8" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search supporters..." />
+          <button
+            className="btn"
+            onClick={() => {
+              setNotice(null);
+              setSupporterPage(1);
+              setAppliedQ(q.trim());
+            }}
+          >
+            Search
+          </button>
+        </div>
+
+        <div className={`process-collapsible ${showSupporterForm ? "open" : ""}`} aria-hidden={!showSupporterForm}>
+          <div className="card process-form-card">
+            <div className="process-header process-inline-header">
+              <div>
+                <strong>Supporter details</strong>
+              </div>
+            </div>
+            <div className="admin-inline-grid">
+              <label className="admin-form-label span-5">
+                <span className="muted">Full name</span>
+                <input className="input" value={newSupporter.fullName} onChange={(e) => setNewSupporter((p) => ({ ...p, fullName: e.target.value }))} />
+              </label>
+              <label className="admin-form-label span-4">
+                <span className="muted">Email</span>
+                <input className="input" value={newSupporter.email} onChange={(e) => setNewSupporter((p) => ({ ...p, email: e.target.value }))} />
+              </label>
+              <label className="admin-form-label span-3">
+                <span className="muted">Type</span>
+                <select className="input" value={newSupporter.supporterType} onChange={(e) => setNewSupporter((p) => ({ ...p, supporterType: e.target.value }))}>
+                  <option value="Monetary">Monetary</option>
+                  <option value="InKind">In-kind</option>
+                  <option value="Time">Time</option>
+                  <option value="Skills">Skills</option>
+                  <option value="Advocacy">Advocacy</option>
+                </select>
+              </label>
+            </div>
+            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  setNotice(null);
+                  if (!newSupporter.fullName.trim()) return setError("Supporter full name is required.");
+                  try {
+                    const created = await apiFetch<Supporter>("/api/supporters", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({
+                        fullName: newSupporter.fullName.trim(),
+                        email: newSupporter.email.trim() || null,
+                        supporterType: newSupporter.supporterType,
+                        isActive: true,
+                      }),
+                    });
+                    setNewSupporter({ fullName: "", email: "", supporterType: "Monetary" });
+                    setQ(created.fullName);
+                    setAppliedQ(created.fullName);
+                    setSupporterPage(1);
+                    setShowSupporterForm(false);
+                    setNotice(`Supporter created: ${created.fullName}`);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              >
+                Save supporter
+              </button>
+            </div>
           </div>
-        ) : null}
+        </div>
       </div>
 
       {stewardship ? (
-        <div className="row">
-          <div className="card tone-peach" style={{ flex: "1 1 320px" }}>
-            <h2 style={{ marginTop: 0 }}>Predictive lapse watchlist</h2>
-            <p className="muted">Donors who are past their expected giving window. Prioritize gratitude update plus check-in.</p>
-            <ul className="trust-list muted">
+        <div className="admin-split-grid">
+          <div className="card tone-peach">
+            <h2 style={{ marginTop: 0 }}>Lapse watchlist</h2>
+            <div className="admin-mini-list">
               {stewardship.watchlist.slice(0, 6).map((x) => (
-                <li key={x.supporterId}>
-                  {x.displayName}: {x.recencyDays}d since last gift (expected {x.expectedWindowDays}d). {x.outcomeNarrative}
-                </li>
+                <div key={x.supporterId} className="admin-mini-list-item">
+                  <div style={{ fontWeight: 700 }}>{x.displayName}</div>
+                  <div className="muted">{x.recencyDays}d since last gift, expected {x.expectedWindowDays}d.</div>
+                  <div className="muted">{x.outcomeNarrative}</div>
+                </div>
               ))}
-              {stewardship.watchlist.length === 0 ? <li>No current lapse-risk donors detected.</li> : null}
-            </ul>
+              {stewardship.watchlist.length === 0 ? <div className="muted">No current lapse-risk donors detected.</div> : null}
+            </div>
           </div>
-          <div className="card tone-aqua" style={{ flex: "1 1 320px" }}>
-            <h2 style={{ marginTop: 0 }}>Donor ladder prompts</h2>
-            <p className="muted">Mid-tier donors likely ready for a targeted program ask instead of a generic appeal.</p>
-            <ul className="trust-list muted">
+          <div className="card tone-aqua">
+            <h2 style={{ marginTop: 0 }}>Upgrade prompts</h2>
+            <div className="admin-mini-list">
               {stewardship.donorLadderMidTier.slice(0, 6).map((x) => (
-                <li key={x.supporterId}>
-                  {x.displayName}: ₱{x.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })} across {x.giftCount} gifts. {x.ladderPrompt}
-                </li>
+                <div key={x.supporterId} className="admin-mini-list-item">
+                  <div style={{ fontWeight: 700 }}>{x.displayName}</div>
+                  <div className="muted">PHP {x.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })} across {x.giftCount} gifts.</div>
+                  <div className="muted">{x.ladderPrompt}</div>
+                </div>
               ))}
-              {stewardship.donorLadderMidTier.length === 0 ? <li>No mid-tier ladder prompts yet.</li> : null}
-            </ul>
+              {stewardship.donorLadderMidTier.length === 0 ? <div className="muted">No mid-tier prompts yet.</div> : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -235,12 +266,12 @@ export function DonorsPage() {
                 <tr key={x.supporterId}>
                   <td data-label="Name">
                     <button
-                      className="btn"
-                      style={{ padding: 6, borderRadius: 10, width: "auto" }}
+                      className="btn admin-table-action"
                       onClick={async () => {
                         setNotice(null);
                         setSelectedSupporter(x);
                         setContribPage(1);
+                        setShowContributionForm(false);
                         try {
                           await loadContribs(x.supporterId, 1);
                         } catch (e) {
@@ -252,7 +283,7 @@ export function DonorsPage() {
                     </button>
                   </td>
                   <td data-label="Email" className="muted">
-                    {x.email ?? "—"}
+                    {x.email ?? "-"}
                   </td>
                   <td data-label="Type">
                     <span className="badge">{x.supporterType}</span>
@@ -262,8 +293,8 @@ export function DonorsPage() {
                   </td>
                   <td data-label="Actions">
                     {auth.hasRole("Admin") ? (
-                      <div className="row">
-                        <button className="btn" onClick={() => {
+                      <div className="row admin-compact-actions">
+                        <button className="btn admin-table-action" onClick={() => {
                           setEditingSupporterId(x.supporterId);
                           setEditingSupporter({
                             fullName: x.fullName,
@@ -273,7 +304,7 @@ export function DonorsPage() {
                           });
                         }}>Edit</button>
                         <button
-                          className="btn danger"
+                          className="btn danger admin-table-action"
                           onClick={async () => {
                             if (!confirm(`Delete ${x.fullName}?`)) return;
                             try {
@@ -291,34 +322,22 @@ export function DonorsPage() {
                           Delete
                         </button>
                       </div>
-                    ) : null}
-                    {!auth.hasRole("Admin") ? <span className="muted">View only</span> : null}
+                    ) : (
+                      <span className="muted">View only</span>
+                    )}
                   </td>
                 </tr>
               ))}
               {editingSupporterId !== null ? (
                 <tr>
                   <td>
-                    <input
-                      className="input"
-                      value={editingSupporter.fullName}
-                      onChange={(e) => setEditingSupporter((prev) => ({ ...prev, fullName: e.target.value }))}
-                    />
+                    <input className="input" value={editingSupporter.fullName} onChange={(e) => setEditingSupporter((prev) => ({ ...prev, fullName: e.target.value }))} />
                   </td>
                   <td>
-                    <input
-                      className="input"
-                      value={editingSupporter.email}
-                      onChange={(e) => setEditingSupporter((prev) => ({ ...prev, email: e.target.value }))}
-                      placeholder="Email"
-                    />
+                    <input className="input" value={editingSupporter.email} onChange={(e) => setEditingSupporter((prev) => ({ ...prev, email: e.target.value }))} placeholder="Email" />
                   </td>
                   <td>
-                    <select
-                      className="input"
-                      value={editingSupporter.supporterType}
-                      onChange={(e) => setEditingSupporter((prev) => ({ ...prev, supporterType: e.target.value }))}
-                    >
+                    <select className="input" value={editingSupporter.supporterType} onChange={(e) => setEditingSupporter((prev) => ({ ...prev, supporterType: e.target.value }))}>
                       <option value="Monetary">Monetary</option>
                       <option value="InKind">In-kind</option>
                       <option value="Time">Time</option>
@@ -328,40 +347,41 @@ export function DonorsPage() {
                   </td>
                   <td>
                     <label className="row" style={{ gap: 8, alignItems: "center" }}>
-                      <input
-                        type="checkbox"
-                        checked={editingSupporter.isActive}
-                        onChange={(e) => setEditingSupporter((prev) => ({ ...prev, isActive: e.target.checked }))}
-                      />
+                      <input type="checkbox" checked={editingSupporter.isActive} onChange={(e) => setEditingSupporter((prev) => ({ ...prev, isActive: e.target.checked }))} />
                       <span className="muted">{editingSupporter.isActive ? "Active" : "Inactive"}</span>
                     </label>
                   </td>
                   <td>
-                    <div className="row">
-                      <button className="btn primary" onClick={async () => {
-                        const original = data?.items.find((s) => s.supporterId === editingSupporterId);
-                        if (!original) return;
-                        try {
-                          setNotice(null);
-                          await apiFetch<void>(`/api/supporters/${editingSupporterId}`, {
-                            method: "PUT",
-                            token: auth.token ?? undefined,
-                            body: JSON.stringify({
-                              ...original,
-                              fullName: editingSupporter.fullName.trim() || original.fullName,
-                              email: editingSupporter.email.trim() || null,
-                              supporterType: editingSupporter.supporterType,
-                              isActive: editingSupporter.isActive,
-                            }),
-                          });
-                          setEditingSupporterId(null);
-                          setNotice(`Supporter updated: ${editingSupporter.fullName.trim() || original.fullName}`);
-                          await load(supporterPage, appliedQ);
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}>Save</button>
-                      <button className="btn" onClick={() => setEditingSupporterId(null)}>Cancel</button>
+                    <div className="row admin-compact-actions">
+                      <button
+                        className="btn primary admin-table-action"
+                        onClick={async () => {
+                          const original = data?.items.find((s) => s.supporterId === editingSupporterId);
+                          if (!original) return;
+                          try {
+                            setNotice(null);
+                            await apiFetch<void>(`/api/supporters/${editingSupporterId}`, {
+                              method: "PUT",
+                              token: auth.token ?? undefined,
+                              body: JSON.stringify({
+                                ...original,
+                                fullName: editingSupporter.fullName.trim() || original.fullName,
+                                email: editingSupporter.email.trim() || null,
+                                supporterType: editingSupporter.supporterType,
+                                isActive: editingSupporter.isActive,
+                              }),
+                            });
+                            setEditingSupporterId(null);
+                            setNotice(`Supporter updated: ${editingSupporter.fullName.trim() || original.fullName}`);
+                            await load(supporterPage, appliedQ);
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      >
+                        Save
+                      </button>
+                      <button className="btn admin-table-action" onClick={() => setEditingSupporterId(null)}>Cancel</button>
                     </div>
                   </td>
                 </tr>
@@ -385,97 +405,134 @@ export function DonorsPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Contribution history</h2>
+        <div className="admin-table-head">
+          <div className="admin-header-copy">
+            <h2 style={{ marginTop: 0 }}>Contribution history</h2>
+            <p className="muted">{selectedSupporter ? selectedSupporter.fullName : "Select a supporter to view contribution history."}</p>
+          </div>
+          {selectedSupporter && auth.hasRole("Admin") ? (
+            <button className="btn primary" onClick={() => setShowContributionForm((open) => !open)}>
+              {showContributionForm ? "Close" : "Add contribution"}
+            </button>
+          ) : null}
+        </div>
         {!selectedSupporter ? (
           <div className="muted">Select a supporter above to view their contribution history.</div>
         ) : (
           <>
-            <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 800 }}>{selectedSupporter.fullName}</div>
-                <div className="muted" style={{ fontSize: 12 }}>
-                  Supporter ID: {selectedSupporter.supporterId}
+            <div className="admin-pill-row" style={{ marginBottom: 10 }}>
+              <span className="badge">Supporter ID: {selectedSupporter.supporterId}</span>
+              <span className="badge">{selectedSupporter.supporterType}</span>
+            </div>
+
+            <div className={`process-collapsible ${showContributionForm ? "open" : ""}`} aria-hidden={!showContributionForm}>
+              <div className="card process-form-card">
+                <div className="process-header process-inline-header">
+                  <div>
+                    <strong>Contribution details</strong>
+                  </div>
                 </div>
-              </div>
-              {auth.hasRole("Admin") ? (
-                <button
-                  className="btn primary"
-                  onClick={async () => {
-                    const amount = newContribution.amount.trim() ? Number(newContribution.amount) : null;
-                    const estimatedValue = newContribution.estimatedValue.trim() ? Number(newContribution.estimatedValue) : null;
-                    try {
-                      const created = await apiFetch<CreatedContribution>("/api/contributions", {
-                        method: "POST",
-                        token: auth.token ?? undefined,
-                        body: JSON.stringify({
-                          supporterId: selectedSupporter.supporterId,
-                          contributionType: newContribution.contributionType,
-                          amount,
-                          estimatedValue,
-                          impactUnit: newContribution.impactUnit.trim() || null,
-                          currency: "PHP",
-                          contributionDate: new Date().toISOString().slice(0, 10),
-                          campaignName: newContribution.campaignName.trim() || null,
-                          notes: newContribution.notes.trim() || null,
-                        }),
-                      });
-                      if (newContribution.contributionType === "InKind" && newContribution.inKindItemName.trim()) {
-                        await apiFetch<void>(`/api/contributions/${created.contributionId}/in-kind-items`, {
+                <div className="admin-inline-grid">
+                  <label className="admin-form-label span-3">
+                    <span className="muted">Type</span>
+                    <select className="input" value={newContribution.contributionType} onChange={(e) => setNewContribution((p) => ({ ...p, contributionType: e.target.value }))}>
+                      <option value="Monetary">Monetary</option>
+                      <option value="InKind">InKind</option>
+                      <option value="Time">Time</option>
+                      <option value="Skills">Skills</option>
+                      <option value="Advocacy">Advocacy</option>
+                    </select>
+                  </label>
+                  <label className="admin-form-label span-2">
+                    <span className="muted">Amount</span>
+                    <input className="input" value={newContribution.amount} onChange={(e) => setNewContribution((p) => ({ ...p, amount: e.target.value }))} />
+                  </label>
+                  <label className="admin-form-label span-2">
+                    <span className="muted">Estimated value</span>
+                    <input className="input" value={newContribution.estimatedValue} onChange={(e) => setNewContribution((p) => ({ ...p, estimatedValue: e.target.value }))} />
+                  </label>
+                  <label className="admin-form-label span-2">
+                    <span className="muted">Impact unit</span>
+                    <input className="input" value={newContribution.impactUnit} onChange={(e) => setNewContribution((p) => ({ ...p, impactUnit: e.target.value }))} />
+                  </label>
+                  <label className="admin-form-label span-3">
+                    <span className="muted">Campaign</span>
+                    <input className="input" value={newContribution.campaignName} onChange={(e) => setNewContribution((p) => ({ ...p, campaignName: e.target.value }))} />
+                  </label>
+                  <label className="admin-form-label span-12">
+                    <span className="muted">Notes</span>
+                    <input className="input" value={newContribution.notes} onChange={(e) => setNewContribution((p) => ({ ...p, notes: e.target.value }))} />
+                  </label>
+                </div>
+                {newContribution.contributionType === "InKind" ? (
+                  <div className="admin-inline-grid">
+                    <label className="admin-form-label span-8">
+                      <span className="muted">In-kind item</span>
+                      <input className="input" value={newContribution.inKindItemName} onChange={(e) => setNewContribution((p) => ({ ...p, inKindItemName: e.target.value }))} />
+                    </label>
+                    <label className="admin-form-label span-4">
+                      <span className="muted">Quantity</span>
+                      <input className="input" value={newContribution.inKindQuantity} onChange={(e) => setNewContribution((p) => ({ ...p, inKindQuantity: e.target.value }))} />
+                    </label>
+                  </div>
+                ) : null}
+                <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+                  <button
+                    className="btn primary"
+                    onClick={async () => {
+                      const amount = newContribution.amount.trim() ? Number(newContribution.amount) : null;
+                      const estimatedValue = newContribution.estimatedValue.trim() ? Number(newContribution.estimatedValue) : null;
+                      try {
+                        const created = await apiFetch<CreatedContribution>("/api/contributions", {
                           method: "POST",
                           token: auth.token ?? undefined,
                           body: JSON.stringify({
-                            itemName: newContribution.inKindItemName.trim(),
-                            itemCategory: "General",
-                            quantity: Number(newContribution.inKindQuantity) || 1,
-                            unitOfMeasure: "item",
+                            supporterId: selectedSupporter.supporterId,
+                            contributionType: newContribution.contributionType,
+                            amount,
+                            estimatedValue,
+                            impactUnit: newContribution.impactUnit.trim() || null,
+                            currency: "PHP",
+                            contributionDate: new Date().toISOString().slice(0, 10),
+                            campaignName: newContribution.campaignName.trim() || null,
+                            notes: newContribution.notes.trim() || null,
                           }),
                         });
+                        if (newContribution.contributionType === "InKind" && newContribution.inKindItemName.trim()) {
+                          await apiFetch<void>(`/api/contributions/${created.contributionId}/in-kind-items`, {
+                            method: "POST",
+                            token: auth.token ?? undefined,
+                            body: JSON.stringify({
+                              itemName: newContribution.inKindItemName.trim(),
+                              itemCategory: "General",
+                              quantity: Number(newContribution.inKindQuantity) || 1,
+                              unitOfMeasure: "item",
+                            }),
+                          });
+                        }
+                        setNewContribution({
+                          contributionType: "Monetary",
+                          amount: "",
+                          estimatedValue: "",
+                          impactUnit: "",
+                          campaignName: "",
+                          notes: "",
+                          inKindItemName: "",
+                          inKindQuantity: "1",
+                        });
+                        setShowContributionForm(false);
+                        setNotice(`Contribution added for ${selectedSupporter.fullName}.`);
+                        await loadContribs(selectedSupporter.supporterId, contribPage);
+                      } catch (e) {
+                        setError((e as Error).message);
                       }
-                      setNewContribution({
-                        contributionType: "Monetary",
-                        amount: "",
-                        estimatedValue: "",
-                        impactUnit: "",
-                        campaignName: "",
-                        notes: "",
-                        inKindItemName: "",
-                        inKindQuantity: "1",
-                      });
-                      setNotice(`Contribution added for ${selectedSupporter.fullName}.`);
-                      await loadContribs(selectedSupporter.supporterId, contribPage);
-                    } catch (e) {
-                      setError((e as Error).message);
-                    }
-                  }}
-                >
-                  Add contribution
-                </button>
-              ) : null}
-            </div>
-            {auth.hasRole("Admin") ? (
-              <>
-                <div className="row" style={{ marginTop: 10 }}>
-                  <select className="input" value={newContribution.contributionType} onChange={(e) => setNewContribution((p) => ({ ...p, contributionType: e.target.value }))}>
-                    <option value="Monetary">Monetary</option>
-                    <option value="InKind">InKind</option>
-                    <option value="Time">Time</option>
-                    <option value="Skills">Skills</option>
-                    <option value="Advocacy">Advocacy</option>
-                  </select>
-                  <input className="input" placeholder="Amount" value={newContribution.amount} onChange={(e) => setNewContribution((p) => ({ ...p, amount: e.target.value }))} />
-                  <input className="input" placeholder="Estimated value" value={newContribution.estimatedValue} onChange={(e) => setNewContribution((p) => ({ ...p, estimatedValue: e.target.value }))} />
-                  <input className="input" placeholder="Impact unit" value={newContribution.impactUnit} onChange={(e) => setNewContribution((p) => ({ ...p, impactUnit: e.target.value }))} />
-                  <input className="input" placeholder="Campaign" value={newContribution.campaignName} onChange={(e) => setNewContribution((p) => ({ ...p, campaignName: e.target.value }))} />
-                  <input className="input" placeholder="Notes" value={newContribution.notes} onChange={(e) => setNewContribution((p) => ({ ...p, notes: e.target.value }))} />
+                    }}
+                  >
+                    Save contribution
+                  </button>
                 </div>
-                {newContribution.contributionType === "InKind" ? (
-                  <div className="row" style={{ marginTop: 8 }}>
-                    <input className="input" placeholder="In-kind item name" value={newContribution.inKindItemName} onChange={(e) => setNewContribution((p) => ({ ...p, inKindItemName: e.target.value }))} />
-                    <input className="input" placeholder="In-kind quantity" value={newContribution.inKindQuantity} onChange={(e) => setNewContribution((p) => ({ ...p, inKindQuantity: e.target.value }))} />
-                  </div>
-                ) : null}
-              </>
-            ) : null}
+              </div>
+            </div>
 
             <div className="table-wrap">
               <table className="table" style={{ marginTop: 10 }}>
@@ -501,12 +558,12 @@ export function DonorsPage() {
                         {c.amount} {c.currency}
                       </td>
                       <td data-label="Campaign" className="muted">
-                        {c.campaignName ?? "—"}
+                        {c.campaignName ?? "-"}
                       </td>
                       <td data-label="Actions">
                         {auth.hasRole("Admin") ? (
                           <button
-                            className="btn danger"
+                            className="btn danger admin-table-action"
                             onClick={async () => {
                               if (!confirm("Delete this contribution?")) return;
                               try {
@@ -523,8 +580,9 @@ export function DonorsPage() {
                           >
                             Delete
                           </button>
-                        ) : null}
-                        {!auth.hasRole("Admin") ? <span className="muted">View only</span> : null}
+                        ) : (
+                          <span className="muted">View only</span>
+                        )}
                       </td>
                     </tr>
                   ))}

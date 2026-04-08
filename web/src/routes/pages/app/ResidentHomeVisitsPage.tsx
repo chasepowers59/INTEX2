@@ -55,6 +55,8 @@ export function ResidentHomeVisitsPage() {
   const [error, setError] = useState<string | null>(null);
   const [visitPage, setVisitPage] = useState(1);
   const [confPage, setConfPage] = useState(1);
+  const [showVisitForm, setShowVisitForm] = useState(false);
+  const [showConferenceForm, setShowConferenceForm] = useState(false);
   const [conferenceForm, setConferenceForm] = useState({
     scheduledAtLocal: "",
     topic: "",
@@ -101,176 +103,205 @@ export function ResidentHomeVisitsPage() {
   const confRows = (confs?.items ?? []).slice((confPage - 1) * PAGE_SIZE, confPage * PAGE_SIZE);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="process-page">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Home Visitation & Case Conferences</h1>
-        <p className="muted">
-          Staff can log home or field visits, schedule case conferences, and update completion status. Admins keep delete access.
-        </p>
-        {error ? <div className="badge danger">{error}</div> : null}
-
-        <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
-          <div className="row" style={{ marginBottom: 10, flexWrap: "wrap" }}>
-            <span className="badge ok">Prediction support: use ML risk to prioritize visits</span>
-            <span className="badge">Observed fact: visit and conference logs are operational records</span>
+        <div className="process-header">
+          <div>
+            <h1 style={{ marginTop: 0 }}>Home Visits</h1>
+            <p className="muted">Visits, observations, and follow-up actions.</p>
           </div>
-
-          <div className="row">
-            <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
-              <span className="muted">Visit date</span>
-              <input
-                className="input"
-                type="date"
-                value={visitForm.visitDate}
-                onChange={(e) => setVisitForm((p) => ({ ...p, visitDate: e.target.value }))}
-              />
-            </label>
-            <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-              <span className="muted">Visit type</span>
-              <select
-                className="input"
-                value={visitForm.visitType}
-                onChange={(e) => setVisitForm((p) => ({ ...p, visitType: e.target.value }))}
-              >
-                <option value="InitialAssessment">Initial assessment</option>
-                <option value="RoutineFollowUp">Routine follow-up</option>
-                <option value="ReintegrationAssessment">Reintegration assessment</option>
-                <option value="PostPlacementMonitoring">Post-placement monitoring</option>
-                <option value="Emergency">Emergency</option>
-              </select>
-            </label>
-            <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
-              <span className="muted">Social worker</span>
-              <input
-                className="input"
-                value={visitForm.socialWorkerName}
-                onChange={(e) => setVisitForm((p) => ({ ...p, socialWorkerName: e.target.value }))}
-                placeholder={auth.displayName ?? "Staff name"}
-              />
-            </label>
-          </div>
-          <div className="row" style={{ marginTop: 10 }}>
-            <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-              <span className="muted">Location visited</span>
-              <input
-                className="input"
-                value={visitForm.locationVisited}
-                onChange={(e) => setVisitForm((p) => ({ ...p, locationVisited: e.target.value }))}
-              />
-            </label>
-            <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-              <span className="muted">Family members present</span>
-              <input
-                className="input"
-                value={visitForm.familyMembersPresent}
-                onChange={(e) => setVisitForm((p) => ({ ...p, familyMembersPresent: e.target.value }))}
-              />
-            </label>
-          </div>
-
-          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-            <span className="muted">Purpose</span>
-            <input className="input" value={visitForm.purpose} onChange={(e) => setVisitForm((p) => ({ ...p, purpose: e.target.value }))} />
-          </label>
-          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-            <span className="muted">Observations</span>
-            <textarea
-              className="input"
-              rows={3}
-              value={visitForm.observations}
-              onChange={(e) => setVisitForm((p) => ({ ...p, observations: e.target.value }))}
-            />
-          </label>
-
-          <div className="row" style={{ marginTop: 10 }}>
-            <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
-              <span className="muted">Family cooperation level</span>
-              <input
-                className="input"
-                value={visitForm.familyCooperationLevel}
-                onChange={(e) => setVisitForm((p) => ({ ...p, familyCooperationLevel: e.target.value }))}
-                placeholder="e.g., high / medium / low"
-              />
-            </label>
-            <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
-              <span className="muted">Safety concerns</span>
-              <input
-                className="input"
-                value={visitForm.safetyConcerns}
-                onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcerns: e.target.value }))}
-              />
-            </label>
-          </div>
-
-          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-            <span className="muted">Visit outcome</span>
-            <input className="input" value={visitForm.visitOutcome} onChange={(e) => setVisitForm((p) => ({ ...p, visitOutcome: e.target.value }))} />
-          </label>
-          <div className="row" style={{ marginTop: 8 }}>
-            <label className="row"><input type="checkbox" checked={visitForm.safetyConcernsNoted} onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcernsNoted: e.target.checked }))} /> Safety concerns noted</label>
-            <label className="row"><input type="checkbox" checked={visitForm.followUpNeeded} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNeeded: e.target.checked }))} /> Follow-up needed</label>
-          </div>
-          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-            <span className="muted">Follow-up notes</span>
-            <input className="input" value={visitForm.followUpNotes} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNotes: e.target.value }))} />
-          </label>
-          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-            <span className="muted">Follow-up actions</span>
-            <input
-              className="input"
-              value={visitForm.followUpActions}
-              onChange={(e) => setVisitForm((p) => ({ ...p, followUpActions: e.target.value }))}
-            />
-          </label>
-
-          <div className="row" style={{ marginTop: 12, justifyContent: "flex-end" }}>
-            <button
-              className="btn primary"
-              onClick={async () => {
-                setError(null);
-                if (!visitForm.observations.trim()) {
-                  setError("Observations are required.");
-                  return;
-                }
-                try {
-                  await apiFetch<void>("/api/home-visitations", {
-                    method: "POST",
-                    token: auth.token ?? undefined,
-                    body: JSON.stringify({
-                      residentId,
-                      visitDate: visitForm.visitDate,
-                      socialWorkerName: visitForm.socialWorkerName.trim() || auth.displayName || null,
-                      visitType: visitForm.visitType,
-                      locationVisited: visitForm.locationVisited.trim() || null,
-                      familyMembersPresent: visitForm.familyMembersPresent.trim() || null,
-                      purpose: visitForm.purpose.trim() || null,
-                      observations: visitForm.observations.trim(),
-                      familyCooperationLevel: visitForm.familyCooperationLevel.trim() || null,
-                      safetyConcernsNoted: visitForm.safetyConcernsNoted,
-                      followUpNeeded: visitForm.followUpNeeded,
-                      followUpNotes: visitForm.followUpNotes.trim() || null,
-                      visitOutcome: visitForm.visitOutcome.trim() || null,
-                      safetyConcerns: visitForm.safetyConcerns.trim() || null,
-                      followUpActions: visitForm.followUpActions.trim() || null,
-                    }),
-                  });
-                  setVisitForm((p) => ({
-                    ...p,
-                    observations: "",
-                    familyCooperationLevel: "",
-                    followUpNotes: "",
-                    visitOutcome: "",
-                    safetyConcerns: "",
-                    followUpActions: "",
-                  }));
-                  await load();
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Add visit
+          <div className="row process-form-actions">
+            {error ? <div className="badge danger">{error}</div> : null}
+            <button className="btn primary" onClick={() => setShowVisitForm((open) => !open)}>
+              {showVisitForm ? "Close" : "Add visit"}
             </button>
+          </div>
+        </div>
+
+        <div className={`process-collapsible ${showVisitForm ? "open" : ""}`} aria-hidden={!showVisitForm}>
+          <div className="card process-form-card">
+            <div className="process-header process-inline-header">
+              <div>
+                <strong>Add visit</strong>
+              </div>
+            </div>
+
+            <div className="process-form-section">
+              <div className="process-section-head">
+                <strong>Visit details</strong>
+              </div>
+              <div className="process-grid process-grid--meta">
+                <label className="process-field">
+                  <span className="muted">Visit date</span>
+                  <input
+                    className="input"
+                    type="date"
+                    value={visitForm.visitDate}
+                    onChange={(e) => setVisitForm((p) => ({ ...p, visitDate: e.target.value }))}
+                  />
+                </label>
+                <label className="process-field process-field--wide">
+                  <span className="muted">Visit type</span>
+                  <select
+                    className="input"
+                    value={visitForm.visitType}
+                    onChange={(e) => setVisitForm((p) => ({ ...p, visitType: e.target.value }))}
+                  >
+                    <option value="InitialAssessment">Initial assessment</option>
+                    <option value="RoutineFollowUp">Routine follow-up</option>
+                    <option value="ReintegrationAssessment">Reintegration assessment</option>
+                    <option value="PostPlacementMonitoring">Post-placement monitoring</option>
+                    <option value="Emergency">Emergency</option>
+                  </select>
+                </label>
+                <label className="process-field">
+                  <span className="muted">Social worker</span>
+                  <input
+                    className="input"
+                    value={visitForm.socialWorkerName}
+                    onChange={(e) => setVisitForm((p) => ({ ...p, socialWorkerName: e.target.value }))}
+                    placeholder={auth.displayName ?? "Staff name"}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="process-form-section">
+              <div className="process-section-head">
+                <strong>Household context</strong>
+              </div>
+              <div className="process-grid">
+                <label className="process-field">
+                  <span className="muted">Location visited</span>
+                  <input
+                    className="input"
+                    value={visitForm.locationVisited}
+                    onChange={(e) => setVisitForm((p) => ({ ...p, locationVisited: e.target.value }))}
+                  />
+                </label>
+                <label className="process-field">
+                  <span className="muted">Family members present</span>
+                  <input
+                    className="input"
+                    value={visitForm.familyMembersPresent}
+                    onChange={(e) => setVisitForm((p) => ({ ...p, familyMembersPresent: e.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <label className="process-field process-field--full">
+                <span className="muted">Purpose</span>
+                <input className="input" value={visitForm.purpose} onChange={(e) => setVisitForm((p) => ({ ...p, purpose: e.target.value }))} />
+              </label>
+
+              <label className="process-field process-field--full">
+                <span className="muted">Observations</span>
+                <textarea
+                  className="input process-textarea-main"
+                  rows={5}
+                  value={visitForm.observations}
+                  onChange={(e) => setVisitForm((p) => ({ ...p, observations: e.target.value }))}
+                />
+              </label>
+            </div>
+
+            <div className="process-form-section">
+              <div className="process-section-head">
+                <strong>Safety and follow-up</strong>
+              </div>
+              <div className="process-grid">
+                <label className="process-field">
+                  <span className="muted">Family cooperation level</span>
+                  <input
+                    className="input"
+                    value={visitForm.familyCooperationLevel}
+                    onChange={(e) => setVisitForm((p) => ({ ...p, familyCooperationLevel: e.target.value }))}
+                    placeholder="e.g., high / medium / low"
+                  />
+                </label>
+                <label className="process-field">
+                  <span className="muted">Safety concerns</span>
+                  <input
+                    className="input"
+                    value={visitForm.safetyConcerns}
+                    onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcerns: e.target.value }))}
+                  />
+                </label>
+                <label className="process-field">
+                  <span className="muted">Visit outcome</span>
+                  <input className="input" value={visitForm.visitOutcome} onChange={(e) => setVisitForm((p) => ({ ...p, visitOutcome: e.target.value }))} />
+                </label>
+                <label className="process-field">
+                  <span className="muted">Follow-up notes</span>
+                  <input className="input" value={visitForm.followUpNotes} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNotes: e.target.value }))} />
+                </label>
+              </div>
+
+              <label className="process-field process-field--full">
+                <span className="muted">Follow-up actions</span>
+                <input
+                  className="input"
+                  value={visitForm.followUpActions}
+                  onChange={(e) => setVisitForm((p) => ({ ...p, followUpActions: e.target.value }))}
+                />
+              </label>
+
+              <div className="process-flag-strip">
+                <label className="row"><input type="checkbox" checked={visitForm.safetyConcernsNoted} onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcernsNoted: e.target.checked }))} /> Safety concerns noted</label>
+                <label className="row"><input type="checkbox" checked={visitForm.followUpNeeded} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNeeded: e.target.checked }))} /> Follow-up needed</label>
+              </div>
+            </div>
+
+            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  setError(null);
+                  if (!visitForm.observations.trim()) {
+                    setError("Observations are required.");
+                    return;
+                  }
+                  try {
+                    await apiFetch<void>("/api/home-visitations", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({
+                        residentId,
+                        visitDate: visitForm.visitDate,
+                        socialWorkerName: visitForm.socialWorkerName.trim() || auth.displayName || null,
+                        visitType: visitForm.visitType,
+                        locationVisited: visitForm.locationVisited.trim() || null,
+                        familyMembersPresent: visitForm.familyMembersPresent.trim() || null,
+                        purpose: visitForm.purpose.trim() || null,
+                        observations: visitForm.observations.trim(),
+                        familyCooperationLevel: visitForm.familyCooperationLevel.trim() || null,
+                        safetyConcernsNoted: visitForm.safetyConcernsNoted,
+                        followUpNeeded: visitForm.followUpNeeded,
+                        followUpNotes: visitForm.followUpNotes.trim() || null,
+                        visitOutcome: visitForm.visitOutcome.trim() || null,
+                        safetyConcerns: visitForm.safetyConcerns.trim() || null,
+                        followUpActions: visitForm.followUpActions.trim() || null,
+                      }),
+                    });
+                    setVisitForm((p) => ({
+                      ...p,
+                      observations: "",
+                      familyCooperationLevel: "",
+                      followUpNotes: "",
+                      visitOutcome: "",
+                      safetyConcerns: "",
+                      followUpActions: "",
+                    }));
+                    setShowVisitForm(false);
+                    await load();
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              >
+                Add visit
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -338,59 +369,95 @@ export function ResidentHomeVisitsPage() {
       </div>
 
       <div className="card">
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Case conferences</h2>
+        <div className="process-header">
+          <div>
+            <h2 style={{ marginTop: 0, marginBottom: 0 }}>Case conferences</h2>
+            <p className="muted" style={{ marginTop: 8, marginBottom: 0 }}>Schedule, status, and notes.</p>
+          </div>
+          <div className="row process-form-actions">
+            {error ? <div className="badge danger">{error}</div> : null}
+            <button className="btn" onClick={() => setShowConferenceForm((open) => !open)}>
+              {showConferenceForm ? "Close" : "Schedule conference"}
+            </button>
+          </div>
         </div>
-        <p className="muted" style={{ marginTop: 8 }}>
-          Schedule in local time here. The app converts it to UTC before saving.
-        </p>
-        <div className="row" style={{ marginTop: 8 }}>
-          <label style={{ display: "grid", gap: 6, minWidth: 240 }}>
-            <span className="muted">Scheduled time</span>
-            <input
-              className="input"
-              type="datetime-local"
-              value={conferenceForm.scheduledAtLocal}
-              onChange={(e) => setConferenceForm((p) => ({ ...p, scheduledAtLocal: e.target.value }))}
-            />
-          </label>
-          <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
-            <span className="muted">Topic</span>
-            <input className="input" value={conferenceForm.topic} onChange={(e) => setConferenceForm((p) => ({ ...p, topic: e.target.value }))} />
-          </label>
-          <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-            <span className="muted">Notes</span>
-            <input className="input" value={conferenceForm.notes} onChange={(e) => setConferenceForm((p) => ({ ...p, notes: e.target.value }))} />
-          </label>
-          <button
-            className="btn primary"
-            style={{ alignSelf: "end" }}
-            onClick={async () => {
-              if (!conferenceForm.scheduledAtLocal.trim() || !conferenceForm.topic.trim()) {
-                setError("Conference time and topic are required.");
-                return;
-              }
-              try {
-                await apiFetch<void>("/api/case-conferences", {
-                  method: "POST",
-                  token: auth.token ?? undefined,
-                  body: JSON.stringify({
-                    residentId,
-                    scheduledAtUtc: toUtcIso(conferenceForm.scheduledAtLocal),
-                    topic: conferenceForm.topic.trim(),
-                    notes: conferenceForm.notes.trim() || null,
-                    isCompleted: false,
-                  }),
-                });
-                setConferenceForm({ scheduledAtLocal: "", topic: "", notes: "" });
-                await load();
-              } catch (e) {
-                setError((e as Error).message);
-              }
-            }}
-          >
-            Schedule conference
-          </button>
+
+        <div className={`process-collapsible ${showConferenceForm ? "open" : ""}`} aria-hidden={!showConferenceForm}>
+          <div className="card process-form-card">
+            <div className="process-header process-inline-header">
+              <div>
+                <strong>Schedule conference</strong>
+              </div>
+            </div>
+
+            <div className="process-form-section">
+              <div className="process-section-head">
+                <strong>Conference details</strong>
+              </div>
+              <div className="process-grid">
+                <label className="process-field">
+                  <span className="muted">Scheduled time</span>
+                  <input
+                    className="input"
+                    type="datetime-local"
+                    value={conferenceForm.scheduledAtLocal}
+                    onChange={(e) => setConferenceForm((p) => ({ ...p, scheduledAtLocal: e.target.value }))}
+                  />
+                </label>
+                <label className="process-field">
+                  <span className="muted">Topic</span>
+                  <input className="input" value={conferenceForm.topic} onChange={(e) => setConferenceForm((p) => ({ ...p, topic: e.target.value }))} />
+                </label>
+              </div>
+            </div>
+
+            <div className="process-form-section">
+              <div className="process-section-head">
+                <strong>Notes</strong>
+              </div>
+              <label className="process-field process-field--full">
+                <span className="muted">Conference notes</span>
+                <textarea
+                  className="input"
+                  rows={4}
+                  value={conferenceForm.notes}
+                  onChange={(e) => setConferenceForm((p) => ({ ...p, notes: e.target.value }))}
+                />
+              </label>
+            </div>
+
+            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  if (!conferenceForm.scheduledAtLocal.trim() || !conferenceForm.topic.trim()) {
+                    setError("Conference time and topic are required.");
+                    return;
+                  }
+                  try {
+                    await apiFetch<void>("/api/case-conferences", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({
+                        residentId,
+                        scheduledAtUtc: toUtcIso(conferenceForm.scheduledAtLocal),
+                        topic: conferenceForm.topic.trim(),
+                        notes: conferenceForm.notes.trim() || null,
+                        isCompleted: false,
+                      }),
+                    });
+                    setConferenceForm({ scheduledAtLocal: "", topic: "", notes: "" });
+                    setShowConferenceForm(false);
+                    await load();
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              >
+                Schedule conference
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="table-wrap">

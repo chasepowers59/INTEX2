@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
@@ -61,6 +61,28 @@ type SafehouseForecast = {
   capacityGirls: number | null;
   predictedIncidentsNextMonth: number;
 };
+
+function formatPhp(value: number | null | undefined) {
+  if (value == null) return "-";
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "PHP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatStamp(value: string | null | undefined) {
+  if (!value) return "Awaiting sync";
+  return new Date(value).toLocaleString();
+}
+
+function formatCompact(value: number | null | undefined) {
+  if (value == null) return "-";
+  return new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
 
 export function AppDashboardPage() {
   const auth = useAuth();
@@ -125,301 +147,150 @@ export function AppDashboardPage() {
       ? Math.max(0, ((data.activeResidents - data.checkInsDue30d) / data.activeResidents) * 100)
       : null;
 
-  const readinessChart =
-    readinessBands === "-"
-      ? []
-      : readinessBands.split(" | ").map((entry) => {
-          const [label, raw] = entry.split(":");
-          return { label: label ?? "Unknown", value: Number(raw ?? 0) || 0 };
-        });
+  const readinessChart = useMemo(
+    () =>
+      readinessBands === "-"
+        ? []
+        : readinessBands.split(" | ").map((entry) => {
+            const [label, raw] = entry.split(":");
+            return { label: label ?? "Unknown", value: Number(raw ?? 0) || 0 };
+          }),
+    [readinessBands],
+  );
+
+  const topProgramArea = insights?.donationAllocationsByProgram?.length
+    ? [...insights.donationAllocationsByProgram].sort((a, b) => b.totalPhp - a.totalPhp)[0]
+    : null;
+
+  const topForecast = safehouseForecast.length
+    ? [...safehouseForecast].sort((a, b) => b.predictedIncidentsNextMonth - a.predictedIncidentsNextMonth)[0]
+    : null;
+
+  const socialRoiMultiple =
+    insights && insights.socialRoi.totalBoostSpendPhp > 0
+      ? insights.socialRoi.totalEstimatedDonationValuePhp / insights.socialRoi.totalBoostSpendPhp
+      : null;
+
+  const workloadItems = [
+    { label: "Check-ins due", value: data?.checkInsDue30d ?? 0 },
+    { label: "Process recordings", value: data?.processRecordings7d ?? 0 },
+    { label: "Conferences", value: data?.upcomingConferences14d ?? 0 },
+    { label: "Open alerts", value: alerts?.items.length ?? 0 },
+  ];
+
+  const actionHeadline =
+    (alerts?.items.length ?? 0) > 0
+      ? `${alerts?.items.length ?? 0} residents need timely review`
+      : followUpCoveragePct != null && followUpCoveragePct < 85
+        ? "Follow-up coverage needs attention"
+        : "Operations look stable today";
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div className="card">
-        <h1 style={{ marginTop: 0 }}>Operations Dashboard</h1>
-        <p className="muted">
-          Leadership view across resident follow-up health, donor momentum, social ROI, and the current ML triage layer.
-        </p>
-        <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
-          <span className="badge ok">Observed metrics: dashboard KPIs, donations, visits, recordings, incidents</span>
-          <span className="badge warn">Predicted metrics: resident risk, readiness, safehouse pressure</span>
-          <span className="badge">Explanation details live in ML Insights and the notebooks</span>
+    <div className="admin-dashboard-page">
+      <section className="card admin-command-hero">
+        <div className="admin-command-copy">
+          <h1>Operations at a glance</h1>
+          <div className="admin-command-meta">
+            <span className="badge brand">Updated {formatStamp(data?.asOfUtc ?? alerts?.asOfUtc ?? insights?.asOfUtc)}</span>
+          </div>
+          {error ? <div className="badge danger">{error}</div> : null}
+          <div className="admin-quick-action-grid">
+            <Link className="btn primary" to="/app/cases">
+              Open caseload
+            </Link>
+            <Link className="btn" to="/app/donors">
+              Review donors
+            </Link>
+            <Link className="btn" to="/app/action-center">
+              Action center
+            </Link>
+            <Link className="btn" to="/app/reports">
+              Run reports
+            </Link>
+          </div>
         </div>
-        {error ? (
-          <div className="badge danger" style={{ marginTop: 10 }}>
-            {error}
-          </div>
-        ) : null}
-        {data ? (
-          <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
-            Updated {new Date(data.asOfUtc).toLocaleString()}
-          </div>
-        ) : null}
-      </div>
 
-      <div className="card panel2-bg">
-        <h2 style={{ marginTop: 0 }}>Operational trend charts</h2>
-        <p className="muted" style={{ marginTop: 6 }}>
-          Daily triage view for resident risk, reintegration readiness, and workload.
-        </p>
-        <div className="row" style={{ marginTop: 12, alignItems: "stretch", gap: 12 }}>
-          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
-            <div style={{ fontWeight: 800 }}>Resident incident risk distribution</div>
-            <div style={{ marginTop: 10 }}>
-              <InlineBarChart data={(data?.residentRisk.byBand ?? []).map((x) => ({ label: x.band, value: x.count }))} />
+        <aside className="admin-command-side">
+          <div className="admin-command-status">
+            <div className="admin-status-row">
+              <span>Priority</span>
+              <strong>{actionHeadline}</strong>
+            </div>
+            <div className="admin-status-row">
+              <span>Follow-up coverage</span>
+              <strong>{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</strong>
+            </div>
+            <div className="admin-status-row">
+              <span>Top funding area</span>
+              <strong>{topProgramArea ? topProgramArea.programArea : "Awaiting allocations"}</strong>
+            </div>
+            <div className="admin-status-row">
+              <span>Highest forecast pressure</span>
+              <strong>{topForecast ? topForecast.name : "Awaiting forecast import"}</strong>
             </div>
           </div>
-          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
-            <div style={{ fontWeight: 800 }}>Reintegration readiness distribution</div>
-            <div style={{ marginTop: 10 }}>
-              <InlineBarChart data={readinessChart} />
-            </div>
-          </div>
-          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
-            <div style={{ fontWeight: 800 }}>Current operations workload</div>
-            <div style={{ marginTop: 10 }}>
-              <InlineBarChart
-                data={[
-                  { label: "Check-ins due", value: data?.checkInsDue30d ?? 0 },
-                  { label: "Process recordings", value: data?.processRecordings7d ?? 0 },
-                  { label: "Conferences", value: data?.upcomingConferences14d ?? 0 },
-                  { label: "Open alerts", value: alerts?.items.length ?? 0 },
-                ]}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+        </aside>
+      </section>
 
-      <div className="admin-overview-grid">
-        <div className="admin-overview-card">
-          <div className="muted">Residents</div>
-          <div className="admin-overview-kpi">{data?.activeResidents ?? "-"}</div>
-          <div className="muted">Active caseload count</div>
-        </div>
-        <div className="admin-overview-card">
-          <div className="muted">Donations 30d</div>
-          <div className="admin-overview-kpi">{data?.donations30d.count ?? "-"}</div>
-          <div className="muted">
-            {data ? `PHP ${data.donations30d.totalAmount.toFixed(0)} total` : "-"}
-          </div>
-        </div>
-        <div className="admin-overview-card">
-          <div className="muted">Check-ins due</div>
-          <div className="admin-overview-kpi">{data?.checkInsDue30d ?? "-"}</div>
-          <div className="muted">30-day follow-up window</div>
-        </div>
-        <div className="admin-overview-card">
-          <div className="muted">Follow-up coverage</div>
-          <div className="admin-overview-kpi">{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</div>
-          <div className="muted">Residents not overdue</div>
-        </div>
-        <div className="admin-overview-card">
-          <div className="muted">Readiness bands</div>
-          <div className="admin-overview-kpi" style={{ fontSize: 20 }}>{readinessBands}</div>
-          <div className="muted">Resident reintegration view</div>
-        </div>
-      </div>
-
-      <div className="card panel2-bg">
-        <div style={{ fontWeight: 800 }}>Executive note</div>
-        <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-          The strongest north-star operational metric in the current app is follow-up coverage. If that number drops,
-          residents are missing timely contact and the rest of the workflow quality follows it down.
-        </p>
-        <div className="row" style={{ marginTop: 10 }}>
-          <Link className="btn" to="/app/cases">Employee case workflow</Link>
-          <Link className="btn" to="/app/action-center">ML action center</Link>
-          <Link className="btn" to="/app/reports">Admin reporting and snapshots</Link>
-        </div>
-      </div>
-
-      <div className="kpi-grid">
-        <StatCard label="Active residents" value={data?.activeResidents ?? "-"} />
-        <StatCard
-          label="Donations in last 30 days"
-          value={data ? `${data.donations30d.count}` : "-"}
-          hint={data ? `PHP ${data.donations30d.totalAmount.toFixed(2)} total` : undefined}
-          tone="brand"
-        />
-        <StatCard label="Check-ins due in 30 days" value={data?.checkInsDue30d ?? "-"} tone="warn" />
-        <StatCard
-          label="Follow-up coverage"
-          value={followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}
-          hint="Share of active residents not overdue for a check-in"
-          tone="ok"
-        />
-        <StatCard label="Process recordings in 7 days" value={data?.processRecordings7d ?? "-"} tone="ok" />
-        <StatCard label="Case conferences in 14 days" value={data?.upcomingConferences14d ?? "-"} />
-        <StatCard
-          label="Resident incident risk bands"
-          value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" | ") || "-" : "-"}
-          hint={data?.residentRisk.asOfUtc ? `As of ${new Date(data.residentRisk.asOfUtc).toLocaleString()}` : "No ML import yet"}
-        />
-        <StatCard label="Reintegration readiness bands" value={readinessBands} hint="From resident readiness ML imports" tone="ok" />
-      </div>
-
-      <div className="card">
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Safehouse forecast</h2>
-          <Link className="btn" to="/app/action-center">Full ML action center</Link>
-        </div>
-        <p className="muted" style={{ marginTop: 8 }}>
-          Forward-looking incident pressure from the ML pipeline, surfaced for staffing and capacity planning.
-        </p>
-        <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-          This section is a prediction. It estimates next-month pressure. It does not explain why by itself and it is not a historical total.
-        </p>
-        <div className="table-wrap" style={{ marginTop: 10 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Safehouse</th>
-                <th>Predicted incidents</th>
-                <th>Occupancy</th>
-              </tr>
-            </thead>
-            <tbody>
-              {safehouseForecast.map((row) => (
-                <tr key={row.safehouseId}>
-                  <td data-label="Safehouse" style={{ fontWeight: 800 }}>
-                    {row.name}
-                    {row.city ? <span className="muted"> · {row.city}</span> : null}
-                  </td>
-                  <td data-label="Predicted incidents">{row.predictedIncidentsNextMonth.toFixed(2)}</td>
-                  <td data-label="Occupancy" className="muted">
-                    {row.currentOccupancy ?? "-"}
-                    {row.capacityGirls != null ? ` / ${row.capacityGirls}` : ""}
-                  </td>
-                </tr>
-              ))}
-              {safehouseForecast.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="muted">
-                    No safehouse forecast imported yet. Import `safehouse_incident_next_month` to populate this view.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {insights ? (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Program outcomes and stewardship signals</h2>
-          <p className="muted" style={{ marginTop: 6 }}>
-            Pulled from intervention plans, allocations, education and health records, incidents, and social posts.
-            Updated {new Date(insights.asOfUtc).toLocaleString()}.
-          </p>
-
-          <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
-            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
-              <div style={{ fontWeight: 800 }}>Program pillars</div>
-              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                <li>Caring: {insights.servicesPillarMentions.caring}</li>
-                <li>Healing: {insights.servicesPillarMentions.healing}</li>
-                <li>Teaching: {insights.servicesPillarMentions.teaching}</li>
-                <li>Legal: {insights.servicesPillarMentions.legal}</li>
-              </ul>
-            </div>
-            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
-              <div style={{ fontWeight: 800 }}>Resident outcomes</div>
-              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                <li>Avg education progress: {insights.education.avgProgressPercent ?? "-"}%</li>
-                <li>Completed education records: {insights.education.recordsCompleted}</li>
-                <li>Avg general health score: {insights.health.avgGeneralHealthScore ?? "-"}</li>
-              </ul>
-            </div>
-            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
-              <div style={{ fontWeight: 800 }}>Safety in 90 days</div>
-              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                <li>Open follow-ups: {insights.incidents90d.openFollowUps}</li>
-                {insights.incidents90d.byType.slice(0, 4).map((row) => (
-                  <li key={row.incidentType}>
-                    {row.incidentType}: {row.count}
-                  </li>
-                ))}
-              </ul>
-            </div>
+      <div className="admin-dashboard-main">
+          <div className="kpi-grid">
+            <StatCard label="Residents currently in care" value={data?.activeResidents ?? "-"} />
+            <StatCard
+              label="Gifts recorded in the last 30 days"
+              value={data?.donations30d.count ?? "-"}
+              hint={data ? `${formatPhp(data.donations30d.totalAmount)} total recorded` : "Awaiting donation data"}
+              tone="brand"
+            />
+            <StatCard
+              label="Resident check-ins due in 30 days"
+              value={data?.checkInsDue30d ?? "-"}
+              tone="warn"
+            />
+            <StatCard
+              label="Case notes entered in the last 7 days"
+              value={data?.processRecordings7d ?? "-"}
+              tone="ok"
+            />
+            <StatCard
+              label="Case conferences scheduled in 14 days"
+              value={data?.upcomingConferences14d ?? "-"}
+            />
+            <StatCard
+              label="Residents currently flagged for review"
+              value={alerts?.items.length ?? "-"}
+              tone={(alerts?.items.length ?? 0) > 0 ? "danger" : "ok"}
+            />
           </div>
 
-          <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
-            <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>Donation allocations by program</div>
-              <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-                {insights.donationAllocationsByProgram.length === 0 ? <div className="muted">No allocation rows yet.</div> : null}
-                {insights.donationAllocationsByProgram.map((row) => (
-                  <div key={row.programArea}>
-                    <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}>
-                      <span>{row.programArea}</span>
-                      <span className="muted">PHP {row.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                    </div>
-                    <div className="mini-track">
-                      <div
-                        style={{
-                          width: `${Math.min(100, (row.totalPhp / Math.max(...insights.donationAllocationsByProgram.map((r) => r.totalPhp), 1)) * 100)}%`,
-                          height: "100%",
-                          background: "var(--brand)",
-                          borderRadius: 4,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
+          <div className="admin-two-column">
+            <section className="card admin-panel">
+              <div className="admin-panel-header">
+                <div>
+                  <h2>Immediate attention</h2>
+                  <p className="muted">Residents and follow-ups that should be reviewed first.</p>
+                </div>
+                <Link className="btn" to="/app/action-center">
+                  View ML triage
+                </Link>
               </div>
-            </div>
-            <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>Social ROI</div>
-              <ul className="muted" style={{ margin: "10px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                <li>Total boost spend: PHP {insights.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
-                <li>Estimated donation value: PHP {insights.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
-                {insights.socialRoi.topPosts.map((post) => (
-                  <li key={post.postId}>
-                    #{post.postId} {post.platform} {post.postType} - PHP {post.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })} from {post.referrals} referrals
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
 
-          <div className="row" style={{ marginTop: 12, gap: 10 }}>
-            <Link className="btn" to="/app/reports">Full reports and snapshots</Link>
-            <Link className="btn" to="/impact">Preview public impact page</Link>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="card">
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Operational alerts</h2>
-          <Link className="btn" to="/app/action-center">View ML action center</Link>
-        </div>
-        <p className="muted" style={{ marginTop: 8 }}>
-          Prioritize follow-ups without exposing sensitive details.
-        </p>
-
-        {alerts?.items?.length ? (
-          <div className="table-wrap" style={{ marginTop: 10 }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Resident</th>
-                  <th>Safehouse</th>
-                  <th>Worker</th>
-                  <th>Risk</th>
-                  <th>Reasons</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alerts.items.map((row) => (
-                  <tr key={row.residentId}>
-                    <td data-label="Resident" style={{ fontWeight: 800 }}>{row.displayName}</td>
-                    <td data-label="Safehouse" className="muted">{row.safehouseId}</td>
-                    <td data-label="Worker" className="muted">{row.assignedSocialWorker ?? "-"}</td>
-                    <td data-label="Risk"><span className="badge">{row.riskBand ?? "Review"}</span></td>
-                    <td data-label="Reasons">
-                      <div className="row" style={{ gap: 8 }}>
+              {alerts?.items?.length ? (
+                <div className="admin-alert-list">
+                  {alerts.items.slice(0, 4).map((row) => (
+                    <article key={row.residentId} className="admin-alert-card">
+                      <div className="admin-alert-head">
+                        <div className="admin-alert-title">
+                          <strong>{row.displayName}</strong>
+                          <span className="muted">
+                            Safehouse {row.safehouseId}
+                            {row.assignedSocialWorker ? ` - ${row.assignedSocialWorker}` : ""}
+                          </span>
+                        </div>
+                        <span className={`badge ${row.riskBand?.toLowerCase().includes("high") ? "danger" : "warn"}`}>
+                          {row.riskBand ?? "Review"}
+                        </span>
+                      </div>
+                      <div className="admin-alert-reasons">
                         {row.reasons.map((reason) => (
                           <span
                             key={reason}
@@ -429,17 +300,211 @@ export function AppDashboardPage() {
                           </span>
                         ))}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="admin-empty-state">
+                  No operational alerts right now.
+                </div>
+              )}
+            </section>
+
+            <section className="card admin-panel">
+              <div className="admin-panel-header">
+                <div>
+                  <h2>Workload and care pulse</h2>
+                  <p className="muted">Check-ins, notes, conferences, and readiness.</p>
+                </div>
+              </div>
+
+              <InlineBarChart data={workloadItems} />
+
+              <div className="admin-mini-metrics">
+                <div className="admin-mini-metric">
+                  <span>Coverage</span>
+                  <strong>{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</strong>
+                </div>
+                <div className="admin-mini-metric">
+                  <span>Readiness mix</span>
+                  <strong>{readinessBands}</strong>
+                </div>
+                <div className="admin-mini-metric">
+                  <span>Top donor lapse band</span>
+                  <strong>{data?.donorLapse.byBand?.[0]?.band ?? "Awaiting import"}</strong>
+                </div>
+                <div className="admin-mini-metric">
+                  <span>Programs with service notes</span>
+                  <strong>{insights?.servicesPillarMentions.plansWithServicesText ?? "-"}</strong>
+                </div>
+              </div>
+
+              <div className="admin-inline-summary">
+                {followUpCoveragePct == null
+                  ? "Follow-up coverage will appear here once resident follow-up timing is available."
+                  : `Current follow-up coverage is ${followUpCoveragePct.toFixed(0)}%. ${alerts?.items.length ?? 0} residents are currently surfaced for review, and ${data?.upcomingConferences14d ?? 0} case conferences are scheduled soon.`}
+              </div>
+            </section>
           </div>
-        ) : (
-          <div className="muted" style={{ marginTop: 10 }}>
-            No alerts yet. Add home visits and process recordings, or import `resident_incident_30d` predictions.
+
+          <section className="card admin-panel">
+            <div className="admin-panel-header">
+              <div>
+                <h2>Care signals</h2>
+                <p className="muted">Risk, readiness, and donor lapse distribution.</p>
+              </div>
+              <Link className="btn" to="/app/ml">
+                Open ML insights
+              </Link>
+            </div>
+
+            <div className="admin-signal-grid">
+              <div className="admin-signal-card">
+                <h3>Resident incident risk</h3>
+                {data?.residentRisk.byBand?.length ? (
+                  <InlineBarChart data={data.residentRisk.byBand.map((row) => ({ label: row.band, value: row.count }))} />
+                ) : (
+                  <div className="admin-empty-state">Import `resident_incident_30d` predictions to populate this chart.</div>
+                )}
+              </div>
+
+              <div className="admin-signal-card">
+                <h3>Reintegration readiness</h3>
+                {readinessChart.length ? (
+                  <InlineBarChart data={readinessChart} />
+                ) : (
+                  <div className="admin-empty-state">Import `resident_reintegration_readiness` predictions to populate this chart.</div>
+                )}
+              </div>
+
+              <div className="admin-signal-card">
+                <h3>Donor lapse outlook</h3>
+                {data?.donorLapse.byBand?.length ? (
+                  <InlineBarChart data={data.donorLapse.byBand.map((row) => ({ label: row.band, value: row.count }))} />
+                ) : (
+                  <div className="admin-empty-state">Import `donor_lapse_90d` predictions to populate this chart.</div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <div className="admin-two-column">
+            <section className="card admin-panel">
+              <div className="admin-panel-header">
+                <div>
+                  <h2>Safehouse forecast</h2>
+                  <p className="muted">Next-month incident pressure by safehouse.</p>
+                </div>
+              </div>
+
+              {safehouseForecast.length ? (
+                <div className="admin-forecast-list">
+                  {safehouseForecast.map((row) => (
+                    <div key={row.safehouseId} className="admin-forecast-item">
+                      <div>
+                        <strong>{row.name}</strong>
+                        <span className="muted">
+                          {row.city ?? "Location not set"}
+                          {row.capacityGirls != null ? ` - ${row.currentOccupancy ?? "-"} / ${row.capacityGirls} occupied` : ""}
+                        </span>
+                      </div>
+                      <div className="admin-forecast-metric">
+                        {row.predictedIncidentsNextMonth.toFixed(2)}
+                        <span>predicted incidents</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="admin-empty-state">
+                  No safehouse forecast imported yet. Import `safehouse_incident_next_month` to show capacity pressure here.
+                </div>
+              )}
+            </section>
+
+            <section className="card admin-panel">
+              <div className="admin-panel-header">
+                <div>
+                  <h2>Funding and stewardship</h2>
+                  <p className="muted">Allocations, recent donations, and ROI.</p>
+                </div>
+              </div>
+
+              <div className="admin-program-bars">
+                {insights?.donationAllocationsByProgram?.length ? (
+                  [...insights.donationAllocationsByProgram]
+                    .sort((a, b) => b.totalPhp - a.totalPhp)
+                    .slice(0, 4)
+                    .map((row) => {
+                    const max = Math.max(...insights.donationAllocationsByProgram.map((item) => item.totalPhp), 1);
+                    const width = `${Math.min(100, (row.totalPhp / max) * 100)}%`;
+                    return (
+                      <div key={row.programArea}>
+                        <div className="admin-program-bar-label">
+                          <span>{row.programArea}</span>
+                          <span>{formatPhp(row.totalPhp)}</span>
+                        </div>
+                        <div className="admin-program-bar">
+                          <span style={{ width }} />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="admin-empty-state">No allocation rows yet. Admin allocations will populate this panel.</div>
+                )}
+              </div>
+
+              <div className="admin-mini-metrics">
+                <div className="admin-mini-metric">
+                  <span>Donations in last 30 days</span>
+                  <strong>{formatPhp(data?.donations30d.totalAmount)}</strong>
+                </div>
+                <div className="admin-mini-metric">
+                  <span>Top funding area</span>
+                  <strong>{topProgramArea?.programArea ?? "-"}</strong>
+                </div>
+                <div className="admin-mini-metric">
+                  <span>Approx. ROI multiple</span>
+                  <strong>{socialRoiMultiple == null ? "-" : `${socialRoiMultiple.toFixed(1)}x`}</strong>
+                </div>
+              </div>
+            </section>
           </div>
-        )}
+
+          <section className="card admin-panel">
+            <div className="admin-panel-header">
+              <div>
+                <h2>Program outcomes</h2>
+                <p className="muted">Education, health, and follow-up metrics.</p>
+              </div>
+              <Link className="btn" to="/app/reports">
+                View detailed reports
+              </Link>
+            </div>
+
+            <div className="admin-outcome-grid">
+              <div className="admin-mini-metric">
+                <span>Avg education progress</span>
+                <strong>{insights?.education.avgProgressPercent == null ? "-" : `${insights.education.avgProgressPercent}%`}</strong>
+              </div>
+              <div className="admin-mini-metric">
+                <span>Avg health score</span>
+                <strong>{insights?.health.avgGeneralHealthScore ?? "-"}</strong>
+              </div>
+              <div className="admin-mini-metric">
+                <span>Open incident follow-ups</span>
+                <strong>{formatCompact(insights?.incidents90d.openFollowUps)}</strong>
+              </div>
+            </div>
+
+            <div className="admin-service-pillars">
+              <span>Caring: {insights?.servicesPillarMentions.caring ?? "-"}</span>
+              <span>Healing: {insights?.servicesPillarMentions.healing ?? "-"}</span>
+              <span>Teaching: {insights?.servicesPillarMentions.teaching ?? "-"}</span>
+              <span>Legal: {insights?.servicesPillarMentions.legal ?? "-"}</span>
+            </div>
+          </section>
       </div>
     </div>
   );
