@@ -102,22 +102,11 @@ export function MlActionCenterPage() {
   }, [token]);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="admin-page">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Action Center</h1>
-        <p className="muted">
-          This is the operational layer for the ML pipeline: who needs outreach, which ask to make, where to contact
-          them, which residents need intervention, and which safehouses show next-month pressure.
-        </p>
-        <p className="muted" style={{ marginTop: 8 }}>
-          Everything on this page is predictive scoring. Use ML Insights and the notebooks for the explanation layer that
-          describes which factors were most associated with those outcomes.
-        </p>
-        <div className="row" style={{ marginTop: 12 }}>
-          <span className="badge ok">Donor retention</span>
-          <span className="badge ok">Donor growth</span>
-          <span className="badge warn">Resident safety</span>
-          <span className="badge warn">Safehouse capacity</span>
+        <div className="admin-header-copy">
+          <h1 style={{ marginTop: 0 }}>Action Center</h1>
+          <p className="muted">Retention, growth, resident triage, and safehouse pressure.</p>
         </div>
         {error ? (
           <div className="badge danger" style={{ marginTop: 12 }}>
@@ -128,22 +117,21 @@ export function MlActionCenterPage() {
 
       <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
         <div className="card tone-peach" style={{ flex: "1 1 220px" }}>
-          <div className="muted">Highest donor lapse count shown</div>
+          <div className="muted">Donors needing retention review</div>
           <div style={{ fontSize: 28, fontWeight: 900 }}>{donorRisk.length}</div>
         </div>
         <div className="card tone-aqua" style={{ flex: "1 1 220px" }}>
-          <div className="muted">Upgrade asks ready</div>
+          <div className="muted">Upgrade opportunities</div>
           <div style={{ fontSize: 28, fontWeight: 900 }}>{donorUpgrade.length}</div>
         </div>
         <div className="card tone-berry" style={{ flex: "1 1 220px" }}>
-          <div className="muted">Resident intervention rows</div>
+          <div className="muted">Residents flagged</div>
           <div style={{ fontSize: 28, fontWeight: 900 }}>{residentRisk.length + residentReadiness.length}</div>
         </div>
       </div>
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Donor retention risk</h2>
-        <p className="muted">Prediction: prioritize gratitude, program updates, and recovery outreach for donors most likely to lapse.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -165,7 +153,7 @@ export function MlActionCenterPage() {
               ))}
               {donorRisk.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="muted">Import `donor_lapse_90d` to populate retention outreach.</td>
+                  <td colSpan={4} className="muted">No donor retention rows available yet.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -175,7 +163,6 @@ export function MlActionCenterPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Upgrade asks and next-best channel</h2>
-        <p className="muted">Prediction: pair a specific donation ask with the channel the model expects to convert best.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -208,9 +195,7 @@ export function MlActionCenterPage() {
               })}
               {donorUpgrade.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="muted">
-                    Import `donor_upgrade_next_amount` and `next_channel_source` to operationalize donor growth.
-                  </td>
+                  <td colSpan={5} className="muted">No donor growth rows available yet.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -220,7 +205,6 @@ export function MlActionCenterPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Resident risk and readiness</h2>
-        <p className="muted">Prediction: use high risk to escalate care now, and use readiness to plan reintegration steps with the right staff.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -255,9 +239,7 @@ export function MlActionCenterPage() {
               })}
               {residentRisk.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="muted">
-                    Import `resident_incident_30d` and `resident_reintegration_readiness` for resident triage.
-                  </td>
+                  <td colSpan={5} className="muted">No resident triage rows available yet.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -267,7 +249,6 @@ export function MlActionCenterPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Safehouse incident forecast</h2>
-        <p className="muted">Prediction: this closes the loop between resident trends and site-level planning for the next month.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -301,9 +282,7 @@ export function MlActionCenterPage() {
               ))}
               {safehouseForecast.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="muted">
-                    Import `safehouse_incident_next_month` to give leadership a forward-looking capacity signal.
-                  </td>
+                  <td colSpan={5} className="muted">No safehouse forecast rows available yet.</td>
                 </tr>
               ) : null}
             </tbody>

@@ -61,17 +61,11 @@ export function SocialMediaStrategyPage() {
   }, [token]);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="admin-page">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Social media strategy center</h1>
-        <p className="muted">
-          This page now combines observed social ROI with the ML post-value pipeline, so content planning is tied to both
-          actual conversions and predicted donation value.
-        </p>
-        <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
-          <span className="badge ok">Observed: top converting posts and channel value already recorded</span>
-          <span className="badge warn">Predicted: expected donation value of future content</span>
-          <span className="badge">Explanation details live in ML Insights and the notebook outputs</span>
+        <div className="admin-header-copy">
+          <h1 style={{ marginTop: 0 }}>Social Media Strategy</h1>
+          <p className="muted">Observed ROI, predicted post value, and weekly content planning.</p>
         </div>
         {error ? <div className="badge danger">{error}</div> : null}
       </div>
@@ -97,9 +91,6 @@ export function SocialMediaStrategyPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Predicted top-value content</h2>
-        <p className="muted">
-          Prediction: use this list to prioritize story formats, campaign themes, and calls to action before spending more on boosts.
-        </p>
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">
             <thead>
@@ -142,8 +133,7 @@ export function SocialMediaStrategyPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Observed top converting post patterns</h2>
-        <p className="muted">Observed analytics: these rows are already-recorded social outcomes, not model forecasts.</p>
-        <ul className="muted trust-list">
+        <ul className="muted admin-plain-list">
           <li>Use survivor-progress stories to convert attention into intent.</li>
           <li>Match the donation ask to one clear campaign purpose instead of broad generic messaging.</li>
           <li>Boost only the posts that already show referral traction or strong predicted value.</li>

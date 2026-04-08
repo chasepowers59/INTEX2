@@ -54,6 +54,7 @@ export function ReportsPage() {
   const [aar, setAar] = useState<AarSummary | null>(null);
   const [snapshotsPage, setSnapshotsPage] = useState(1);
   const [auditPage, setAuditPage] = useState(1);
+  const [showSnapshotForm, setShowSnapshotForm] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -87,18 +88,43 @@ export function ReportsPage() {
   const auditRows = auditItems.slice((auditPage - 1) * PAGE_SIZE, auditPage * PAGE_SIZE);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="admin-page">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Reports & Analytics</h1>
-        <p className="muted">
-          Aggregated insights and trends to support decisions: donations, resident operations, safehouse load, and public
-          impact reporting.
-        </p>
+        <div className="admin-header">
+          <div className="admin-header-copy">
+            <h1 style={{ marginTop: 0 }}>Reports & Analytics</h1>
+            <p className="muted">Donations, residents, safehouses, snapshots, and audit activity.</p>
+          </div>
+          {auth.hasRole("Admin") ? (
+            <button className="btn primary" onClick={() => setShowSnapshotForm((open) => !open)}>
+              {showSnapshotForm ? "Close" : "Create snapshot"}
+            </button>
+          ) : null}
+        </div>
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
             {error}
           </div>
         ) : null}
+      </div>
+
+      <div className="admin-kpi-grid">
+        <div className="card admin-kpi tone-aqua">
+          <div className="muted">Donation months tracked</div>
+          <div className="admin-kpi-value">{donations.length}</div>
+        </div>
+        <div className="card admin-kpi tone-peach">
+          <div className="muted">Resident status groups</div>
+          <div className="admin-kpi-value">{statuses.length}</div>
+        </div>
+        <div className="card admin-kpi tone-berry">
+          <div className="muted">Safehouses in report</div>
+          <div className="admin-kpi-value">{safehouses.length}</div>
+        </div>
+        <div className="card admin-kpi">
+          <div className="muted">Published snapshots</div>
+          <div className="admin-kpi-value">{snapshots.filter((s) => s.isPublished).length}</div>
+        </div>
       </div>
 
       <div className="card">
@@ -216,38 +242,46 @@ export function ReportsPage() {
 
       {auth.hasRole("Admin") ? (
         <div className="card">
-          <h2 style={{ marginTop: 0 }}>Public impact snapshots (admin)</h2>
-          <p className="muted" style={{ marginTop: 6 }}>
-            Publish aggregated, anonymized snapshots to the public Impact page. Never include resident-level details.
-          </p>
-          <div className="badge ok">Privacy boundary: this tool outputs identity-stripped aggregate metrics only.</div>
+          <div className="admin-header">
+            <div className="admin-header-copy">
+              <h2 style={{ marginTop: 0 }}>Public impact snapshots</h2>
+              <p className="muted">Published and draft snapshot cards.</p>
+            </div>
+          </div>
+          <div className={`process-collapsible ${showSnapshotForm ? "open" : ""}`} aria-hidden={!showSnapshotForm}>
+            <div className="card process-form-card">
+              <div className="process-header process-inline-header">
+                <div>
+                  <strong>Snapshot details</strong>
+                </div>
+              </div>
 
-          <div className="reports-snapshot-grid" style={{ marginTop: 10 }}>
-            <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+              <div className="reports-snapshot-grid" style={{ marginTop: 10 }}>
+                <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
               <span className="muted">Snapshot date</span>
               <input className="input" type="date" value={snapDate} onChange={(e) => setSnapDate(e.target.value)} />
-            </label>
+                </label>
 
-            <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 320 }}>
+                <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 320 }}>
               <span className="muted">Headline</span>
               <input className="input" value={snapHeadline} onChange={(e) => setSnapHeadline(e.target.value)} />
-            </label>
+                </label>
 
-            <label style={{ display: "grid", gap: 6, minWidth: 200 }}>
+                <label style={{ display: "grid", gap: 6, minWidth: 200 }}>
               <span className="muted">Publish now</span>
               <select className="input" value={snapPublish ? "yes" : "no"} onChange={(e) => setSnapPublish(e.target.value === "yes")}>
                 <option value="yes">Yes</option>
                 <option value="no">No (draft)</option>
               </select>
-            </label>
-          </div>
+                </label>
+              </div>
 
-          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+              <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
             <span className="muted">Summary</span>
             <textarea className="input" rows={3} value={snapSummary} onChange={(e) => setSnapSummary(e.target.value)} />
-          </label>
+              </label>
 
-          <div className="row" style={{ marginTop: 10 }}>
+              <div className="row" style={{ marginTop: 10 }}>
             <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
               <span className="muted">Active residents</span>
               <input className="input" value={snapMetricActiveResidents} onChange={(e) => setSnapMetricActiveResidents(Number(e.target.value) || 0)} />
@@ -264,12 +298,12 @@ export function ReportsPage() {
               <span className="muted">Process recordings (7d)</span>
               <input className="input" value={snapMetricProcess7d} onChange={(e) => setSnapMetricProcess7d(Number(e.target.value) || 0)} />
             </label>
-          </div>
-          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+              </div>
+              <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
             <span className="muted">Metric context note</span>
             <input className="input" value={snapMetricNarrative} onChange={(e) => setSnapMetricNarrative(e.target.value)} />
-          </label>
-          <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
+              </label>
+              <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
             <div className="muted">Preview card</div>
             <div style={{ fontWeight: 700 }}>{snapHeadline}</div>
             <div className="muted">{snapSummary}</div>
@@ -279,64 +313,67 @@ export function ReportsPage() {
               <span className="badge">Check-ins due 30d: {snapMetricCheckinsDue30d}</span>
               <span className="badge">Process 7d: {snapMetricProcess7d}</span>
             </div>
-          </div>
+              </div>
 
-          <div className="reports-actions-row" style={{ marginTop: 12 }}>
-            <button
-              className="btn"
-              onClick={() => {
-                setSnapHeadline("Anonymized operations summary for donor stewardship");
-                setSnapSummary(
-                  "This snapshot intentionally excludes resident names, addresses, direct identifiers, and case-level narratives while summarizing outcomes at aggregate level."
-                );
-              }}
-            >
-              Use anonymized donor preset
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                setSnapHeadline("Anonymized executive safety and service snapshot");
-                setSnapSummary(
-                  "This report is prepared for governance review using aggregate trend indicators with strict privacy-safe language and no direct minor identifiers."
-                );
-              }}
-            >
-              Use anonymized board preset
-            </button>
-            <button
-              className="btn primary"
-              onClick={async () => {
-                setError(null);
-                try {
-                  const metricPayloadJson = JSON.stringify({
-                    activeResidents: snapMetricActiveResidents,
-                    donations30d: snapMetricDonations30d,
-                    checkInsDue30d: snapMetricCheckinsDue30d,
-                    processRecordings7d: snapMetricProcess7d,
-                    note: snapMetricNarrative,
-                  });
-                  await apiFetch<{ snapshotId: number }>("/api/impact-snapshots", {
-                    method: "POST",
-                    token: auth.token ?? undefined,
-                    body: JSON.stringify({
-                      snapshotDate: snapDate,
-                      headline: snapHeadline,
-                      summaryText: snapSummary,
-                      metricPayloadJson,
-                      publish: snapPublish,
-                    }),
-                  });
-                  const list = await apiFetch<{ items: ImpactSnapshot[] }>("/api/impact-snapshots", { token: auth.token ?? undefined });
-                  setSnapshots(list.items);
-                  setSnapshotsPage(1);
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Create snapshot
-            </button>
+              <div className="reports-actions-row" style={{ marginTop: 12 }}>
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setSnapHeadline("Anonymized operations summary for donor stewardship");
+                    setSnapSummary(
+                      "This snapshot intentionally excludes resident names, addresses, direct identifiers, and case-level narratives while summarizing outcomes at aggregate level."
+                    );
+                  }}
+                >
+                  Donor preset
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setSnapHeadline("Anonymized executive safety and service snapshot");
+                    setSnapSummary(
+                      "This report is prepared for governance review using aggregate trend indicators with strict privacy-safe language and no direct minor identifiers."
+                    );
+                  }}
+                >
+                  Board preset
+                </button>
+                <button
+                  className="btn primary"
+                  onClick={async () => {
+                    setError(null);
+                    try {
+                      const metricPayloadJson = JSON.stringify({
+                        activeResidents: snapMetricActiveResidents,
+                        donations30d: snapMetricDonations30d,
+                        checkInsDue30d: snapMetricCheckinsDue30d,
+                        processRecordings7d: snapMetricProcess7d,
+                        note: snapMetricNarrative,
+                      });
+                      await apiFetch<{ snapshotId: number }>("/api/impact-snapshots", {
+                        method: "POST",
+                        token: auth.token ?? undefined,
+                        body: JSON.stringify({
+                          snapshotDate: snapDate,
+                          headline: snapHeadline,
+                          summaryText: snapSummary,
+                          metricPayloadJson,
+                          publish: snapPublish,
+                        }),
+                      });
+                      const list = await apiFetch<{ items: ImpactSnapshot[] }>("/api/impact-snapshots", { token: auth.token ?? undefined });
+                      setSnapshots(list.items);
+                      setSnapshotsPage(1);
+                      setShowSnapshotForm(false);
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                >
+                  Save snapshot
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="table-wrap" style={{ marginTop: 14 }}>

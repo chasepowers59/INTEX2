@@ -46,8 +46,7 @@ export function PublicLayout() {
         <div className="container public-header-inner">
           <Link to="/" className="public-brand">
             <span className="public-brand-mark" aria-hidden>
-              <img className="public-brand-logo public-brand-logo-light" src="/lightmodelogo.png" alt="" />
-              <img className="public-brand-logo public-brand-logo-dark" src="/darkmodelogo.png" alt="" />
+              <img className="public-brand-logo" src="/logo-icon.png" alt="" />
             </span>
             <span className="public-brand-text">
               <span className="public-brand-title">Steps of Hope</span>
@@ -128,9 +127,6 @@ export function AppLayout() {
           <div className="muted" style={{ fontSize: 12 }}>
             Signed in as {auth.displayName ?? auth.username}
           </div>
-          <div className="muted" style={{ fontSize: 12 }}>
-            Mission focus: South Korean victim support
-          </div>
         </div>
 
         {auth.hasRole("Admin") || auth.hasRole("Employee") ? (
@@ -177,7 +173,7 @@ export function AppLayout() {
               </NavLink>
             </nav>
 
-            <div className="sidebar-section-label">Machine Learning</div>
+            <div className="sidebar-section-label">Strategy</div>
             <nav className="nav">
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/social-media">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
@@ -195,12 +191,6 @@ export function AppLayout() {
                   <path d="M9.5 12.5 11 14l3.5-4" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
                 Action Center
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/ml">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 16V8M8 18V6M12 20V4M16 18V6M20 16V8" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                ML Insights
               </NavLink>
             </nav>
           </>
@@ -249,12 +239,6 @@ export function AppLayout() {
                   <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
                 Assignments
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/lighthouse-import">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 4v10M8 10l4 4 4-4M5 19h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-                CSV Import
               </NavLink>
             </nav>
           </>

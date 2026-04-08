@@ -42,13 +42,12 @@ export function AccountSecurityPage() {
   }, [token]);
 
   return (
-    <div style={{ display: "grid", gap: 12, maxWidth: 860 }}>
+    <div className="admin-page" style={{ maxWidth: 860 }}>
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>Account security</h1>
-        <p className="muted">
-          Multi-factor authentication is the main remaining compliance control for staff and donor accounts. This setup
-          uses your existing Identity account and does not change the deployed database schema.
-        </p>
+        <div className="admin-header-copy">
+          <h1 style={{ marginTop: 0 }}>Account Security</h1>
+          <p className="muted">Authenticator setup and MFA status.</p>
+        </div>
         <div className="row" style={{ marginTop: 10 }}>
           <span className={`badge ${status?.enabled ? "ok" : "warn"}`}>
             {status?.enabled ? "MFA enabled" : "MFA not enabled"}
@@ -69,10 +68,7 @@ export function AccountSecurityPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Enable authenticator app</h2>
-        <p className="muted">
-          1. Generate a key. 2. Add it to Google Authenticator, Microsoft Authenticator, or Authy. 3. Enter the current
-          6-digit code to activate MFA.
-        </p>
+        <p className="muted">Generate a key, add it to your authenticator app, then verify with the current code.</p>
         <div className="row" style={{ marginTop: 12, alignItems: "end", flexWrap: "wrap" }}>
           <button
             className="btn primary"
@@ -154,9 +150,7 @@ export function AccountSecurityPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Disable MFA</h2>
-        <p className="muted">
-          Require both the current password and a live authenticator code before MFA can be turned off.
-        </p>
+        <p className="muted">Current password and a live authenticator code are required.</p>
         <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
           <input
             className="input"

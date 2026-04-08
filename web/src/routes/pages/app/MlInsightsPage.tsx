@@ -142,58 +142,45 @@ export function MlInsightsPage() {
   }, [type]);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="admin-page">
       <div className="card">
-        <h1 style={{ marginTop: 0 }}>ML Insights</h1>
-        <p className="muted">
-          This page is the translation layer between the notebooks and the app. It separates three things that are easy
-          to confuse: forward-looking predictions, explanatory relationship findings, and observed historical analytics.
-        </p>
-        <div className="staff-ml-grid" style={{ marginTop: 12 }}>
-          <div className="card tone-aqua" style={{ boxShadow: "none" }}>
-            <div style={{ fontWeight: 800 }}>Prediction</div>
-            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
-              A forecast about what is likely to happen next for a donor, resident, safehouse, or social post.
-            </div>
+        <div className="admin-header">
+          <div className="admin-header-copy">
+            <h1 style={{ marginTop: 0 }}>Prediction Admin</h1>
+            <p className="muted">Prediction coverage, upload status, and latest rows.</p>
           </div>
-          <div className="card tone-peach" style={{ boxShadow: "none" }}>
-            <div style={{ fontWeight: 800 }}>Explanation</div>
-            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
-              A relationship-oriented read of which factors appear most associated with the outcome. This informs strategy, not certainty.
-            </div>
-          </div>
-          <div className="card tone-berry" style={{ boxShadow: "none" }}>
-            <div style={{ fontWeight: 800 }}>Observed analytics</div>
-            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
-              Actual historical counts and outcomes already recorded in the system. These are facts, not forecasts.
-            </div>
+          <div className="admin-toolbar">
+            <Link className="btn" to="/app/action-center">Action Center</Link>
+            <Link className="btn" to="/app/social-media">Social strategy</Link>
+            <Link className="btn" to="/app/dashboard">Dashboard</Link>
           </div>
         </div>
 
-        <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
-          <span className="badge ok">Prediction types discovered: {types.length}</span>
-          <span className="badge">Loaded rows for selected type: {items.length}</span>
-          <span className="badge warn">
-            Expected pipelines loaded: {coverage ? `${coverage.expectedPresent}/${coverage.expectedTotal}` : "-"}
-          </span>
-        </div>
-
-        <div className="row" style={{ marginTop: 12 }}>
-          <Link className="btn" to="/app/action-center">Action Center</Link>
-          <Link className="btn" to="/app/social-media">Social strategy</Link>
-          <Link className="btn" to="/app/dashboard">Dashboard</Link>
+        <div className="admin-kpi-grid" style={{ marginTop: 12 }}>
+          <div className="card admin-kpi tone-aqua">
+            <div className="muted">Prediction types</div>
+            <div className="admin-kpi-value">{types.length}</div>
+          </div>
+          <div className="card admin-kpi tone-peach">
+            <div className="muted">Rows in selected type</div>
+            <div className="admin-kpi-value">{items.length}</div>
+          </div>
+          <div className="card admin-kpi tone-berry">
+            <div className="muted">Expected pipelines loaded</div>
+            <div className="admin-kpi-value">{coverage ? `${coverage.expectedPresent}/${coverage.expectedTotal}` : "-"}</div>
+          </div>
         </div>
 
         {coverage ? (
           <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
-            <div style={{ fontWeight: 900 }}>Expected ML pipeline coverage</div>
+            <div style={{ fontWeight: 900 }}>Coverage</div>
             <div className="table-wrap" style={{ marginTop: 10 }}>
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Prediction type</th>
-                    <th>Prediction question</th>
-                    <th>Explanation question</th>
+                    <th>Model</th>
+                    <th>Prediction</th>
+                    <th>Relationship view</th>
                     <th>Status</th>
                     <th>Rows</th>
                   </tr>
@@ -203,9 +190,12 @@ export function MlInsightsPage() {
                     const guide = PIPELINE_GUIDE[row.predictionType];
                     return (
                       <tr key={row.predictionType}>
-                        <td data-label="Prediction type" className="muted">{row.predictionType}</td>
-                        <td data-label="Prediction question">{guide?.prediction ?? row.purpose}</td>
-                        <td data-label="Explanation question">{guide?.explanation ?? "Notebook-specific relationship analysis."}</td>
+                        <td data-label="Model">
+                          <div style={{ fontWeight: 700 }}>{guide?.title ?? row.predictionType}</div>
+                          <div className="muted" style={{ fontSize: 12 }}>{row.predictionType}</div>
+                        </td>
+                        <td data-label="Prediction">{guide?.prediction ?? row.purpose}</td>
+                        <td data-label="Relationship view">{guide?.explanation ?? "Relationship analysis available in the supporting notebook."}</td>
                         <td data-label="Status">
                           {row.present ? <span className="badge ok">Imported</span> : <span className="badge warn">Missing</span>}
                         </td>
@@ -227,14 +217,14 @@ export function MlInsightsPage() {
 
         <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
           <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-            <span className="muted">Prediction type</span>
+            <span className="muted">Model</span>
             <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
               <option value="" disabled>
                 Select...
               </option>
               {types.map((discoveredType) => (
                 <option key={discoveredType} value={discoveredType}>
-                  {discoveredType}
+                  {PIPELINE_GUIDE[discoveredType]?.title ?? discoveredType}
                 </option>
               ))}
             </select>
@@ -249,17 +239,17 @@ export function MlInsightsPage() {
             disabled={!canAdminImport}
             onClick={() => setShowImportHelp((current) => !current)}
           >
-            {showImportHelp ? "Hide import help" : "How to import"}
+            {showImportHelp ? "Hide upload help" : "Upload help"}
           </button>
         </div>
 
         {showImportHelp ? (
           <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
-            <div style={{ fontWeight: 900 }}>Notebook import steps</div>
-            <ol className="trust-list muted" style={{ marginTop: 8 }}>
-              <li>Run an ML notebook to export prediction rows as a JSON array.</li>
-              <li>Upload that file in the in-browser import panel below, or POST it to <code>/api/ml/import</code>.</li>
-              <li>Use replace mode when you are publishing a fresh batch for the same prediction type.</li>
+            <div style={{ fontWeight: 900 }}>Upload steps</div>
+            <ol className="admin-plain-list muted" style={{ marginTop: 8 }}>
+              <li>Export a prediction JSON file from the analytics workflow.</li>
+              <li>Upload the file below to refresh the selected model rows.</li>
+              <li>Use replace mode when publishing a new batch for the same model.</li>
             </ol>
           </div>
         ) : null}
@@ -275,7 +265,7 @@ export function MlInsightsPage() {
               <div className="muted" style={{ marginTop: 6 }}>{selectedGuide.explanation}</div>
             </div>
             <div className="card tone-berry" style={{ boxShadow: "none", flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>How the app uses it</div>
+              <div style={{ fontWeight: 800 }}>Operational use</div>
               <div className="muted" style={{ marginTop: 6 }}>{selectedGuide.operationalUse}</div>
             </div>
           </div>
@@ -283,14 +273,11 @@ export function MlInsightsPage() {
 
         {canAdminImport ? (
           <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
-            <div style={{ fontWeight: 900 }}>Admin import (in-browser)</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              Upload a JSON array exported by the notebooks. This sends it to <code>/api/ml/import</code>.
-            </div>
+            <div style={{ fontWeight: 900 }}>Upload prediction file</div>
 
             <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
               <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
-                <span className="muted">Replace existing type</span>
+                <span className="muted">Replace existing rows</span>
                 <select
                   className="input"
                   value={importReplace ? "yes" : "no"}
@@ -365,10 +352,6 @@ export function MlInsightsPage() {
             Showing {items.length} rows
           </div>
         </div>
-        <p className="muted" style={{ marginTop: 8 }}>
-          These rows are forward-looking scoring outputs. They are not the explanatory part of the notebook and they are not historical facts.
-        </p>
-
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">
             <thead>
@@ -397,7 +380,7 @@ export function MlInsightsPage() {
               {items.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="muted">
-                    No predictions imported yet for this type.
+                    No rows available for this model.
                   </td>
                 </tr>
               ) : null}
@@ -435,8 +418,7 @@ export function MlInsightsPage() {
           <div className="card" style={{ boxShadow: "none", flex: "1 1 280px" }}>
             <div style={{ fontWeight: 800 }}>Interpretation guardrail</div>
             <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              Use the notebook for explanatory analysis and feature interpretation. Use this page and the Action Center for
-              operational predictions. Strong prediction does not automatically mean causal proof.
+              Use these rows to support prioritization and planning. They should guide review, not replace staff judgment.
             </p>
           </div>
         </div>
