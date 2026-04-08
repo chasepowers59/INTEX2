@@ -55,7 +55,12 @@ export function DonorsPage() {
   const [contribPage, setContribPage] = useState(1);
   const [newSupporter, setNewSupporter] = useState({ fullName: "", email: "", supporterType: "Monetary" });
   const [editingSupporterId, setEditingSupporterId] = useState<number | null>(null);
-  const [editingSupporterName, setEditingSupporterName] = useState("");
+  const [editingSupporter, setEditingSupporter] = useState({
+    fullName: "",
+    email: "",
+    supporterType: "Monetary",
+    isActive: true,
+  });
   const [newContribution, setNewContribution] = useState({
     contributionType: "Monetary",
     amount: "",
@@ -226,7 +231,12 @@ export function DonorsPage() {
                       <div className="row">
                         <button className="btn" onClick={() => {
                           setEditingSupporterId(x.supporterId);
-                          setEditingSupporterName(x.fullName);
+                          setEditingSupporter({
+                            fullName: x.fullName,
+                            email: x.email ?? "",
+                            supporterType: x.supporterType,
+                            isActive: x.isActive,
+                          });
                         }}>Edit</button>
                         <button
                           className="btn danger"
@@ -253,10 +263,44 @@ export function DonorsPage() {
               ))}
               {editingSupporterId !== null ? (
                 <tr>
-                  <td><input className="input" value={editingSupporterName} onChange={(e) => setEditingSupporterName(e.target.value)} /></td>
-                  <td className="muted">—</td>
-                  <td className="muted">—</td>
-                  <td className="muted">—</td>
+                  <td>
+                    <input
+                      className="input"
+                      value={editingSupporter.fullName}
+                      onChange={(e) => setEditingSupporter((prev) => ({ ...prev, fullName: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input"
+                      value={editingSupporter.email}
+                      onChange={(e) => setEditingSupporter((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="Email"
+                    />
+                  </td>
+                  <td>
+                    <select
+                      className="input"
+                      value={editingSupporter.supporterType}
+                      onChange={(e) => setEditingSupporter((prev) => ({ ...prev, supporterType: e.target.value }))}
+                    >
+                      <option value="Monetary">Monetary</option>
+                      <option value="InKind">In-kind</option>
+                      <option value="Time">Time</option>
+                      <option value="Skills">Skills</option>
+                      <option value="Advocacy">Advocacy</option>
+                    </select>
+                  </td>
+                  <td>
+                    <label className="row" style={{ gap: 8, alignItems: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={editingSupporter.isActive}
+                        onChange={(e) => setEditingSupporter((prev) => ({ ...prev, isActive: e.target.checked }))}
+                      />
+                      <span className="muted">{editingSupporter.isActive ? "Active" : "Inactive"}</span>
+                    </label>
+                  </td>
                   <td>
                     <div className="row">
                       <button className="btn primary" onClick={async () => {
@@ -266,7 +310,13 @@ export function DonorsPage() {
                           await apiFetch<void>(`/api/supporters/${editingSupporterId}`, {
                             method: "PUT",
                             token: auth.token ?? undefined,
-                            body: JSON.stringify({ ...original, fullName: editingSupporterName.trim() || original.fullName }),
+                            body: JSON.stringify({
+                              ...original,
+                              fullName: editingSupporter.fullName.trim() || original.fullName,
+                              email: editingSupporter.email.trim() || null,
+                              supporterType: editingSupporter.supporterType,
+                              isActive: editingSupporter.isActive,
+                            }),
                           });
                           setEditingSupporterId(null);
                           await load();
