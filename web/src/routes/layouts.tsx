@@ -297,34 +297,6 @@ export function AppLayout() {
           </>
         ) : null}
 
-        {auth.hasRole("Admin") ? (
-          <>
-            <div className="sidebar-section-label">User Views</div>
-            <nav className="nav">
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donor">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 14a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-                Donor Portal View
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/donate">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Public Donate Page
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/impact">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Public Impact View
-              </NavLink>
-            </nav>
-          </>
-        ) : null}
-
         <div className="sidebar-section-label">Security</div>
         <nav className="nav">
           <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/security">

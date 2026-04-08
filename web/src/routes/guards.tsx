@@ -80,11 +80,6 @@ export function RequireRole(props: { role: string; children: React.ReactNode }) 
     return <>{props.children}</>;
   }
 
-  // Admin should be able to view normal donor-facing app pages.
-  if (props.role === "Donor" && auth.hasRole("Admin")) {
-    return <>{props.children}</>;
-  }
-
   return (
     <div className="card glow-donor" style={{ maxWidth: 560 }}>
       <div className="badge donor-role-badge" style={{ marginBottom: 10 }}>
