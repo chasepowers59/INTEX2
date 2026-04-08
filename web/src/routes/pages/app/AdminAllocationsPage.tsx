@@ -100,6 +100,14 @@ export function AdminAllocationsPage() {
                 <li>Delete only incorrect rows; this immediately affects donor portal views.</li>
               </ol>
             </div>
+            <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 260px" }}>
+              <div style={{ fontWeight: 800 }}>Good allocation pattern</div>
+              <ol className="trust-list muted">
+                <li>Select the recent donation first when possible.</li>
+                <li>Confirm the supporter and amount before saving.</li>
+                <li>Use notes for vendor, receipt, or program context.</li>
+              </ol>
+            </div>
           </div>
         </div>
 
@@ -139,7 +147,7 @@ export function AdminAllocationsPage() {
             </label>
             <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 240 }}>
               <span className="muted">Category</span>
-              <input className="input" value={category} onChange={(e) => setCategory(e.target.value)} />
+              <input className="input" list="allocation-categories" value={category} onChange={(e) => setCategory(e.target.value)} />
             </label>
             <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
               <span className="muted">Amount</span>
@@ -199,13 +207,24 @@ export function AdminAllocationsPage() {
                 }
               }}
             >
-              Add allocation
+              Save allocation
             </button>
           </div>
+          <datalist id="allocation-categories">
+            <option value="Food" />
+            <option value="Education" />
+            <option value="Health" />
+            <option value="Shelter" />
+            <option value="Transport" />
+            <option value="Clothing" />
+          </datalist>
         </div>
 
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Browse allocations</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Filter by supporter or category when you need to audit what a donor can see in their portal.
+          </p>
           <div className="row" style={{ marginBottom: 8 }}>
             <button
               className="btn danger"

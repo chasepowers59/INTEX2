@@ -55,20 +55,45 @@ export function AdminPartnersPage() {
     <div className="card">
       <h1 style={{ marginTop: 0 }}>Partners</h1>
       <p className="muted">Manage partner organizations and contacts supporting safehouse programs.</p>
+      <div className="row" style={{ marginTop: 10 }}>
+        <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 260px" }}>
+          <div style={{ fontWeight: 800 }}>How to use this page</div>
+          <ol className="trust-list muted">
+            <li>Create the partner organization first.</li>
+            <li>Keep partner type and role type broad and consistent.</li>
+            <li>Use the assignments page to connect partners to safehouses and programs.</li>
+          </ol>
+        </div>
+      </div>
       {error ? <div className="badge danger">{error}</div> : null}
       <div className="row">
         <input className="input" placeholder="Search partner or region" value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="btn" onClick={() => void load()}>Search</button>
       </div>
-      <div className="row" style={{ marginTop: 10 }}>
-        <input className="input" placeholder="Partner name" value={createForm.partnerName} onChange={(e) => setCreateForm((p) => ({ ...p, partnerName: e.target.value }))} />
-        <input className="input" placeholder="Partner type" value={createForm.partnerType} onChange={(e) => setCreateForm((p) => ({ ...p, partnerType: e.target.value }))} />
-        <input className="input" placeholder="Role type" value={createForm.roleType} onChange={(e) => setCreateForm((p) => ({ ...p, roleType: e.target.value }))} />
-        <input className="input" placeholder="Region" value={createForm.region} onChange={(e) => setCreateForm((p) => ({ ...p, region: e.target.value }))} />
-        <select className="input" value={createForm.status} onChange={(e) => setCreateForm((p) => ({ ...p, status: e.target.value }))}>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-        </select>
+      <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
+        <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
+          <span className="muted">Partner name</span>
+          <input className="input" placeholder="Hope Family Services" value={createForm.partnerName} onChange={(e) => setCreateForm((p) => ({ ...p, partnerName: e.target.value }))} />
+        </label>
+        <label style={{ display: "grid", gap: 6, flex: "1 1 180px" }}>
+          <span className="muted">Partner type</span>
+          <input className="input" placeholder="Organization" value={createForm.partnerType} onChange={(e) => setCreateForm((p) => ({ ...p, partnerType: e.target.value }))} />
+        </label>
+        <label style={{ display: "grid", gap: 6, flex: "1 1 180px" }}>
+          <span className="muted">Role type</span>
+          <input className="input" placeholder="SafehouseOps" value={createForm.roleType} onChange={(e) => setCreateForm((p) => ({ ...p, roleType: e.target.value }))} />
+        </label>
+        <label style={{ display: "grid", gap: 6, flex: "1 1 160px" }}>
+          <span className="muted">Region</span>
+          <input className="input" placeholder="Seoul" value={createForm.region} onChange={(e) => setCreateForm((p) => ({ ...p, region: e.target.value }))} />
+        </label>
+        <label style={{ display: "grid", gap: 6, minWidth: 140 }}>
+          <span className="muted">Status</span>
+          <select className="input" value={createForm.status} onChange={(e) => setCreateForm((p) => ({ ...p, status: e.target.value }))}>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </label>
         <button className="btn primary" onClick={async () => {
           if (!createForm.partnerName.trim()) return setError("Partner name is required.");
           try {

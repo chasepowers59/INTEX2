@@ -68,6 +68,11 @@ export function SocialMediaStrategyPage() {
           This page now combines observed social ROI with the ML post-value pipeline, so content planning is tied to both
           actual conversions and predicted donation value.
         </p>
+        <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
+          <span className="badge ok">Observed: top converting posts and channel value already recorded</span>
+          <span className="badge warn">Predicted: expected donation value of future content</span>
+          <span className="badge">Explanation details live in ML Insights and the notebook outputs</span>
+        </div>
         {error ? <div className="badge danger">{error}</div> : null}
       </div>
 
@@ -93,7 +98,7 @@ export function SocialMediaStrategyPage() {
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Predicted top-value content</h2>
         <p className="muted">
-          Use this list to prioritize story formats, campaign themes, and calls to action before spending more on boosts.
+          Prediction: use this list to prioritize story formats, campaign themes, and calls to action before spending more on boosts.
         </p>
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">
@@ -137,6 +142,7 @@ export function SocialMediaStrategyPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Observed top converting post patterns</h2>
+        <p className="muted">Observed analytics: these rows are already-recorded social outcomes, not model forecasts.</p>
         <ul className="muted trust-list">
           <li>Use survivor-progress stories to convert attention into intent.</li>
           <li>Match the donation ask to one clear campaign purpose instead of broad generic messaging.</li>

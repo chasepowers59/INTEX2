@@ -61,6 +61,11 @@ export function AdminUsersPage() {
           <p className="muted">
             Create staff accounts, disable access, reset passwords, and link donor accounts to supporter records. Link donor cannot be used on Admin accounts (use a Donor login for grading).
           </p>
+          <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
+            <span className="badge ok">Employee = staff access, no delete rights</span>
+            <span className="badge warn">Admin = full configuration and CUD</span>
+            <span className="badge">Donor = donor portal only</span>
+          </div>
           {error ? (
             <div className="badge danger" style={{ marginTop: 10 }}>
               {error}
@@ -88,6 +93,14 @@ export function AdminUsersPage() {
                 <li>Create user with role and optional supporter link.</li>
                 <li>Use Actions to reset password or enable and disable access.</li>
                 <li>Use Link donor when donor account and supporter row must be connected.</li>
+              </ol>
+            </div>
+            <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 260px" }}>
+              <div style={{ fontWeight: 800 }}>Grading-friendly setup</div>
+              <ol className="trust-list muted">
+                <li>Keep one admin account without MFA.</li>
+                <li>Keep one donor account linked to a historical supporter record.</li>
+                <li>Use disable instead of delete if you may need the account later.</li>
               </ol>
             </div>
           </div>
@@ -161,6 +174,9 @@ export function AdminUsersPage() {
               Create user
             </button>
           </div>
+          <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+            Passwords must follow the class policy: 12+ characters with upper, lower, number, symbol, and at least 4 unique characters.
+          </p>
         </div>
 
         <div className="card">
@@ -241,7 +257,7 @@ export function AdminUsersPage() {
                     token: auth.token ?? undefined,
                     body: JSON.stringify({ email: resetTargetEmail, newPassword: resetPasswordValue }),
                   });
-                  setNotice(`Password reset for ${resetTargetEmail}.`);
+                  setNotice(`Password reset for ${resetTargetEmail}. Ask the user to sign in with the new password immediately.`);
                   setResetPasswordValue("");
                 } catch (e) {
                   setError((e as Error).message);
@@ -351,7 +367,7 @@ export function AdminUsersPage() {
                               setNotice(`Ready to reset password for ${u.email}. Enter the new password above.`);
                             }}
                           >
-                            Reset password
+                            Choose for reset
                           </button>
                           <button
                             className="btn"
@@ -373,7 +389,7 @@ export function AdminUsersPage() {
                               }
                             }}
                           >
-                            {disabled ? "Enable" : "Disable"}
+                            {disabled ? "Enable sign-in" : "Disable sign-in"}
                           </button>
                           <button
                             className="btn"
@@ -384,7 +400,7 @@ export function AdminUsersPage() {
                               setNotice(`Ready to link donor for ${u.email}. Set SupporterId above and apply.`);
                             }}
                           >
-                            Link donor
+                            Prepare donor link
                           </button>
                         </div>
                       </td>

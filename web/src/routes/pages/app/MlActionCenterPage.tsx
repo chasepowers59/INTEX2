@@ -109,6 +109,10 @@ export function MlActionCenterPage() {
           This is the operational layer for the ML pipeline: who needs outreach, which ask to make, where to contact
           them, which residents need intervention, and which safehouses show next-month pressure.
         </p>
+        <p className="muted" style={{ marginTop: 8 }}>
+          Everything on this page is predictive scoring. Use ML Insights and the notebooks for the explanation layer that
+          describes which factors were most associated with those outcomes.
+        </p>
         <div className="row" style={{ marginTop: 12 }}>
           <span className="badge ok">Donor retention</span>
           <span className="badge ok">Donor growth</span>
@@ -139,7 +143,7 @@ export function MlActionCenterPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Donor retention risk</h2>
-        <p className="muted">Prioritize gratitude, program updates, and recovery outreach for donors most likely to lapse.</p>
+        <p className="muted">Prediction: prioritize gratitude, program updates, and recovery outreach for donors most likely to lapse.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -171,7 +175,7 @@ export function MlActionCenterPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Upgrade asks and next-best channel</h2>
-        <p className="muted">Pair a specific donation ask with the channel the model expects to convert best.</p>
+        <p className="muted">Prediction: pair a specific donation ask with the channel the model expects to convert best.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -216,7 +220,7 @@ export function MlActionCenterPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Resident risk and readiness</h2>
-        <p className="muted">Use high risk to escalate care now, and use readiness to plan reintegration steps with the right staff.</p>
+        <p className="muted">Prediction: use high risk to escalate care now, and use readiness to plan reintegration steps with the right staff.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -263,7 +267,7 @@ export function MlActionCenterPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Safehouse incident forecast</h2>
-        <p className="muted">This closes the loop between resident trends and site-level planning for the next month.</p>
+        <p className="muted">Prediction: this closes the loop between resident trends and site-level planning for the next month.</p>
         <div className="table-wrap">
           <table className="table">
             <thead>

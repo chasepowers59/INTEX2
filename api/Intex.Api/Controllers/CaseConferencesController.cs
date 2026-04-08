@@ -41,7 +41,6 @@ public sealed class CaseConferencesController(AppDbContext db) : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<CaseConference>> Create([FromBody] CaseConference input)
     {
         input.CaseConferenceId = 0;
@@ -51,7 +50,6 @@ public sealed class CaseConferencesController(AppDbContext db) : ControllerBase
     }
 
     [HttpPut("{caseConferenceId:int}")]
-    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult> Update([FromRoute] int caseConferenceId, [FromBody] CaseConference input)
     {
         var item = await db.CaseConferences.FirstOrDefaultAsync(x => x.CaseConferenceId == caseConferenceId);

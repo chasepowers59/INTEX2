@@ -140,6 +140,11 @@ export function AppDashboardPage() {
         <p className="muted">
           Leadership view across resident follow-up health, donor momentum, social ROI, and the current ML triage layer.
         </p>
+        <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
+          <span className="badge ok">Observed metrics: dashboard KPIs, donations, visits, recordings, incidents</span>
+          <span className="badge warn">Predicted metrics: resident risk, readiness, safehouse pressure</span>
+          <span className="badge">Explanation details live in ML Insights and the notebooks</span>
+        </div>
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
             {error}
@@ -261,6 +266,9 @@ export function AppDashboardPage() {
         </div>
         <p className="muted" style={{ marginTop: 8 }}>
           Forward-looking incident pressure from the ML pipeline, surfaced for staffing and capacity planning.
+        </p>
+        <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+          This section is a prediction. It estimates next-month pressure. It does not explain why by itself and it is not a historical total.
         </p>
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">

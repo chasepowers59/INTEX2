@@ -35,6 +35,17 @@ type Conference = {
 
 type Paged<T> = { page: number; pageSize: number; total: number; items: T[] };
 
+function toDatetimeLocalInput(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function toUtcIso(value: string) {
+  return value ? new Date(value).toISOString() : "";
+}
+
 export function ResidentHomeVisitsPage() {
   const auth = useAuth();
   const PAGE_SIZE = 10;
@@ -46,7 +57,7 @@ export function ResidentHomeVisitsPage() {
   const [visitPage, setVisitPage] = useState(1);
   const [confPage, setConfPage] = useState(1);
   const [conferenceForm, setConferenceForm] = useState({
-    scheduledAtUtc: "",
+    scheduledAtLocal: "",
     topic: "",
     notes: "",
   });
@@ -69,12 +80,14 @@ export function ResidentHomeVisitsPage() {
 
   const load = async () => {
     setError(null);
-    const res = await apiFetch<Paged<Visit>>(`/api/home-visitations?residentId=${residentId}`, { token: auth.token ?? undefined });
-    setData(res);
-    const conf = await apiFetch<Paged<Conference>>(`/api/case-conferences?residentId=${residentId}&upcomingOnly=false`, {
+    const visitRes = await apiFetch<Paged<Visit>>(`/api/home-visitations?residentId=${residentId}`, {
       token: auth.token ?? undefined,
     });
-    setConfs(conf);
+    setData(visitRes);
+    const confRes = await apiFetch<Paged<Conference>>(`/api/case-conferences?residentId=${residentId}&upcomingOnly=false`, {
+      token: auth.token ?? undefined,
+    });
+    setConfs(confRes);
   };
 
   useEffect(() => {
@@ -93,150 +106,174 @@ export function ResidentHomeVisitsPage() {
       <div className="card">
         <h1 style={{ marginTop: 0 }}>Home Visitation & Case Conferences</h1>
         <p className="muted">
-          Log home/field visits and track follow-ups. Case conferences are visible on the dashboard (and will be expanded).
+          Staff can log home or field visits, schedule case conferences, and update completion status. Admins keep delete access.
         </p>
         {error ? <div className="badge danger">{error}</div> : null}
 
-        <RequireRole role="Admin">
-          <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
-            <div className="row">
-              <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
-                <span className="muted">Visit date</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={visitForm.visitDate}
-                  onChange={(e) => setVisitForm((p) => ({ ...p, visitDate: e.target.value }))}
-                />
-              </label>
-              <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-                <span className="muted">Visit type</span>
-                <select
-                  className="input"
-                  value={visitForm.visitType}
-                  onChange={(e) => setVisitForm((p) => ({ ...p, visitType: e.target.value }))}
-                >
-                  <option value="InitialAssessment">Initial assessment</option>
-                  <option value="RoutineFollowUp">Routine follow-up</option>
-                  <option value="ReintegrationAssessment">Reintegration assessment</option>
-                  <option value="PostPlacementMonitoring">Post-placement monitoring</option>
-                  <option value="Emergency">Emergency</option>
-                </select>
-              </label>
-              <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
-                <span className="muted">Social worker</span>
-                <input className="input" value={visitForm.socialWorkerName} onChange={(e) => setVisitForm((p) => ({ ...p, socialWorkerName: e.target.value }))} />
-              </label>
-            </div>
-            <div className="row" style={{ marginTop: 10 }}>
-              <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-                <span className="muted">Location visited</span>
-                <input className="input" value={visitForm.locationVisited} onChange={(e) => setVisitForm((p) => ({ ...p, locationVisited: e.target.value }))} />
-              </label>
-              <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-                <span className="muted">Family members present</span>
-                <input className="input" value={visitForm.familyMembersPresent} onChange={(e) => setVisitForm((p) => ({ ...p, familyMembersPresent: e.target.value }))} />
-              </label>
-            </div>
+        <div className="card" style={{ boxShadow: "none", marginTop: 10 }}>
+          <div className="row" style={{ marginBottom: 10, flexWrap: "wrap" }}>
+            <span className="badge ok">Prediction support: use ML risk to prioritize visits</span>
+            <span className="badge">Observed fact: visit and conference logs are operational records</span>
+          </div>
 
-            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-              <span className="muted">Purpose</span>
-              <input className="input" value={visitForm.purpose} onChange={(e) => setVisitForm((p) => ({ ...p, purpose: e.target.value }))} />
-            </label>
-            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-              <span className="muted">Observations</span>
-              <textarea
-                className="input"
-                rows={3}
-                value={visitForm.observations}
-                onChange={(e) => setVisitForm((p) => ({ ...p, observations: e.target.value }))}
-              />
-            </label>
-
-            <div className="row" style={{ marginTop: 10 }}>
-              <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
-                <span className="muted">Family cooperation level</span>
-                <input
-                  className="input"
-                  value={visitForm.familyCooperationLevel}
-                  onChange={(e) => setVisitForm((p) => ({ ...p, familyCooperationLevel: e.target.value }))}
-                  placeholder="e.g., high / medium / low"
-                />
-              </label>
-              <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
-                <span className="muted">Safety concerns</span>
-                <input
-                  className="input"
-                  value={visitForm.safetyConcerns}
-                  onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcerns: e.target.value }))}
-                />
-              </label>
-            </div>
-
-            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-              <span className="muted">Visit outcome</span>
-              <input className="input" value={visitForm.visitOutcome} onChange={(e) => setVisitForm((p) => ({ ...p, visitOutcome: e.target.value }))} />
-            </label>
-            <div className="row" style={{ marginTop: 8 }}>
-              <label className="row"><input type="checkbox" checked={visitForm.safetyConcernsNoted} onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcernsNoted: e.target.checked }))} /> Safety concerns noted</label>
-              <label className="row"><input type="checkbox" checked={visitForm.followUpNeeded} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNeeded: e.target.checked }))} /> Follow-up needed</label>
-            </div>
-            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-              <span className="muted">Follow-up notes</span>
-              <input className="input" value={visitForm.followUpNotes} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNotes: e.target.value }))} />
-            </label>
-            <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
-              <span className="muted">Follow-up actions</span>
+          <div className="row">
+            <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
+              <span className="muted">Visit date</span>
               <input
                 className="input"
-                value={visitForm.followUpActions}
-                onChange={(e) => setVisitForm((p) => ({ ...p, followUpActions: e.target.value }))}
+                type="date"
+                value={visitForm.visitDate}
+                onChange={(e) => setVisitForm((p) => ({ ...p, visitDate: e.target.value }))}
               />
             </label>
-
-            <div className="row" style={{ marginTop: 12, justifyContent: "flex-end" }}>
-              <button
-                className="btn primary"
-                onClick={async () => {
-                  setError(null);
-                  if (!visitForm.observations.trim()) {
-                    setError("Observations are required.");
-                    return;
-                  }
-                  try {
-                    await apiFetch<void>("/api/home-visitations", {
-                      method: "POST",
-                      token: auth.token ?? undefined,
-                      body: JSON.stringify({
-                        residentId,
-                        visitDate: visitForm.visitDate,
-                        socialWorkerName: visitForm.socialWorkerName.trim() || null,
-                        visitType: visitForm.visitType,
-                        locationVisited: visitForm.locationVisited.trim() || null,
-                        familyMembersPresent: visitForm.familyMembersPresent.trim() || null,
-                        purpose: visitForm.purpose.trim() || null,
-                        observations: visitForm.observations.trim(),
-                        familyCooperationLevel: visitForm.familyCooperationLevel.trim() || null,
-                        safetyConcernsNoted: visitForm.safetyConcernsNoted,
-                        followUpNeeded: visitForm.followUpNeeded,
-                        followUpNotes: visitForm.followUpNotes.trim() || null,
-                        visitOutcome: visitForm.visitOutcome.trim() || null,
-                        safetyConcerns: visitForm.safetyConcerns.trim() || null,
-                        followUpActions: visitForm.followUpActions.trim() || null,
-                      }),
-                    });
-                    setVisitForm((p) => ({ ...p, observations: "", familyCooperationLevel: "", followUpNotes: "", visitOutcome: "", safetyConcerns: "", followUpActions: "" }));
-                    await load();
-                  } catch (e) {
-                    setError((e as Error).message);
-                  }
-                }}
+            <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
+              <span className="muted">Visit type</span>
+              <select
+                className="input"
+                value={visitForm.visitType}
+                onChange={(e) => setVisitForm((p) => ({ ...p, visitType: e.target.value }))}
               >
-                Add visit
-              </button>
-            </div>
+                <option value="InitialAssessment">Initial assessment</option>
+                <option value="RoutineFollowUp">Routine follow-up</option>
+                <option value="ReintegrationAssessment">Reintegration assessment</option>
+                <option value="PostPlacementMonitoring">Post-placement monitoring</option>
+                <option value="Emergency">Emergency</option>
+              </select>
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+              <span className="muted">Social worker</span>
+              <input
+                className="input"
+                value={visitForm.socialWorkerName}
+                onChange={(e) => setVisitForm((p) => ({ ...p, socialWorkerName: e.target.value }))}
+                placeholder={auth.displayName ?? "Staff name"}
+              />
+            </label>
           </div>
-        </RequireRole>
+          <div className="row" style={{ marginTop: 10 }}>
+            <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
+              <span className="muted">Location visited</span>
+              <input
+                className="input"
+                value={visitForm.locationVisited}
+                onChange={(e) => setVisitForm((p) => ({ ...p, locationVisited: e.target.value }))}
+              />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
+              <span className="muted">Family members present</span>
+              <input
+                className="input"
+                value={visitForm.familyMembersPresent}
+                onChange={(e) => setVisitForm((p) => ({ ...p, familyMembersPresent: e.target.value }))}
+              />
+            </label>
+          </div>
+
+          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+            <span className="muted">Purpose</span>
+            <input className="input" value={visitForm.purpose} onChange={(e) => setVisitForm((p) => ({ ...p, purpose: e.target.value }))} />
+          </label>
+          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+            <span className="muted">Observations</span>
+            <textarea
+              className="input"
+              rows={3}
+              value={visitForm.observations}
+              onChange={(e) => setVisitForm((p) => ({ ...p, observations: e.target.value }))}
+            />
+          </label>
+
+          <div className="row" style={{ marginTop: 10 }}>
+            <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
+              <span className="muted">Family cooperation level</span>
+              <input
+                className="input"
+                value={visitForm.familyCooperationLevel}
+                onChange={(e) => setVisitForm((p) => ({ ...p, familyCooperationLevel: e.target.value }))}
+                placeholder="e.g., high / medium / low"
+              />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
+              <span className="muted">Safety concerns</span>
+              <input
+                className="input"
+                value={visitForm.safetyConcerns}
+                onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcerns: e.target.value }))}
+              />
+            </label>
+          </div>
+
+          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+            <span className="muted">Visit outcome</span>
+            <input className="input" value={visitForm.visitOutcome} onChange={(e) => setVisitForm((p) => ({ ...p, visitOutcome: e.target.value }))} />
+          </label>
+          <div className="row" style={{ marginTop: 8 }}>
+            <label className="row"><input type="checkbox" checked={visitForm.safetyConcernsNoted} onChange={(e) => setVisitForm((p) => ({ ...p, safetyConcernsNoted: e.target.checked }))} /> Safety concerns noted</label>
+            <label className="row"><input type="checkbox" checked={visitForm.followUpNeeded} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNeeded: e.target.checked }))} /> Follow-up needed</label>
+          </div>
+          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+            <span className="muted">Follow-up notes</span>
+            <input className="input" value={visitForm.followUpNotes} onChange={(e) => setVisitForm((p) => ({ ...p, followUpNotes: e.target.value }))} />
+          </label>
+          <label style={{ display: "grid", gap: 6, marginTop: 10 }}>
+            <span className="muted">Follow-up actions</span>
+            <input
+              className="input"
+              value={visitForm.followUpActions}
+              onChange={(e) => setVisitForm((p) => ({ ...p, followUpActions: e.target.value }))}
+            />
+          </label>
+
+          <div className="row" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+            <button
+              className="btn primary"
+              onClick={async () => {
+                setError(null);
+                if (!visitForm.observations.trim()) {
+                  setError("Observations are required.");
+                  return;
+                }
+                try {
+                  await apiFetch<void>("/api/home-visitations", {
+                    method: "POST",
+                    token: auth.token ?? undefined,
+                    body: JSON.stringify({
+                      residentId,
+                      visitDate: visitForm.visitDate,
+                      socialWorkerName: visitForm.socialWorkerName.trim() || auth.displayName || null,
+                      visitType: visitForm.visitType,
+                      locationVisited: visitForm.locationVisited.trim() || null,
+                      familyMembersPresent: visitForm.familyMembersPresent.trim() || null,
+                      purpose: visitForm.purpose.trim() || null,
+                      observations: visitForm.observations.trim(),
+                      familyCooperationLevel: visitForm.familyCooperationLevel.trim() || null,
+                      safetyConcernsNoted: visitForm.safetyConcernsNoted,
+                      followUpNeeded: visitForm.followUpNeeded,
+                      followUpNotes: visitForm.followUpNotes.trim() || null,
+                      visitOutcome: visitForm.visitOutcome.trim() || null,
+                      safetyConcerns: visitForm.safetyConcerns.trim() || null,
+                      followUpActions: visitForm.followUpActions.trim() || null,
+                    }),
+                  });
+                  setVisitForm((p) => ({
+                    ...p,
+                    observations: "",
+                    familyCooperationLevel: "",
+                    followUpNotes: "",
+                    visitOutcome: "",
+                    safetyConcerns: "",
+                    followUpActions: "",
+                  }));
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            >
+              Add visit
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="card">
@@ -251,14 +288,14 @@ export function ResidentHomeVisitsPage() {
               </tr>
             </thead>
             <tbody>
-              {visitRows.map((x) => (
-                <tr key={x.homeVisitationId}>
-                  <td data-label="Date">{x.visitDate}</td>
+              {visitRows.map((row) => (
+                <tr key={row.homeVisitationId}>
+                  <td data-label="Date">{row.visitDate}</td>
                   <td data-label="Type">
-                    <span className="badge">{x.visitType}</span>
+                    <span className="badge">{row.visitType}</span>
                   </td>
                   <td data-label="Observations" className="muted">
-                    {x.observations ?? "—"}
+                    {row.observations ?? "-"}
                   </td>
                   <td data-label="Actions">
                     <RequireRole role="Admin">
@@ -267,7 +304,7 @@ export function ResidentHomeVisitsPage() {
                         onClick={async () => {
                           if (!confirm("Delete this visitation record?")) return;
                           try {
-                            await apiFetch<void>(`/api/home-visitations/${x.homeVisitationId}?confirm=true`, {
+                            await apiFetch<void>(`/api/home-visitations/${row.homeVisitationId}?confirm=true`, {
                               method: "DELETE",
                               token: auth.token ?? undefined,
                             });
@@ -305,93 +342,104 @@ export function ResidentHomeVisitsPage() {
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ marginTop: 0, marginBottom: 0 }}>Case conferences</h2>
         </div>
-        <RequireRole role="Admin">
-          <div className="row" style={{ marginTop: 8 }}>
+        <p className="muted" style={{ marginTop: 8 }}>
+          Schedule in local time here. The app converts it to UTC before saving.
+        </p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <label style={{ display: "grid", gap: 6, minWidth: 240 }}>
+            <span className="muted">Scheduled time</span>
             <input
               className="input"
-              placeholder="Scheduled UTC (e.g., 2026-04-10T14:00:00Z)"
-              value={conferenceForm.scheduledAtUtc}
-              onChange={(e) => setConferenceForm((p) => ({ ...p, scheduledAtUtc: e.target.value }))}
+              type="datetime-local"
+              value={conferenceForm.scheduledAtLocal}
+              onChange={(e) => setConferenceForm((p) => ({ ...p, scheduledAtLocal: e.target.value }))}
             />
-            <input className="input" placeholder="Topic" value={conferenceForm.topic} onChange={(e) => setConferenceForm((p) => ({ ...p, topic: e.target.value }))} />
-            <input className="input" placeholder="Notes (optional)" value={conferenceForm.notes} onChange={(e) => setConferenceForm((p) => ({ ...p, notes: e.target.value }))} />
-            <button
-              className="btn primary"
-              onClick={async () => {
-                if (!conferenceForm.scheduledAtUtc.trim() || !conferenceForm.topic.trim()) {
-                  setError("Conference time and topic are required.");
-                  return;
-                }
-                try {
-                  await apiFetch<void>("/api/case-conferences", {
-                    method: "POST",
-                    token: auth.token ?? undefined,
-                    body: JSON.stringify({
-                      residentId,
-                      scheduledAtUtc: conferenceForm.scheduledAtUtc.trim(),
-                      topic: conferenceForm.topic.trim(),
-                      notes: conferenceForm.notes.trim() || null,
-                      isCompleted: false,
-                    }),
-                  });
-                  setConferenceForm({ scheduledAtUtc: "", topic: "", notes: "" });
-                  await load();
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Schedule conference
-            </button>
-          </div>
-        </RequireRole>
+          </label>
+          <label style={{ display: "grid", gap: 6, minWidth: 240, flex: 1 }}>
+            <span className="muted">Topic</span>
+            <input className="input" value={conferenceForm.topic} onChange={(e) => setConferenceForm((p) => ({ ...p, topic: e.target.value }))} />
+          </label>
+          <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
+            <span className="muted">Notes</span>
+            <input className="input" value={conferenceForm.notes} onChange={(e) => setConferenceForm((p) => ({ ...p, notes: e.target.value }))} />
+          </label>
+          <button
+            className="btn primary"
+            style={{ alignSelf: "end" }}
+            onClick={async () => {
+              if (!conferenceForm.scheduledAtLocal.trim() || !conferenceForm.topic.trim()) {
+                setError("Conference time and topic are required.");
+                return;
+              }
+              try {
+                await apiFetch<void>("/api/case-conferences", {
+                  method: "POST",
+                  token: auth.token ?? undefined,
+                  body: JSON.stringify({
+                    residentId,
+                    scheduledAtUtc: toUtcIso(conferenceForm.scheduledAtLocal),
+                    topic: conferenceForm.topic.trim(),
+                    notes: conferenceForm.notes.trim() || null,
+                    isCompleted: false,
+                  }),
+                });
+                setConferenceForm({ scheduledAtLocal: "", topic: "", notes: "" });
+                await load();
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          >
+            Schedule conference
+          </button>
+        </div>
 
         <div className="table-wrap">
           <table className="table" style={{ marginTop: 10 }}>
             <thead>
               <tr>
-                <th>Scheduled (UTC)</th>
+                <th>Scheduled</th>
                 <th>Topic</th>
                 <th>Status</th>
-                <th style={{ width: 180 }}>Actions</th>
+                <th style={{ width: 220 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {confRows.map((x) => (
-                <tr key={x.caseConferenceId}>
-                  <td data-label="Scheduled (UTC)" className="muted">
-                    {x.scheduledAtUtc}
+              {confRows.map((row) => (
+                <tr key={row.caseConferenceId}>
+                  <td data-label="Scheduled" className="muted">
+                    {new Date(row.scheduledAtUtc).toLocaleString()}
                   </td>
-                  <td data-label="Topic">{x.topic ?? "—"}</td>
+                  <td data-label="Topic">{row.topic ?? "-"}</td>
                   <td data-label="Status">
-                    {x.isCompleted ? <span className="badge">Completed</span> : <span className="badge">Upcoming</span>}
+                    {row.isCompleted ? <span className="badge ok">Completed</span> : <span className="badge warn">Upcoming</span>}
                   </td>
                   <td data-label="Actions">
-                    <RequireRole role="Admin">
-                      <div className="row">
-                        <button
-                          className="btn"
-                          onClick={async () => {
-                            try {
-                              await apiFetch<void>(`/api/case-conferences/${x.caseConferenceId}`, {
-                                method: "PUT",
-                                token: auth.token ?? undefined,
-                                body: JSON.stringify({ ...x, isCompleted: !x.isCompleted }),
-                              });
-                              await load();
-                            } catch (e) {
-                              setError((e as Error).message);
-                            }
-                          }}
-                        >
-                          Toggle done
-                        </button>
+                    <div className="row">
+                      <button
+                        className="btn"
+                        onClick={async () => {
+                          try {
+                            await apiFetch<void>(`/api/case-conferences/${row.caseConferenceId}`, {
+                              method: "PUT",
+                              token: auth.token ?? undefined,
+                              body: JSON.stringify({ ...row, isCompleted: !row.isCompleted }),
+                            });
+                            await load();
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      >
+                        {row.isCompleted ? "Mark upcoming" : "Mark complete"}
+                      </button>
+                      <RequireRole role="Admin">
                         <button
                           className="btn danger"
                           onClick={async () => {
                             if (!confirm("Delete this conference?")) return;
                             try {
-                              await apiFetch<void>(`/api/case-conferences/${x.caseConferenceId}?confirm=true`, {
+                              await apiFetch<void>(`/api/case-conferences/${row.caseConferenceId}?confirm=true`, {
                                 method: "DELETE",
                                 token: auth.token ?? undefined,
                               });
@@ -403,8 +451,8 @@ export function ResidentHomeVisitsPage() {
                         >
                           Delete
                         </button>
-                      </div>
-                    </RequireRole>
+                      </RequireRole>
+                    </div>
                   </td>
                 </tr>
               ))}
