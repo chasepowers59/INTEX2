@@ -368,7 +368,7 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
 
                 var ladderPrompt =
                     ladderTier == "Mid-tier"
-                        ? "Invite this donor to fund a named project such as a new safehouse bed or school-year package."
+                        ? "Invite this donor to fund a named program need such as a new safehouse bed or school-year package."
                         : ladderTier == "Emerging"
                             ? "Encourage recurring monthly giving with a clear first milestone."
                             : "Offer stewardship updates and major-gift partnership pathways.";

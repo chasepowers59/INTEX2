@@ -168,7 +168,7 @@ export function DonorsPage() {
           </div>
           <div className="card tone-aqua" style={{ flex: "1 1 320px" }}>
             <h2 style={{ marginTop: 0 }}>Donor ladder prompts</h2>
-            <p className="muted">Mid-tier donors likely ready for a specific project ask instead of a generic appeal.</p>
+            <p className="muted">Mid-tier donors likely ready for a targeted program ask instead of a generic appeal.</p>
             <ul className="trust-list muted">
               {stewardship.donorLadderMidTier.slice(0, 6).map((x) => (
                 <li key={x.supporterId}>

@@ -12,7 +12,6 @@ import { PrivacyPage } from "./pages/PrivacyPage";
 import { AboutPage } from "./pages/AboutPage";
 import { ContactPage } from "./pages/ContactPage";
 import { ProgramsPage } from "./pages/ProgramsPage";
-import { RoleGuidePage } from "./pages/RoleGuidePage";
 import { AppDashboardPage } from "./pages/app/AppDashboardPage";
 import { DonorsPage } from "./pages/app/DonorsPage";
 import { CaseloadPage } from "./pages/app/CaseloadPage";
@@ -66,7 +65,6 @@ export function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/programs" element={<ProgramsPage />} />
-            <Route path="/roles" element={<RoleGuidePage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
           </Route>
 

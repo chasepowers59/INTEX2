@@ -59,7 +59,7 @@ export function AdminUsersPage() {
         <div className="card">
           <h1 style={{ marginTop: 0 }}>User Administration</h1>
           <p className="muted">
-            Create staff accounts, disable access, reset passwords, and link donor accounts to supporter records. Link donor cannot be used on Admin accounts (use a Donor login for grading).
+            Create staff accounts, disable access, reset passwords, and link donor accounts to supporter records. Supporter links are reserved for donor accounts and should not be attached to administrator logins.
           </p>
           <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
             <span className="badge ok">Employee = staff access, no delete rights</span>
@@ -96,11 +96,11 @@ export function AdminUsersPage() {
               </ol>
             </div>
             <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 260px" }}>
-              <div style={{ fontWeight: 800 }}>Grading-friendly setup</div>
+              <div style={{ fontWeight: 800 }}>Account setup notes</div>
               <ol className="trust-list muted">
-                <li>Keep one admin account without MFA.</li>
-                <li>Keep one donor account linked to a historical supporter record.</li>
-                <li>Use disable instead of delete if you may need the account later.</li>
+                <li>Reserve administrator accounts for internal operations and configuration.</li>
+                <li>Link donor accounts to supporter records when donation history should appear in the donor portal.</li>
+                <li>Disable sign-in instead of deleting an account when access may need to be restored later.</li>
               </ol>
             </div>
           </div>
@@ -175,7 +175,7 @@ export function AdminUsersPage() {
             </button>
           </div>
           <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-            Passwords must follow the class policy: 12+ characters with upper, lower, number, symbol, and at least 4 unique characters.
+            Passwords must be at least 12 characters and include uppercase, lowercase, numeric, and symbol characters with at least 4 unique characters.
           </p>
         </div>
 

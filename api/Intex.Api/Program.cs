@@ -41,7 +41,7 @@ builder.Services
     {
         var pwd = builder.Configuration.GetSection("Identity:Password");
         options.Password.RequiredLength = pwd.GetValue("RequiredLength", 12);
-        // Mirror the configured class policy instead of silently weakening it at runtime.
+        // Mirror the configured password policy instead of silently weakening it at runtime.
         options.Password.RequireDigit = pwd.GetValue("RequireDigit", true);
         options.Password.RequireLowercase = pwd.GetValue("RequireLowercase", true);
         options.Password.RequireUppercase = pwd.GetValue("RequireUppercase", true);
