@@ -2666,6 +2666,28 @@ details.optional-block[open] summary {
   width: min(520px, 100%);
 }
 
+.donation-modal--success {
+  border-color: rgba(136, 176, 168, 0.72);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(136, 176, 168, 0.28), transparent 42%),
+    radial-gradient(circle at 88% 14%, rgba(250, 212, 192, 0.32), transparent 38%),
+    linear-gradient(145deg, rgba(236, 247, 243, 0.96), rgba(255, 248, 244, 0.98));
+  box-shadow:
+    0 24px 60px rgba(36, 114, 125, 0.2),
+    inset 0 0 0 1px rgba(136, 176, 168, 0.2);
+}
+
+html[data-theme="dark"] .donation-modal--success {
+  border-color: rgba(136, 176, 168, 0.58);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(136, 176, 168, 0.22), transparent 42%),
+    radial-gradient(circle at 88% 14%, rgba(250, 212, 192, 0.16), transparent 38%),
+    linear-gradient(145deg, rgba(18, 49, 48, 0.96), rgba(14, 38, 42, 0.98));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(136, 176, 168, 0.16);
+}
+
 .contact-page {
   display: grid;
   gap: 22px;

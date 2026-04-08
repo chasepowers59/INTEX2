@@ -261,7 +261,7 @@ export function GivePage() {
 
       {confirmation ? (
         <div className="donation-modal-backdrop">
-          <div className="card glow-donor donation-modal">
+          <div className="card glow-donor donation-modal donation-modal--success">
             <h2 style={{ marginTop: 0 }}>Donation confirmed</h2>
             <p className="muted" style={{ lineHeight: 1.6 }}>
               Thank you. Your contribution has been recorded and validated.
