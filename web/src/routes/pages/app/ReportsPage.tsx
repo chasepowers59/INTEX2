@@ -305,24 +305,6 @@ export function ReportsPage() {
               Use anonymized board preset
             </button>
             <button
-              className="btn"
-              onClick={async () => {
-                setError(null);
-                try {
-                  const overview = await apiFetch<any>("/api/analytics/overview", { token: auth.token ?? undefined });
-                  setSnapMetricActiveResidents(overview.activeResidents ?? 0);
-                  setSnapMetricCheckinsDue30d(overview.checkInsDue30d ?? 0);
-                  setSnapMetricProcess7d(overview.processRecordings7d ?? 0);
-                  setSnapMetricDonations30d(overview.donations30d ?? 0);
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              Generate metrics from live data
-            </button>
-
-            <button
               className="btn primary"
               onClick={async () => {
                 setError(null);
