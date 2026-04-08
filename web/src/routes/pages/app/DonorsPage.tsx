@@ -48,10 +48,12 @@ export function DonorsPage() {
   const auth = useAuth();
   const PAGE_SIZE = 10;
   const [q, setQ] = useState("");
+  const [appliedQ, setAppliedQ] = useState("");
   const [data, setData] = useState<Paged<Supporter> | null>(null);
   const [selectedSupporter, setSelectedSupporter] = useState<Supporter | null>(null);
   const [contribs, setContribs] = useState<Paged<Contribution> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [stewardship, setStewardship] = useState<DonorStewardship | null>(null);
   const [supporterPage, setSupporterPage] = useState(1);
   const [contribPage, setContribPage] = useState(1);
@@ -74,33 +76,52 @@ export function DonorsPage() {
     inKindQuantity: "1",
   });
 
-  const load = async () => {
+  const load = async (page = supporterPage, query = appliedQ) => {
     setError(null);
-    const res = await apiFetch<Paged<Supporter>>(`/api/supporters?q=${encodeURIComponent(q)}`, {
+    const params = new URLSearchParams({
+      q: query,
+      page: String(page),
+      pageSize: String(PAGE_SIZE),
+    });
+    const res = await apiFetch<Paged<Supporter>>(`/api/supporters?${params.toString()}`, {
       token: auth.token ?? undefined,
     });
     setData(res);
   };
 
-  const loadContribs = async (supporterId: number) => {
-    const res = await apiFetch<Paged<Contribution>>(`/api/contributions?supporterId=${supporterId}`, {
+  const loadContribs = async (supporterId: number, page = contribPage) => {
+    const params = new URLSearchParams({
+      supporterId: String(supporterId),
+      page: String(page),
+      pageSize: String(PAGE_SIZE),
+    });
+    const res = await apiFetch<Paged<Contribution>>(`/api/contributions?${params.toString()}`, {
       token: auth.token ?? undefined,
     });
     setContribs(res);
   };
 
   useEffect(() => {
-    void load();
     void apiFetch<DonorStewardship>("/api/analytics/donor-stewardship", { token: auth.token ?? undefined })
       .then(setStewardship)
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [auth.token]);
 
-  const supporterTotalPages = Math.max(1, Math.ceil((data?.items.length ?? 0) / PAGE_SIZE));
-  const supporterRows = (data?.items ?? []).slice((supporterPage - 1) * PAGE_SIZE, supporterPage * PAGE_SIZE);
-  const contribTotalPages = Math.max(1, Math.ceil((contribs?.items.length ?? 0) / PAGE_SIZE));
-  const contribRows = (contribs?.items ?? []).slice((contribPage - 1) * PAGE_SIZE, contribPage * PAGE_SIZE);
+  useEffect(() => {
+    void load(supporterPage, appliedQ).catch((e) => setError((e as Error).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.token, supporterPage, appliedQ]);
+
+  useEffect(() => {
+    if (!selectedSupporter) return;
+    void loadContribs(selectedSupporter.supporterId, contribPage).catch((e) => setError((e as Error).message));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.token, selectedSupporter?.supporterId, contribPage]);
+
+  const supporterTotalPages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE));
+  const supporterRows = data?.items ?? [];
+  const contribTotalPages = Math.max(1, Math.ceil((contribs?.total ?? 0) / PAGE_SIZE));
+  const contribRows = contribs?.items ?? [];
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
@@ -112,18 +133,24 @@ export function DonorsPage() {
           <span className="badge warn">Admin: full supporter and contribution CRUD</span>
         </div>
         {error ? <div className="badge danger">{error}</div> : null}
+        {notice ? <div className="badge ok" style={{ marginTop: 8 }}>{notice}</div> : null}
         <div className="row" style={{ marginTop: 8 }}>
           <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search supporters…" />
-          <button className="btn" onClick={() => void load()}>
+          <button className="btn" onClick={() => {
+            setNotice(null);
+            setSupporterPage(1);
+            setAppliedQ(q.trim());
+          }}>
             Search
           </button>
           {auth.hasRole("Admin") ? (
             <button
               className="btn primary"
               onClick={async () => {
+                setNotice(null);
                 if (!newSupporter.fullName.trim()) return setError("Supporter full name is required.");
                 try {
-                  await apiFetch<Supporter>("/api/supporters", {
+                  const created = await apiFetch<Supporter>("/api/supporters", {
                     method: "POST",
                     token: auth.token ?? undefined,
                     body: JSON.stringify({
@@ -134,7 +161,10 @@ export function DonorsPage() {
                     }),
                   });
                   setNewSupporter({ fullName: "", email: "", supporterType: "Monetary" });
-                  await load();
+                  setQ(created.fullName);
+                  setAppliedQ(created.fullName);
+                  setSupporterPage(1);
+                  setNotice(`Supporter created: ${created.fullName}`);
                 } catch (e) {
                   setError((e as Error).message);
                 }
@@ -208,9 +238,11 @@ export function DonorsPage() {
                       className="btn"
                       style={{ padding: 6, borderRadius: 10, width: "auto" }}
                       onClick={async () => {
+                        setNotice(null);
                         setSelectedSupporter(x);
+                        setContribPage(1);
                         try {
-                          await loadContribs(x.supporterId);
+                          await loadContribs(x.supporterId, 1);
                         } catch (e) {
                           setError((e as Error).message);
                         }
@@ -249,7 +281,8 @@ export function DonorsPage() {
                                 method: "DELETE",
                                 token: auth.token ?? undefined,
                               });
-                              await load();
+                              setNotice(`Supporter deleted: ${x.fullName}`);
+                              await load(supporterPage, appliedQ);
                             } catch (e) {
                               setError((e as Error).message);
                             }
@@ -309,6 +342,7 @@ export function DonorsPage() {
                         const original = data?.items.find((s) => s.supporterId === editingSupporterId);
                         if (!original) return;
                         try {
+                          setNotice(null);
                           await apiFetch<void>(`/api/supporters/${editingSupporterId}`, {
                             method: "PUT",
                             token: auth.token ?? undefined,
@@ -321,7 +355,8 @@ export function DonorsPage() {
                             }),
                           });
                           setEditingSupporterId(null);
-                          await load();
+                          setNotice(`Supporter updated: ${editingSupporter.fullName.trim() || original.fullName}`);
+                          await load(supporterPage, appliedQ);
                         } catch (e) {
                           setError((e as Error).message);
                         }
@@ -406,7 +441,8 @@ export function DonorsPage() {
                         inKindItemName: "",
                         inKindQuantity: "1",
                       });
-                      await loadContribs(selectedSupporter.supporterId);
+                      setNotice(`Contribution added for ${selectedSupporter.fullName}.`);
+                      await loadContribs(selectedSupporter.supporterId, contribPage);
                     } catch (e) {
                       setError((e as Error).message);
                     }
@@ -478,7 +514,8 @@ export function DonorsPage() {
                                   method: "DELETE",
                                   token: auth.token ?? undefined,
                                 });
-                                await loadContribs(selectedSupporter.supporterId);
+                                setNotice(`Contribution deleted for ${selectedSupporter.fullName}.`);
+                                await loadContribs(selectedSupporter.supporterId, contribPage);
                               } catch (e) {
                                 setError((e as Error).message);
                               }
