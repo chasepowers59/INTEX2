@@ -22,7 +22,6 @@ import { DonorPortalPage } from "./pages/app/DonorPortalPage";
 import { MlInsightsPage } from "./pages/app/MlInsightsPage";
 import { MlActionCenterPage } from "./pages/app/MlActionCenterPage";
 import { SocialMediaStrategyPage } from "./pages/app/SocialMediaStrategyPage";
-import { AccountSecurityPage } from "./pages/app/AccountSecurityPage";
 import { AdminUsersPage } from "./pages/app/AdminUsersPage";
 import { AdminAllocationsPage } from "./pages/app/AdminAllocationsPage";
 import { AdminPartnersPage } from "./pages/app/AdminPartnersPage";
@@ -71,7 +70,6 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route element={<AppLayout />}>
               <Route path="/app/donor" element={<DonorPortalPage />} />
-              <Route path="/app/security" element={<AccountSecurityPage />} />
               <Route element={<RequireStaff />}>
                 <Route path="/app/dashboard" element={<AppDashboardPage />} />
                 <Route path="/app/donors" element={<DonorsPage />} />

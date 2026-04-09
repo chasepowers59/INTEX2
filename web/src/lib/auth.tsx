@@ -35,6 +35,7 @@ type AuthContextValue = AuthState & {
   isAuthenticated: boolean;
   hasRole: (role: string) => boolean;
   login: (username: string, password: string, twoFactorCode?: string) => Promise<string[]>;
+  acceptExternalToken: (accessToken: string) => Promise<string[]>;
   registerDonor: (payload: DonorRegisterPayload) => Promise<string[]>;
   logout: () => void;
   refreshMe: () => Promise<void>;
@@ -90,6 +91,18 @@ export function AuthProvider(props: { children: React.ReactNode }) {
       return res.roles;
     };
 
+    const acceptExternalToken = async (accessToken: string) => {
+      const me = await apiFetch<MeResponse>("/api/auth/me", { token: accessToken });
+      sessionStorage.setItem(TOKEN_KEY, accessToken);
+      setState({
+        token: accessToken,
+        username: me.username,
+        displayName: me.displayName,
+        roles: me.roles,
+      });
+      return me.roles;
+    };
+
     const registerDonor = async (payload: DonorRegisterPayload) => {
       const res = await apiFetch<LoginResponse>("/api/auth/register-donor", {
         method: "POST",
@@ -129,7 +142,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
       }));
     };
 
-    return { ...state, isAuthenticated, hasRole, login, registerDonor, logout, refreshMe };
+    return { ...state, isAuthenticated, hasRole, login, acceptExternalToken, registerDonor, logout, refreshMe };
   }, [state]);
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;
