@@ -36,6 +36,10 @@ export function AdminUsersPage() {
   const [createSupporterId, setCreateSupporterId] = useState("");
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [linkSupporterIdValue, setLinkSupporterIdValue] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editRole, setEditRole] = useState<"Admin" | "Employee" | "Donor">("Employee");
+  const [editSupporterId, setEditSupporterId] = useState("");
 
   const canAdmin = useMemo(() => auth.hasRole("Admin"), [auth]);
 
@@ -74,6 +78,10 @@ export function AdminUsersPage() {
     setSelectedUser(user);
     setResetPasswordValue("");
     setLinkSupporterIdValue(user.supporterId?.toString() ?? "");
+    setEditEmail(user.email);
+    setEditDisplayName(user.displayName ?? "");
+    setEditRole((user.roles[0] as "Admin" | "Employee" | "Donor") ?? "Employee");
+    setEditSupporterId(user.supporterId?.toString() ?? "");
     setNotice(`Selected ${user.email}.`);
   };
 
@@ -82,6 +90,9 @@ export function AdminUsersPage() {
     setSelectedUserClosing(true);
     setResetPasswordValue("");
     setLinkSupporterIdValue("");
+    setEditEmail("");
+    setEditDisplayName("");
+    setEditSupporterId("");
     if (clearSelectionTimerRef.current) {
       window.clearTimeout(clearSelectionTimerRef.current);
     }
@@ -208,8 +219,8 @@ export function AdminUsersPage() {
             >
               <div className="admin-header">
                 <div className="admin-header-copy">
-                  <h2 style={{ marginTop: 0 }}>Selected user</h2>
-                  <p className="muted">{selectedUser.email}</p>
+                  <h2 style={{ marginTop: 0 }}>Edit user</h2>
+                  <p className="muted">Update account details, access, and donor link for {selectedUser.email}.</p>
                 </div>
                 <button
                   className="btn"
@@ -237,6 +248,96 @@ export function AdminUsersPage() {
                 <div className="card admin-kpi tone-cream">
                   <div className="muted">Supporter link</div>
                   <div className="admin-kpi-value" style={{ fontSize: 22 }}>{selectedUser.supporterId ?? "-"}</div>
+                </div>
+              </div>
+
+              <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
+                <div className="admin-header-copy">
+                  <h3 style={{ marginTop: 0 }}>User details</h3>
+                  <p className="muted">Edit the user’s email, display name, role, and donor link.</p>
+                </div>
+                <div className="admin-inline-grid" style={{ marginTop: 10 }}>
+                  <label className="admin-form-label span-4">
+                    <span className="muted">Email</span>
+                    <input className="input" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                  </label>
+                  <label className="admin-form-label span-3">
+                    <span className="muted">Display name</span>
+                    <input className="input" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
+                  </label>
+                  <label className="admin-form-label span-2">
+                    <span className="muted">Role</span>
+                    <select className="input" value={editRole} onChange={(e) => setEditRole(e.target.value as "Admin" | "Employee" | "Donor")}>
+                      <option value="Employee">Employee</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Donor">Donor</option>
+                    </select>
+                  </label>
+                  <label className="admin-form-label span-3">
+                    <span className="muted">Supporter ID</span>
+                    <input
+                      className="input"
+                      value={editSupporterId}
+                      onChange={(e) => setEditSupporterId(e.target.value)}
+                      placeholder={editRole === "Admin" ? "Not used for admins" : "Optional"}
+                      disabled={editRole === "Admin"}
+                    />
+                  </label>
+                </div>
+                <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+                  <button
+                    className="btn primary"
+                    disabled={busy}
+                    onClick={async () => {
+                      if (!selectedUser) return;
+                      const supporterId = editSupporterId.trim() ? Number(editSupporterId.trim()) : null;
+                      if (editSupporterId.trim() && !Number.isFinite(supporterId)) {
+                        setError("Supporter ID must be a number.");
+                        return;
+                      }
+                      setBusy(true);
+                      setError(null);
+                      setNotice(null);
+                      try {
+                        const updated = await apiFetch<AdminUser>(`/api/admin/users/${selectedUser.id}`, {
+                          method: "PUT",
+                          token: auth.token ?? undefined,
+                          body: JSON.stringify({
+                            id: selectedUser.id,
+                            email: editEmail.trim(),
+                            displayName: editDisplayName.trim() || null,
+                            role: editRole,
+                            supporterId: editRole === "Admin" ? null : supporterId,
+                          }),
+                        });
+                        setSelectedUser((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                email: updated.email,
+                                userName: updated.userName,
+                                displayName: updated.displayName,
+                                supporterId: updated.supporterId,
+                                roles: updated.roles,
+                              }
+                            : prev,
+                        );
+                        setLinkSupporterIdValue(updated.supporterId?.toString() ?? "");
+                        setEditEmail(updated.email);
+                        setEditDisplayName(updated.displayName ?? "");
+                        setEditRole((updated.roles[0] as "Admin" | "Employee" | "Donor") ?? "Employee");
+                        setEditSupporterId(updated.supporterId?.toString() ?? "");
+                        setNotice(`Updated ${updated.email}.`);
+                        await load();
+                      } catch (e) {
+                        setError((e as Error).message);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    Save changes
+                  </button>
                 </div>
               </div>
 
@@ -371,7 +472,7 @@ export function AdminUsersPage() {
           <div className="admin-table-head">
             <div className="admin-header-copy">
               <h2 style={{ marginTop: 0 }}>Users</h2>
-              <p className="muted">Select a user to manage password, access, and donor link.</p>
+              <p className="muted">Open a user to edit their details, password, access, or donor link.</p>
             </div>
           </div>
 
@@ -413,7 +514,7 @@ export function AdminUsersPage() {
                           disabled={busy}
                           onClick={() => handleSelectUser(user)}
                         >
-                          {isSelected ? "Selected" : "Manage"}
+                          {isSelected ? "Editing" : "Edit"}
                         </button>
                       </td>
                     </tr>

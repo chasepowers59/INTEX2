@@ -111,6 +111,100 @@ public sealed class UserAdminController(
         return Ok(new { items = withRoles });
     }
 
+    public sealed record UpdateUserRequest(
+        string Id,
+        string Email,
+        string? DisplayName,
+        string Role,
+        int? SupporterId
+    );
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Update([FromRoute] string id, [FromBody] UpdateUserRequest req)
+    {
+        if (!string.Equals(id, req.Id, StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "User ID mismatch." });
+        }
+
+        var user = await userManager.FindByIdAsync(id);
+        if (user is null) return NotFound(new { message = "User not found." });
+
+        var email = req.Email.Trim();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return BadRequest(new { message = "Email is required." });
+        }
+
+        var role = req.Role?.Trim();
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return BadRequest(new { message = "Role is required." });
+        }
+
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            return BadRequest(new { message = $"Unknown role: {role}" });
+        }
+
+        if (req.SupporterId.HasValue)
+        {
+            var exists = await db.Supporters.AsNoTracking().AnyAsync(x => x.SupporterId == req.SupporterId.Value);
+            if (!exists) return BadRequest(new { message = "SupporterId not found." });
+        }
+
+        if (string.Equals(role, AppRoles.Admin, StringComparison.OrdinalIgnoreCase) && req.SupporterId.HasValue)
+        {
+            return BadRequest(new { message = "Admin accounts should not be linked to supporter records." });
+        }
+
+        var emailOwner = await userManager.FindByEmailAsync(email);
+        if (emailOwner is not null && !string.Equals(emailOwner.Id, user.Id, StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "Another user already has this email." });
+        }
+
+        user.Email = email;
+        user.UserName = email;
+        user.DisplayName = string.IsNullOrWhiteSpace(req.DisplayName) ? null : req.DisplayName.Trim();
+        user.SupporterId = req.SupporterId;
+
+        var updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            var msg = string.Join("; ", updateResult.Errors.Select(e => $"{e.Code}:{e.Description}"));
+            return BadRequest(new { message = msg });
+        }
+
+        var currentRoles = await userManager.GetRolesAsync(user);
+        if (currentRoles.Count > 0)
+        {
+            var removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeResult.Succeeded)
+            {
+                var msg = string.Join("; ", removeResult.Errors.Select(e => $"{e.Code}:{e.Description}"));
+                return BadRequest(new { message = msg });
+            }
+        }
+
+        var addRoleResult = await userManager.AddToRoleAsync(user, role);
+        if (!addRoleResult.Succeeded)
+        {
+            var msg = string.Join("; ", addRoleResult.Errors.Select(e => $"{e.Code}:{e.Description}"));
+            return BadRequest(new { message = msg });
+        }
+
+        return Ok(new
+        {
+            user.Id,
+            user.Email,
+            user.UserName,
+            user.DisplayName,
+            user.SupporterId,
+            roles = new[] { role }
+        });
+    }
+
     public sealed record SetUserEnabledRequest(string Email, bool Enabled);
 
     [HttpPost("set-enabled")]

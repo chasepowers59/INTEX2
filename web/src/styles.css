@@ -51,6 +51,12 @@ body {
   line-height: 1.4;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 input,
 button,
 select,
@@ -67,6 +73,12 @@ a {
   max-width: 1100px;
   margin: 0 auto;
   padding: 24px;
+}
+
+.public-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .card {
@@ -1480,6 +1492,7 @@ html:not([data-theme="dark"]) .impact-loading-inline {
 }
 
 .public-main {
+  flex: 1 0 auto;
   padding-top: 28px;
   padding-bottom: 40px;
 }
@@ -1658,6 +1671,12 @@ html[data-theme="dark"] .footer-theme-btn {
 .auth-panel {
   border-radius: 18px;
   padding: 22px 22px 20px;
+}
+
+.auth-page-center {
+  min-height: min(62vh, 720px);
+  display: grid;
+  align-items: center;
 }
 
 .step-track {

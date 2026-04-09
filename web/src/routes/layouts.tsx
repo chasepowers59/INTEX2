@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { CookieConsentBanner } from "../components/CookieConsentBanner";
 import { useAuth } from "../lib/auth";
@@ -32,6 +32,7 @@ function MenuIcon() {
 export function PublicLayout() {
   const auth = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -41,6 +42,13 @@ export function PublicLayout() {
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!auth.isAuthenticated) return;
+    if (!(auth.hasRole("Admin") || auth.hasRole("Employee"))) return;
+    if (location.pathname !== "/") return;
+    navigate("/app/dashboard", { replace: true });
+  }, [auth, location.pathname, navigate]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -64,7 +72,7 @@ export function PublicLayout() {
   };
 
   return (
-    <>
+    <div className="public-shell">
       <header className="public-header">
         <div className="container public-header-inner">
           <Link to="/" className="public-brand">
@@ -133,7 +141,7 @@ export function PublicLayout() {
 
       <Footer onToggleTheme={toggleTheme} />
       <CookieConsentBanner />
-    </>
+    </div>
   );
 }
 
