@@ -713,6 +713,76 @@ html:not([data-theme="dark"]) .impact-loading-inline {
   padding-left: 18px;
 }
 
+.donor-stewardship-item {
+  gap: 8px;
+}
+
+.donor-stewardship-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.donor-stewardship-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.donor-stewardship-note {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.donor-inline-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    max-height 220ms ease,
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+.donor-inline-panel.open,
+.donor-inline-panel.closing {
+  max-height: 1800px;
+}
+.donor-inline-panel.open {
+  opacity: 1;
+  transform: translateY(0);
+}
+.donor-inline-panel.closing {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.donor-row-selected td {
+  background: linear-gradient(180deg, rgba(36, 114, 125, 0.08), rgba(136, 176, 168, 0.1));
+  border-top-color: rgba(36, 114, 125, 0.28);
+  border-bottom-color: rgba(36, 114, 125, 0.18);
+}
+.donor-row-clickable {
+  cursor: pointer;
+}
+.donor-row-clickable td {
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.donor-row-clickable:hover td,
+.donor-row-clickable:focus-visible td {
+  background: rgba(36, 114, 125, 0.05);
+}
+.donor-row-selected td:first-child {
+  box-shadow: inset 4px 0 0 rgba(36, 114, 125, 0.72);
+}
+.donor-row-selected-action {
+  border-color: rgba(36, 114, 125, 0.42);
+  background: rgba(36, 114, 125, 0.12);
+  color: var(--brand);
+}
+.donor-row-selected-action:hover {
+  background: rgba(36, 114, 125, 0.16);
+}
+
 @media (max-width: 900px) {
   .admin-inline-grid > *,
   .admin-inline-grid > .span-2,
@@ -725,6 +795,10 @@ html:not([data-theme="dark"]) .impact-loading-inline {
   }
 
   .admin-split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .donor-stewardship-meta {
     grid-template-columns: 1fr;
   }
 }
@@ -3564,6 +3638,18 @@ html[data-theme="dark"] .donation-modal--success {
   gap: 10px;
 }
 
+.reports-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.reports-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .reports-pagination {
   margin-top: 12px;
   display: flex;
@@ -4108,6 +4194,10 @@ html[data-theme="dark"] .donation-modal--success {
   }
 
   .reports-snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-summary-grid {
     grid-template-columns: 1fr;
   }
 

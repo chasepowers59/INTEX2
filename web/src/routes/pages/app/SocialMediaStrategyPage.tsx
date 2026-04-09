@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 
@@ -34,21 +34,36 @@ type SocialPredictionRow = {
   isBoosted: boolean | null;
 };
 
+function rankByValue<T>(
+  rows: T[],
+  keySelector: (row: T) => string | null | undefined,
+  valueSelector: (row: T) => number,
+  extraSelector?: (row: T) => number,
+) {
+  const map = new Map<string, { value: number; extra: number; count: number }>();
+  for (const row of rows) {
+    const key = keySelector(row)?.trim() || "Unspecified";
+    const current = map.get(key) ?? { value: 0, extra: 0, count: 0 };
+    current.value += valueSelector(row);
+    current.extra += extraSelector ? extraSelector(row) : 0;
+    current.count += 1;
+    map.set(key, current);
+  }
+  return [...map.entries()].sort((a, b) => b[1].value - a[1].value);
+}
+
 export function SocialMediaStrategyPage() {
   const auth = useAuth();
   const token = auth.token ?? undefined;
   const [data, setData] = useState<ProgramInsights | null>(null);
   const [predictions, setPredictions] = useState<SocialPredictionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [storyTheme, setStoryTheme] = useState("Reintegration progress update");
-  const [needItem, setNeedItem] = useState("Emergency shelter essentials");
-  const [gratitudeFocus, setGratitudeFocus] = useState("Counseling sessions funded this month");
 
   useEffect(() => {
     (async () => {
       const [insightsRes, predictionsRes] = await Promise.allSettled([
         apiFetch<ProgramInsights>("/api/analytics/program-insights", { token }),
-        apiFetch<SocialPredictionRow[]>("/api/ml/social-post-value/top?take=10", { token }),
+        apiFetch<SocialPredictionRow[]>("/api/ml/social-post-value/top?take=12", { token }),
       ]);
 
       const errs: string[] = [];
@@ -60,177 +75,309 @@ export function SocialMediaStrategyPage() {
     })();
   }, [token]);
 
+  const observedRows = data?.socialRoi.topPosts ?? [];
+  const platformRanked = useMemo(
+    () => rankByValue(observedRows, (row) => row.platform, (row) => row.estimatedValuePhp, (row) => row.referrals),
+    [observedRows],
+  );
+  const typeRanked = useMemo(
+    () => rankByValue(observedRows, (row) => row.postType, (row) => row.estimatedValuePhp, (row) => row.referrals),
+    [observedRows],
+  );
+  const topicRanked = useMemo(
+    () => rankByValue(predictions, (row) => row.contentTopic, (row) => row.predictedValuePhp),
+    [predictions],
+  );
+  const ctaRanked = useMemo(
+    () => rankByValue(predictions, (row) => row.callToActionType, (row) => row.predictedValuePhp),
+    [predictions],
+  );
+
+  const bestPlatform = platformRanked[0]?.[0] ?? "Review channels";
+  const secondPlatform = platformRanked[1]?.[0] ?? null;
+  const weakestPlatform = platformRanked.at(-1)?.[0] ?? null;
+  const bestPostType = typeRanked[0]?.[0] ?? (predictions[0]?.postType || "Story");
+  const weakestPostType = typeRanked.at(-1)?.[0] ?? null;
+  const bestTopic = topicRanked[0]?.[0] ?? "Progress update";
+  const bestCta = ctaRanked[0]?.[0] ?? "Donate";
+  const predictedTopRows = [...predictions].sort((a, b) => b.predictedValuePhp - a.predictedValuePhp);
+  const topPredicted = predictedTopRows[0] ?? null;
+  const postsDrivingDonations = observedRows.filter((row) => row.referrals > 0).length;
+  const boostedRows = observedRows.filter((row) => row.isBoosted);
+  const nonBoostedRows = observedRows.filter((row) => !row.isBoosted);
+  const avgBoostedValue = boostedRows.length
+    ? boostedRows.reduce((sum, row) => sum + row.estimatedValuePhp, 0) / boostedRows.length
+    : 0;
+  const avgOrganicValue = nonBoostedRows.length
+    ? nonBoostedRows.reduce((sum, row) => sum + row.estimatedValuePhp, 0) / nonBoostedRows.length
+    : 0;
+  const overallRoi = data?.socialRoi.totalBoostSpendPhp
+    ? data.socialRoi.totalEstimatedDonationValuePhp / data.socialRoi.totalBoostSpendPhp
+    : null;
+
   return (
     <div className="admin-page">
       <div className="card">
         <div className="admin-header-copy">
           <h1 style={{ marginTop: 0 }}>Social Media Strategy</h1>
-          <p className="muted">Observed ROI, predicted post value, and weekly content planning.</p>
+          <p className="muted">What to post, where to post it, and what is actually leading to donations.</p>
         </div>
         {error ? <div className="badge danger">{error}</div> : null}
       </div>
 
-      <div className="row">
-        <div className="card tone-aqua" style={{ flex: "1 1 260px" }}>
-          <div className="muted">Observed donation value from social</div>
-          <div style={{ fontSize: 28, fontWeight: 900 }}>
-            {data ? `PHP ${data.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "-"}
+      <div className="admin-kpi-grid">
+        <div className="card admin-kpi tone-peach">
+          <div className="muted">Observed social donation value</div>
+          <div className="admin-kpi-value">
+            PHP {Math.round(data?.socialRoi.totalEstimatedDonationValuePhp ?? 0).toLocaleString()}
           </div>
         </div>
-        <div className="card tone-peach" style={{ flex: "1 1 260px" }}>
-          <div className="muted">Boost spend total</div>
-          <div style={{ fontSize: 28, fontWeight: 900 }}>
-            {data ? `PHP ${data.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "-"}
-          </div>
+        <div className="card admin-kpi tone-peach">
+          <div className="muted">Best platform right now</div>
+          <div className="admin-kpi-value" style={{ fontSize: 24 }}>{bestPlatform}</div>
         </div>
-        <div className="card tone-berry" style={{ flex: "1 1 260px" }}>
-          <div className="muted">Predicted high-value posts loaded</div>
-          <div style={{ fontSize: 28, fontWeight: 900 }}>{predictions.length}</div>
+        <div className="card admin-kpi tone-peach">
+          <div className="muted">Best content type</div>
+          <div className="admin-kpi-value" style={{ fontSize: 24 }}>{bestPostType}</div>
+        </div>
+        <div className="card admin-kpi tone-peach">
+          <div className="muted">Posts that drove donations</div>
+          <div className="admin-kpi-value">{postsDrivingDonations}</div>
         </div>
       </div>
 
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>Predicted top-value content</h2>
-        <div className="table-wrap" style={{ marginTop: 10 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Post</th>
-                <th>Platform</th>
-                <th>Predicted value</th>
-                <th>Value band</th>
-                <th>Topic / CTA</th>
-              </tr>
-            </thead>
-            <tbody>
-              {predictions.map((post) => (
-                <tr key={post.postId}>
-                  <td data-label="Post" style={{ fontWeight: 700 }}>
-                    #{post.postId} {post.postType}
-                    {post.campaignName ? <span className="muted"> · {post.campaignName}</span> : null}
-                  </td>
-                  <td data-label="Platform" className="muted">{post.platform}</td>
-                  <td data-label="Predicted value">
-                    PHP {post.predictedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </td>
-                  <td data-label="Value band"><span className="badge">{post.valueBand ?? "Review"}</span></td>
-                  <td data-label="Topic / CTA" className="muted">
-                    {[post.contentTopic, post.callToActionType].filter(Boolean).join(" / ") || "-"}
-                  </td>
-                </tr>
-              ))}
-              {predictions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="muted">
-                    Import `post_donation_value` to rank content before the next campaign sprint.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>Observed top converting post patterns</h2>
-        <ul className="muted admin-plain-list">
-          <li>Use survivor-progress stories to convert attention into intent.</li>
-          <li>Match the donation ask to one clear campaign purpose instead of broad generic messaging.</li>
-          <li>Boost only the posts that already show referral traction or strong predicted value.</li>
-        </ul>
-        <div className="table-wrap" style={{ marginTop: 10 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Post</th>
-                <th>Platform</th>
-                <th>Campaign</th>
-                <th>Referrals</th>
-                <th>Observed value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.socialRoi.topPosts ?? []).map((p) => (
-                <tr key={p.postId}>
-                  <td data-label="Post">#{p.postId} {p.postType}</td>
-                  <td data-label="Platform" className="muted">{p.platform}</td>
-                  <td data-label="Campaign" className="muted">{p.campaignName ?? "General"}</td>
-                  <td data-label="Referrals">{p.referrals}</td>
-                  <td data-label="Observed value">PHP {p.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                </tr>
-              ))}
-              {!data?.socialRoi.topPosts?.length ? (
-                <tr><td colSpan={5} className="muted">No observed social conversion rows available yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>Content pillars coach</h2>
-        <p className="muted">Keep one story, one concrete need, and one gratitude proof point in every weekly content cycle.</p>
-        <div className="row">
-          <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
-            <span className="muted">Story post idea</span>
-            <input className="input" value={storyTheme} onChange={(e) => setStoryTheme(e.target.value)} />
-          </label>
-          <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
-            <span className="muted">Need post ask</span>
-            <input className="input" value={needItem} onChange={(e) => setNeedItem(e.target.value)} />
-          </label>
-          <label style={{ display: "grid", gap: 6, flex: "1 1 240px" }}>
-            <span className="muted">Gratitude focus</span>
-            <input className="input" value={gratitudeFocus} onChange={(e) => setGratitudeFocus(e.target.value)} />
-          </label>
-        </div>
-        <div className="row" style={{ marginTop: 10 }}>
-          <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 220px" }}>
-            <strong>Monday · Story</strong>
-            <div className="muted">{storyTheme}</div>
+      <div className="admin-two-column">
+        <div className="card">
+          <div className="admin-header-copy">
+            <h2 style={{ marginTop: 0 }}>What to do this week</h2>
+            <p className="muted">A simple posting plan for a small team.</p>
           </div>
-          <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 220px" }}>
-            <strong>Wednesday · Need</strong>
-            <div className="muted">{needItem}</div>
+          <div className="reports-summary-grid" style={{ marginTop: 12 }}>
+            <div className="card tone-aqua" style={{ boxShadow: "none" }}>
+              <div className="muted">Lead platform</div>
+              <div style={{ fontSize: 24, fontWeight: 900 }}>{bestPlatform}</div>
+              <div className="muted">
+                {secondPlatform ? `Repurpose winners into ${secondPlatform}.` : "Keep the strongest channel consistent."}
+              </div>
+            </div>
+            <div className="card" style={{ boxShadow: "none" }}>
+              <div className="muted">Post mix</div>
+              <div style={{ fontSize: 24, fontWeight: 900 }}>3 posts</div>
+              <div className="muted">Story, need, and gratitude.</div>
+            </div>
+            <div className="card" style={{ boxShadow: "none" }}>
+              <div className="muted">Boosting rule</div>
+              <div style={{ fontSize: 24, fontWeight: 900 }}>Be selective</div>
+              <div className="muted">Boost only posts that already show traction.</div>
+            </div>
           </div>
-          <div className="card tone-berry" style={{ boxShadow: "none", flex: "1 1 220px" }}>
+
+          <div className="admin-split-grid" style={{ marginTop: 14 }}>
+            <div className="card" style={{ boxShadow: "none" }}>
+              <strong>Monday · Story</strong>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Share a {bestTopic.toLowerCase()} with one clear outcome and one simple ask.
+              </div>
+            </div>
+            <div className="card" style={{ boxShadow: "none" }}>
+              <strong>Wednesday · Need</strong>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Post one concrete need tied to a single program area and use a {bestCta.toLowerCase()} CTA.
+              </div>
+            </div>
+          </div>
+          <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
             <strong>Friday · Gratitude</strong>
-            <div className="muted">{gratitudeFocus}</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Thank supporters with a measurable result from the week and invite them back to the strongest channel.
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="admin-header-copy">
+            <h2 style={{ marginTop: 0 }}>What is working</h2>
+            <p className="muted">Patterns tied to donations, not just attention.</p>
+          </div>
+          <div className="reports-summary-grid" style={{ marginTop: 12 }}>
+            <div className="card" style={{ boxShadow: "none" }}>
+              <div className="muted">Best platform</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>{bestPlatform}</div>
+              <div className="muted">
+                PHP {Math.round(platformRanked[0]?.[1].value ?? 0).toLocaleString()} observed value
+              </div>
+            </div>
+            <div className="card" style={{ boxShadow: "none" }}>
+              <div className="muted">Best post type</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>{bestPostType}</div>
+              <div className="muted">
+                PHP {Math.round(typeRanked[0]?.[1].value ?? 0).toLocaleString()} observed value
+              </div>
+            </div>
+            <div className="card" style={{ boxShadow: "none" }}>
+              <div className="muted">Boosting result</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>
+                {avgBoostedValue > avgOrganicValue ? "Boosted wins" : "Organic wins"}
+              </div>
+              <div className="muted">
+                Avg PHP {Math.round(Math.max(avgBoostedValue, avgOrganicValue)).toLocaleString()} per top post
+              </div>
+            </div>
+          </div>
+
+          <ul className="trust-list muted" style={{ marginTop: 14 }}>
+            <li>Lead with {bestPlatform} for the next campaign cycle.</li>
+            <li>Use more {bestPostType.toLowerCase()} content tied to clear outcomes.</li>
+            <li>Top predicted topic: {bestTopic}.</li>
+            <li>Top predicted CTA: {bestCta}.</li>
+            {overallRoi !== null ? (
+              <li>Observed social ROI is about {overallRoi.toFixed(1)}x estimated donation value to boost spend.</li>
+            ) : null}
+          </ul>
+
+          <div className="card tone-aqua" style={{ boxShadow: "none", marginTop: 12 }}>
+            <strong>What to avoid</strong>
+            <ul className="trust-list muted" style={{ marginTop: 8 }}>
+              <li>{weakestPlatform ? `Do not lead with ${weakestPlatform} until results improve.` : "Do not spread effort evenly across every platform."}</li>
+              <li>{weakestPostType ? `Reduce lower-converting ${weakestPostType.toLowerCase()} posts.` : "Reduce lower-converting post formats."}</li>
+              <li>Do not boost posts before they show real referral traction.</li>
+              <li>Avoid broad, generic asks that are not tied to one concrete purpose.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-two-column">
+        <div className="card">
+          <div className="admin-header-copy">
+            <h2 style={{ marginTop: 0 }}>Observed winners</h2>
+            <p className="muted">Posts that already led to referrals and donation value.</p>
+          </div>
+          <div className="table-wrap" style={{ marginTop: 10 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Post</th>
+                  <th>Platform</th>
+                  <th>Campaign</th>
+                  <th>Referrals</th>
+                  <th>Observed value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {observedRows.map((post) => (
+                  <tr key={post.postId}>
+                    <td data-label="Post">
+                      #{post.postId} {post.postType}
+                    </td>
+                    <td data-label="Platform" className="muted">{post.platform}</td>
+                    <td data-label="Campaign" className="muted">{post.campaignName ?? "General"}</td>
+                    <td data-label="Referrals">{post.referrals}</td>
+                    <td data-label="Observed value">
+                      PHP {Math.round(post.estimatedValuePhp).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+                {observedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="muted">No observed conversion rows available yet.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="admin-header-copy">
+            <h2 style={{ marginTop: 0 }}>Predicted opportunities</h2>
+            <p className="muted">Posts most likely to create donation value next.</p>
+          </div>
+          {topPredicted ? (
+            <div className="card tone-aqua" style={{ boxShadow: "none", marginTop: 10 }}>
+              <strong>Top recommendation</strong>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Lead with a {topPredicted.postType.toLowerCase()} on {topPredicted.platform} using {topPredicted.callToActionType?.toLowerCase() || "a clear donation"} CTA.
+              </div>
+            </div>
+          ) : null}
+          <div className="table-wrap" style={{ marginTop: 10 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Post</th>
+                  <th>Platform</th>
+                  <th>Predicted value</th>
+                  <th>Topic</th>
+                  <th>CTA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {predictedTopRows.map((post) => (
+                  <tr key={post.postId}>
+                    <td data-label="Post">
+                      #{post.postId} {post.postType}
+                      {post.campaignName ? <span className="muted"> · {post.campaignName}</span> : null}
+                    </td>
+                    <td data-label="Platform" className="muted">{post.platform}</td>
+                    <td data-label="Predicted value">
+                      PHP {Math.round(post.predictedValuePhp).toLocaleString()}
+                    </td>
+                    <td data-label="Topic" className="muted">{post.contentTopic ?? "-"}</td>
+                    <td data-label="CTA" className="muted">{post.callToActionType ?? "-"}</td>
+                  </tr>
+                ))}
+                {predictedTopRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="muted">No predicted content suggestions available yet.</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Channel conversion compare</h2>
-        {(() => {
-          const rows = data?.socialRoi.topPosts ?? [];
-          const byPlatform = new Map<string, { referrals: number; value: number }>();
-          for (const row of rows) {
-            const current = byPlatform.get(row.platform) ?? { referrals: 0, value: 0 };
-            current.referrals += row.referrals;
-            current.value += row.estimatedValuePhp;
-            byPlatform.set(row.platform, current);
-          }
-          const ranked = [...byPlatform.entries()].sort((a, b) => b[1].value - a[1].value);
-          const top = ranked[0];
-          return (
-            <>
-              <ul className="trust-list muted">
-                {ranked.map(([platform, value]) => (
-                  <li key={platform}>
-                    {platform}: PHP {value.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} estimated value and {value.referrals} referrals
-                  </li>
-                ))}
-                {ranked.length === 0 ? <li>No channel comparison rows yet.</li> : null}
-              </ul>
-              {top ? (
-                <div className="badge ok" style={{ marginTop: 8 }}>
-                  Recommendation: lead next week with {top[0]}, then repurpose the winning creative into the second-best channel.
-                </div>
+        <div className="admin-header-copy">
+          <h2 style={{ marginTop: 0 }}>Channel comparison</h2>
+          <p className="muted">Where donation value is actually coming from.</p>
+        </div>
+        <div className="table-wrap" style={{ marginTop: 10 }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Platform</th>
+                <th>Observed value</th>
+                <th>Referrals</th>
+                <th>Recommendation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {platformRanked.map(([platform, value], idx) => (
+                <tr key={platform}>
+                  <td data-label="Platform">{platform}</td>
+                  <td data-label="Observed value">
+                    PHP {Math.round(value.value).toLocaleString()}
+                  </td>
+                  <td data-label="Referrals">{value.extra}</td>
+                  <td data-label="Recommendation" className="muted">
+                    {idx === 0
+                      ? "Lead next week here."
+                      : idx === 1
+                        ? "Repurpose winning creative here."
+                        : "Reduce emphasis until results improve."}
+                  </td>
+                </tr>
+              ))}
+              {platformRanked.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="muted">No channel comparison rows yet.</td>
+                </tr>
               ) : null}
-            </>
-          );
-        })()}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
