@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { formatSiteCurrency } from "../../../lib/currency";
 
 type DonorRiskRow = {
   supporterId: number;
@@ -173,22 +175,26 @@ export function MlActionCenterPage() {
         <div className="card admin-kpi tone-cream">
           <div className="muted">Residents needing review</div>
           <div className="admin-kpi-value">{residentRisk.length}</div>
+          <a className="auth-link-subtle" href="#action-center-residents">See names</a>
         </div>
         <div className="card admin-kpi tone-cream">
           <div className="muted">Donors needing follow-up</div>
           <div className="admin-kpi-value">{donorRisk.length}</div>
+          <a className="auth-link-subtle" href="#action-center-followup">See names</a>
         </div>
         <div className="card admin-kpi tone-cream">
           <div className="muted">Outreach opportunities</div>
           <div className="admin-kpi-value">{donorUpgrade.length}</div>
+          <a className="auth-link-subtle" href="#action-center-outreach">See names</a>
         </div>
         <div className="card admin-kpi tone-cream">
           <div className="muted">Safehouses needing attention</div>
           <div className="admin-kpi-value">{safehouseForecast.length}</div>
+          <a className="auth-link-subtle" href="#action-center-safehouses">See names</a>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" id="action-center-residents">
         <div className="admin-header-copy">
           <h2 style={{ marginTop: 0 }}>Residents needing review</h2>
           <p className="muted">Residents who may need a case review, follow-up, or reintegration check.</p>
@@ -196,14 +202,15 @@ export function MlActionCenterPage() {
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">
             <thead>
-              <tr>
-                <th>Resident</th>
-                <th>Risk</th>
-                <th>Readiness</th>
-                <th>Safehouse</th>
-                <th>Next step</th>
-              </tr>
-            </thead>
+                <tr>
+                  <th>Resident</th>
+                  <th>Risk</th>
+                  <th>Readiness</th>
+                  <th>Safehouse</th>
+                  <th>Next step</th>
+                  <th style={{ width: 220 }}>Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 {visibleResidents.map((row) => {
                   const readiness = readinessMap.get(row.residentId);
@@ -226,12 +233,22 @@ export function MlActionCenterPage() {
                     <td data-label="Next step" className="muted">
                       {residentNextStep(row.riskBand, readiness?.readinessBand)}
                     </td>
+                    <td data-label="Actions">
+                      <div className="row admin-compact-actions">
+                        <Link className="btn admin-table-action" to={`/app/residents/${row.residentId}/process-recordings`}>
+                          Recordings
+                        </Link>
+                        <Link className="btn admin-table-action" to={`/app/residents/${row.residentId}/home-visits`}>
+                          Visits
+                        </Link>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
               {residentRisk.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="muted">No residents need review right now.</td>
+                  <td colSpan={6} className="muted">No residents need review right now.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -247,7 +264,7 @@ export function MlActionCenterPage() {
       </div>
 
       <div className="admin-two-column">
-        <div className="card">
+        <div className="card" id="action-center-followup">
           <div className="admin-header-copy">
             <h2 style={{ marginTop: 0 }}>Donors needing follow-up</h2>
             <p className="muted">Supporters who may need retention-focused outreach.</p>
@@ -260,6 +277,7 @@ export function MlActionCenterPage() {
                   <th>Risk</th>
                   <th>Type</th>
                   <th>Next step</th>
+                  <th style={{ width: 220 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -279,7 +297,23 @@ export function MlActionCenterPage() {
                       <td data-label="Risk">
                         <span className="badge">{row.riskBand ?? "Review"}</span>
                       </td>
+                      <td data-label="Type" className="muted">{row.supporterType}</td>
                       <td data-label="Next step" className="muted">{donorFollowUpStep(row)}</td>
+                      <td data-label="Actions">
+                        <div className="row admin-compact-actions">
+                          {row.email ? (
+                            <a
+                              className="btn admin-table-action"
+                              href={`mailto:${row.email}?subject=${encodeURIComponent("Checking in from Steps of Hope")}`}
+                            >
+                              Email
+                            </a>
+                          ) : null}
+                          <Link className="btn admin-table-action" to={`/app/donors?open=${row.supporterId}`}>
+                            Open donor
+                          </Link>
+                        </div>
+                      </td>
                           </>
                         );
                       })()}
@@ -287,7 +321,7 @@ export function MlActionCenterPage() {
                   ))}
                 {donorRisk.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="muted">No donor follow-up rows available yet.</td>
+                    <td colSpan={5} className="muted">No donor follow-up rows available yet.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -302,7 +336,7 @@ export function MlActionCenterPage() {
           ) : null}
         </div>
 
-        <div className="card">
+        <div className="card" id="action-center-outreach">
           <div className="admin-header-copy">
             <h2 style={{ marginTop: 0 }}>Donor outreach opportunities</h2>
             <p className="muted">Suggested asks and the best next channel to use.</p>
@@ -315,6 +349,7 @@ export function MlActionCenterPage() {
                   <th>Suggested ask</th>
                   <th>Channel</th>
                   <th>Next step</th>
+                  <th style={{ width: 220 }}>Actions</th>
                 </tr>
               </thead>
             <tbody>
@@ -334,19 +369,34 @@ export function MlActionCenterPage() {
                     </td>
                       <td data-label="Suggested ask">
                         {row.predictedNextAmount != null
-                          ? `PHP ${Math.round(row.predictedNextAmount).toLocaleString()}`
+                          ? formatSiteCurrency(Math.round(row.predictedNextAmount))
                           : row.askTier ?? "-"}
                       </td>
                       <td data-label="Channel" className="muted">{channel?.predictedChannel ?? "-"}</td>
                       <td data-label="Next step" className="muted">
                         {donorUpgradeStep(channel?.predictedChannel)}
                       </td>
+                      <td data-label="Actions">
+                        <div className="row admin-compact-actions">
+                          {row.email ? (
+                            <a
+                              className="btn admin-table-action"
+                              href={`mailto:${row.email}?subject=${encodeURIComponent("Support opportunity from Steps of Hope")}`}
+                            >
+                              Email
+                            </a>
+                          ) : null}
+                          <Link className="btn admin-table-action" to={`/app/donors?open=${row.supporterId}`}>
+                            Open donor
+                          </Link>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
                 {donorUpgrade.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="muted">No donor outreach rows available yet.</td>
+                    <td colSpan={5} className="muted">No donor outreach rows available yet.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -362,7 +412,7 @@ export function MlActionCenterPage() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" id="action-center-safehouses">
         <div className="admin-header-copy">
           <h2 style={{ marginTop: 0 }}>Safehouses needing attention</h2>
           <p className="muted">Safehouses that may need closer operational review next month.</p>

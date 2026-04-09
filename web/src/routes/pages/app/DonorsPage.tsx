@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { displayCurrencyCode, formatSiteCurrency, SITE_CURRENCY } from "../../../lib/currency";
 import { PaginationControls } from "../../../components/ui/PaginationControls";
 
 type Supporter = {
@@ -50,6 +52,7 @@ const PAGE_SIZE = 10;
 
 export function DonorsPage() {
   const auth = useAuth();
+  const location = useLocation();
   const closeTimerRef = useRef<number | null>(null);
   const [q, setQ] = useState("");
   const [appliedQ, setAppliedQ] = useState("");
@@ -150,6 +153,15 @@ export function DonorsPage() {
     void load(supporterPage, appliedQ).catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.token, supporterPage, appliedQ]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const open = Number(params.get("open"));
+    if (!Number.isFinite(open) || open <= 0) return;
+    if (!auth.token) return;
+    void openSupporter(open);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, auth.token]);
 
   useEffect(() => {
     void apiFetch<DonorStewardship>("/api/analytics/donor-stewardship", {
@@ -366,7 +378,7 @@ export function DonorsPage() {
                     <tr key={item.supporterId}>
                       <td>{item.displayName}</td>
                       <td className="muted">
-                        PHP {item.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        {formatSiteCurrency(item.totalPhp)}
                         <br />
                         {item.giftCount} gifts
                       </td>
@@ -475,7 +487,7 @@ export function DonorsPage() {
                               <div className="card admin-kpi">
                                 <span className="muted">Known total</span>
                                 <strong className="admin-kpi-value" style={{ fontSize: 20 }}>
-                                  PHP {Math.round(detailUpgrade?.totalPhp ?? detailWatch?.totalPhp ?? 0).toLocaleString()}
+                                  {formatSiteCurrency(Math.round(detailUpgrade?.totalPhp ?? detailWatch?.totalPhp ?? 0))}
                                 </strong>
                               </div>
                               <div className="card admin-kpi">
@@ -571,7 +583,7 @@ export function DonorsPage() {
                                                   ? Number(newContribution.estimatedValue)
                                                   : null,
                                                 impactUnit: null,
-                                                currency: "PHP",
+                                                currency: SITE_CURRENCY,
                                                 contributionDate: new Date().toISOString().slice(0, 10),
                                                 campaignName: newContribution.campaignName.trim() || null,
                                                 notes: newContribution.notes.trim() || null,
@@ -623,7 +635,7 @@ export function DonorsPage() {
                                       <tr key={row.contributionId}>
                                         <td>{row.contributionDate}</td>
                                         <td><span className="badge">{row.contributionType}</span></td>
-                                        <td>{row.amount ?? row.estimatedValue ?? 0} {row.currency}</td>
+                                        <td>{row.amount ?? row.estimatedValue ?? 0} {displayCurrencyCode(row.currency)}</td>
                                         <td className="muted">{row.campaignName ?? "-"}</td>
                                       </tr>
                                     ))}

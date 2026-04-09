@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { formatSiteCurrency, SITE_CURRENCY } from "../../lib/currency";
 
 type DonateResponse = { contributionId: number };
 type DonationConfirmation = {
@@ -36,6 +37,7 @@ const waysToSupport = [
 ];
 
 export function GivePage() {
+  const DRAFT_KEY = "donation_draft";
   const auth = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
@@ -49,12 +51,44 @@ export function GivePage() {
   const [confirmation, setConfirmation] = useState<DonationConfirmation | null>(null);
 
   useEffect(() => {
+    const saved = sessionStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const draft = JSON.parse(saved) as { amount?: string; givingFocus?: string; notes?: string };
+      setAmount(draft.amount ?? "");
+      setGivingFocus(draft.givingFocus ?? "General Fund");
+      setNotes(draft.notes ?? "");
+    } catch {
+      sessionStorage.removeItem(DRAFT_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        amount,
+        givingFocus,
+        notes,
+      }),
+    );
+  }, [amount, givingFocus, notes]);
+
+  useEffect(() => {
     setError(null);
     setSuccessId(null);
     setConfirmation(null);
   }, [auth.isAuthenticated, auth.roles.join(",")]);
 
   const signInToDonate = () => {
+    sessionStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        amount,
+        givingFocus,
+        notes,
+      }),
+    );
     nav("/login", { state: { from: loc.pathname } });
   };
 
@@ -79,7 +113,7 @@ export function GivePage() {
           amount: amt,
           estimatedValue: null,
           impactUnit: null,
-          currency: "PHP",
+          currency: SITE_CURRENCY,
           campaignName: givingFocus.trim() || null,
           notes: notes.trim() || null,
           inKindItems: [],
@@ -90,11 +124,12 @@ export function GivePage() {
       setConfirmation({
         contributionId: res.contributionId,
         contributionType: "Monetary",
-        amountLabel: `PHP ${amt.toLocaleString()}`,
+        amountLabel: formatSiteCurrency(amt),
         givingFocus: givingFocus.trim() || "General Fund",
       });
       setAmount("");
       setNotes("");
+      sessionStorage.removeItem(DRAFT_KEY);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -121,13 +156,13 @@ export function GivePage() {
           <p className="muted">
             Enter an amount and choose where you would like your support directed.{" "}
             {donorLoggedIn
-              ? "Your gift will be recorded to your donor profile."
+              ? "Your gift will be saved to your donor account."
               : "Sign in or create a donor account to complete your gift."}
           </p>
 
           <div className="donate-form-grid donate-form-grid--amount-first">
             <label className="donate-amount-field">
-              <span>Amount in PHP</span>
+              <span>Amount in KRW</span>
               <input
                 className="input"
                 type="number"
@@ -135,7 +170,7 @@ export function GivePage() {
                 inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g. 3500"
+                placeholder="e.g. 50000"
               />
             </label>
             <label>
@@ -187,7 +222,7 @@ export function GivePage() {
               </>
             ) : (
               <>
-                <span className="muted">Your contribution is recorded to your donor profile.</span>
+                <span className="muted">Your gift will be saved to your donor account.</span>
                 <button className="btn primary donor-primary-cta" disabled={busy} onClick={submitDonation}>
                   {busy ? "Submitting..." : "Donate now"}
                 </button>
@@ -200,7 +235,7 @@ export function GivePage() {
           <div className="badge donor-role-badge">Privacy-first giving</div>
           <h2>Your gift supports the full care pathway.</h2>
           <p className="muted">
-            Donations are connected to the care pathway while survivor-identifying details stay protected.
+            Your support helps fund shelter, care, and reintegration work while keeping survivor privacy protected.
           </p>
           <div className="donate-trust-list">
             {confidenceItems.map((item) => (
@@ -233,8 +268,7 @@ export function GivePage() {
           <div className="sub-kicker">Privacy promise</div>
           <h2>Transparent to donors. Protective of survivors.</h2>
           <p className="muted">
-            Donor receipts and allocations are tied to supporter records. Resident-level information is never exposed on
-            donor views or public reporting.
+            Donors can see their giving activity and public updates without exposing private survivor information.
           </p>
           <Link className="btn" to="/privacy">
             Read privacy policy
@@ -264,7 +298,7 @@ export function GivePage() {
           <div className="card glow-donor donation-modal donation-modal--success">
             <h2 style={{ marginTop: 0 }}>Donation confirmed</h2>
             <p className="muted" style={{ lineHeight: 1.6 }}>
-              Thank you. Your contribution has been recorded and validated.
+              Thank you. Your gift has been received.
             </p>
             <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
               <span className="badge ok">Confirmation ID: {confirmation.contributionId}</span>

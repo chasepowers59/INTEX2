@@ -29,11 +29,11 @@
     "SyncPasswords": false,
     "ClearLockouts": false,
     "AdminEmail": "admin@example.com",
-    "AdminPassword": "CHANGE_ME_12+chars_Aa1!",
+    "AdminPassword": "CHANGE_ME_MIN_14_CHARS",
     "EmployeeEmail": "employee@example.com",
-    "EmployeePassword": "CHANGE_ME_12+chars_Aa1!",
+    "EmployeePassword": "CHANGE_ME_MIN_14_CHARS",
     "DonorEmail": "donor@example.com",
-    "DonorPassword": "CHANGE_ME_12+chars_Aa1!",
+    "DonorPassword": "CHANGE_ME_MIN_14_CHARS",
     "Accounts": []
   }
 }

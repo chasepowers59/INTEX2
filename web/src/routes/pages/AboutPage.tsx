@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 const values = [
   {
     title: "Safety first",
-    description: "Survivor protection, privacy, and dignity guide every public message and every internal workflow.",
+    description: "Survivor protection, privacy, and dignity guide every decision we make.",
   },
   {
     title: "Transparent stewardship",
@@ -24,7 +24,7 @@ const workSteps = [
   "Provide immediate safehouse and emergency support.",
   "Document counseling, wellbeing, education, and follow-up needs.",
   "Coordinate home visitation, family cooperation, and reintegration planning.",
-  "Report public impact only through aggregate, anonymized data.",
+  "Share public progress in ways that protect survivor privacy.",
 ];
 
 const trustStats = [
@@ -57,7 +57,7 @@ const leadership = [
     name: "Grace Kim",
     role: "Program Impact Analyst",
     photo: "/photos/education-support.jpg",
-    description: "Turns anonymized program data into safer, clearer public impact reporting.",
+    description: "Helps turn program progress into clear public updates that protect survivor privacy.",
   },
 ];
 
@@ -86,24 +86,41 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section className="about-mission-grid">
-        <article className="card about-mission-card">
-          <div className="sub-kicker">Our mission</div>
-          <h2>Fund practical care while protecting survivor dignity.</h2>
-          <p className="muted">
-            We connect donor generosity to safehouse support, counseling documentation, health and education progress,
-            home visitation, and reintegration planning. Public reporting stays anonymized so transparency never comes
-            at the expense of safety.
-          </p>
-        </article>
-        <article className="card about-mission-card">
-          <div className="sub-kicker">Our vision</div>
-          <h2>A future where survivors are seen, protected, and supported.</h2>
-          <p className="muted">
-            We imagine a network of care where every survivor can access the next right step: protection, healing,
-            trusted adults, education support, and a safer path forward.
-          </p>
-        </article>
+      <section className="card donor-section">
+        <div className="section-intro">
+          <div className="sub-kicker">Mission, vision, and values</div>
+          <h2 className="section-title">The purpose behind the work and the principles guiding it.</h2>
+        </div>
+        <div className="about-foundation-grid">
+          <div className="about-mission-grid">
+            <article className="card about-mission-card">
+              <div className="sub-kicker">Our mission</div>
+              <h2>Fund practical care while protecting survivor dignity.</h2>
+              <p className="muted">
+                We connect donor generosity to safehouse support, counseling documentation, health and education progress,
+                home visitation, and reintegration planning. We share progress carefully so transparency never comes at the
+                expense of safety.
+              </p>
+            </article>
+            <article className="card about-mission-card">
+              <div className="sub-kicker">Our vision</div>
+              <h2>A future where survivors are seen, protected, and supported.</h2>
+              <p className="muted">
+                We imagine a network of care where every survivor can access the next right step: protection, healing,
+                trusted adults, education support, and a safer path forward.
+              </p>
+            </article>
+          </div>
+
+          <div className="values-grid">
+            {values.map((value) => (
+              <article className="value-card" key={value.title}>
+                <h3>{value.title}</h3>
+                <p>{value.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="impact-stat-row" aria-label="About page trust metrics">
@@ -120,8 +137,8 @@ export function AboutPage() {
           <div className="sub-kicker">How we work</div>
           <h2 className="section-title">Support is strongest when care is coordinated.</h2>
           <p className="muted">
-            Prominent nonprofits often make their operating model easy to understand. Our public story follows that
-            same pattern: show the need, explain the care pathway, prove stewardship, and invite supporters to act.
+            Survivors need more than a single moment of help. This work depends on safe shelter, trusted adults,
+            careful follow-up, and steady support from donors and partners.
           </p>
         </div>
         <ol className="about-step-list">
@@ -129,21 +146,6 @@ export function AboutPage() {
             <li key={step}>{step}</li>
           ))}
         </ol>
-      </section>
-
-      <section className="card donor-section">
-        <div className="section-intro">
-          <div className="sub-kicker">Our values</div>
-          <h2 className="section-title">The principles behind every gift and every report.</h2>
-        </div>
-        <div className="values-grid">
-          {values.map((value) => (
-            <article className="value-card" key={value.title}>
-              <h3>{value.title}</h3>
-              <p>{value.description}</p>
-            </article>
-          ))}
-        </div>
       </section>
 
       <section className="donor-story card">
@@ -155,8 +157,8 @@ export function AboutPage() {
           <h2 className="section-title">The work is personal. The reporting must be careful.</h2>
           <p className="muted">
             Donors should understand the difference their support makes, but survivors should never become public
-            proof points. Our model balances both responsibilities by showing allocations, program outcomes, and
-            aggregate progress without exposing resident-identifying data.
+            proof points. We share progress in a way that helps supporters stay informed while keeping private details
+            protected.
           </p>
           <Link className="btn" to="/privacy">
             Read our privacy policy
@@ -169,8 +171,7 @@ export function AboutPage() {
           <div className="sub-kicker">Leadership and stewardship</div>
           <h2 className="section-title">Meet the people guiding the mission.</h2>
           <p className="muted">
-            Donor trust grows when the work feels accountable and human. These placeholder profiles can be replaced
-            with professional photos when your team is ready.
+            Donor trust grows when the people guiding the mission feel accountable, steady, and human.
           </p>
         </div>
         <div className="leadership-grid">

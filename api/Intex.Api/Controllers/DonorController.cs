@@ -61,7 +61,7 @@ public sealed class DonorController(AppDbContext db, Microsoft.AspNetCore.Identi
             return BadRequest(new { message = "Donor account is not linked to a supporter record yet." });
         }
 
-        var currency = string.IsNullOrWhiteSpace(req.Currency) ? "PHP" : req.Currency.Trim();
+        var currency = string.IsNullOrWhiteSpace(req.Currency) ? "KRW" : req.Currency.Trim();
         if (currency.Length > 10) return BadRequest(new { message = "Invalid currency." });
 
         var entity = new Models.Contribution

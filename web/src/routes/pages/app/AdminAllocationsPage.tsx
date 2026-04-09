@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { displayCurrencyCode, SITE_CURRENCY } from "../../../lib/currency";
 import { RequireRole } from "../../guards";
 import { PaginationControls } from "../../../components/ui/PaginationControls";
 
@@ -66,7 +67,7 @@ export function AdminAllocationsPage() {
   const [allocationDate, setAllocationDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [category, setCategory] = useState<string>("Safe Shelter");
   const [amount, setAmount] = useState<string>("");
-  const [currency, setCurrency] = useState<string>("PHP");
+  const [currency, setCurrency] = useState<string>(SITE_CURRENCY);
   const [notes, setNotes] = useState<string>("");
   const [page, setPage] = useState(1);
   const [recentContributions, setRecentContributions] = useState<RecentContribution[]>([]);
@@ -176,7 +177,7 @@ export function AdminAllocationsPage() {
             : ""
         : ""
     );
-    setCurrency(picked?.currency ?? "PHP");
+    setCurrency(picked?.currency ?? SITE_CURRENCY);
     setNotes("");
   };
 
@@ -187,7 +188,7 @@ export function AdminAllocationsPage() {
     setAllocationDate(new Date().toISOString().slice(0, 10));
     setCategory("Safe Shelter");
     setAmount("");
-    setCurrency("PHP");
+    setCurrency(SITE_CURRENCY);
     setNotes("");
     setShowCreate(false);
   };
@@ -213,11 +214,11 @@ export function AdminAllocationsPage() {
               <div className="admin-kpi-value">{needsAllocation.length}</div>
             </div>
             <div className="card admin-kpi tone-cream">
-              <div className="muted">Recent donations loaded</div>
+              <div className="muted">Recent gifts</div>
               <div className="admin-kpi-value">{recentContributions.length}</div>
             </div>
             <div className="card admin-kpi tone-cream">
-              <div className="muted">Allocation records</div>
+              <div className="muted">Saved allocations</div>
               <div className="admin-kpi-value">{items.length}</div>
             </div>
           </div>
@@ -229,19 +230,19 @@ export function AdminAllocationsPage() {
           >
             <div className="card process-form-card allocation-form-panel">
               <div className="process-header process-inline-header">
-                <strong>Allocation details</strong>
+                <strong>New allocation</strong>
               </div>
               {selectedContribution ? (
                 <div className="admin-inline-summary">
                   <strong>{selectedContribution.supporterName}</strong> · Donation #{selectedContribution.contributionId}
                   <br />
-                  {selectedContribution.contributionDate} · {selectedContribution.amount ?? "-"} {selectedContribution.currency}
+                  {selectedContribution.contributionDate} · {selectedContribution.amount ?? "-"} {displayCurrencyCode(selectedContribution.currency)}
                   {selectedContribution.campaignName ? ` · ${selectedContribution.campaignName}` : ""}
                   {selectedWorkItem ? (
                     <>
                       <br />
-                      Allocated so far: {selectedWorkItem.allocated.toFixed(2)} {selectedWorkItem.currency}
-                      {selectedWorkItem.remaining != null ? ` · Remaining: ${selectedWorkItem.remaining.toFixed(2)} ${selectedWorkItem.currency}` : ""}
+                      Allocated so far: {selectedWorkItem.allocated.toFixed(2)} {displayCurrencyCode(selectedWorkItem.currency)}
+                      {selectedWorkItem.remaining != null ? ` · Remaining: ${selectedWorkItem.remaining.toFixed(2)} ${displayCurrencyCode(selectedWorkItem.currency)}` : ""}
                     </>
                   ) : null}
                 </div>
@@ -282,7 +283,7 @@ export function AdminAllocationsPage() {
                           setSelectedContribution(picked);
                           setSupporterId(String(picked.supporterId));
                           setAmount(picked.remaining != null ? String(picked.remaining) : picked.amount != null ? String(picked.amount) : "");
-                          setCurrency(picked.currency || "PHP");
+                          setCurrency(picked.currency || SITE_CURRENCY);
                         } else {
                           setSelectedContribution(null);
                         }
@@ -291,7 +292,7 @@ export function AdminAllocationsPage() {
                       <option value="">Select recent donation</option>
                       {recentContributions.map((c) => (
                         <option key={c.contributionId} value={c.contributionId}>
-                          #{c.contributionId} | {c.supporterName} | {c.contributionDate} | {c.amount ?? "-"} {c.currency}
+                          #{c.contributionId} | {c.supporterName} | {c.contributionDate} | {c.amount ?? "-"} {displayCurrencyCode(c.currency)}
                         </option>
                       ))}
                     </select>
@@ -357,7 +358,7 @@ export function AdminAllocationsPage() {
                           allocationDate,
                           category: category.trim(),
                           amount: amt,
-                          currency: currency.trim() || "PHP",
+                          currency: currency.trim() || SITE_CURRENCY,
                           notes: notes.trim() || null,
                         }),
                       });
@@ -365,7 +366,7 @@ export function AdminAllocationsPage() {
                         allocationId: res.impactAllocationId,
                         supporterId: sid,
                         category: category.trim(),
-                        amount: `${amt} ${currency.trim() || "PHP"}`,
+                        amount: `${amt} ${currency.trim() || SITE_CURRENCY}`,
                       });
                       clearAllocationForm();
                       await load();
@@ -410,12 +411,12 @@ export function AdminAllocationsPage() {
                     </td>
                     <td data-label="Date" className="muted">{contribution.contributionDate}</td>
                     <td data-label="Gift">
-                      {(contribution.amount ?? "-")} {contribution.currency}
+                      {(contribution.amount ?? "-")} {displayCurrencyCode(contribution.currency)}
                       {contribution.campaignName ? <div className="muted">{contribution.campaignName}</div> : null}
                     </td>
-                    <td data-label="Allocated">{contribution.allocated.toFixed(2)} {contribution.currency}</td>
+                    <td data-label="Allocated">{contribution.allocated.toFixed(2)} {displayCurrencyCode(contribution.currency)}</td>
                     <td data-label="Remaining">
-                      {contribution.remaining == null ? "-" : `${contribution.remaining.toFixed(2)} ${contribution.currency}`}
+                      {contribution.remaining == null ? "-" : `${contribution.remaining.toFixed(2)} ${displayCurrencyCode(contribution.currency)}`}
                     </td>
                     <td data-label="Status">
                       <span className={`badge ${
@@ -442,7 +443,7 @@ export function AdminAllocationsPage() {
                 {needsAllocation.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="muted">
-                      All loaded donations are fully allocated.
+                      Recent gifts are already assigned.
                     </td>
                   </tr>
                 ) : null}
@@ -455,7 +456,7 @@ export function AdminAllocationsPage() {
           <div className="admin-table-head">
             <div className="admin-header-copy">
               <h2 style={{ marginTop: 0 }}>Allocation history</h2>
-              <p className="muted">Search and review allocation records already saved.</p>
+              <p className="muted">Search previous allocations.</p>
             </div>
           </div>
 
@@ -493,7 +494,7 @@ export function AdminAllocationsPage() {
                       {x.supporterName} <span className="muted">#{x.supporterId}</span>
                     </td>
                     <td data-label="Funding area"><span className="badge">{x.category}</span></td>
-                    <td data-label="Amount">{x.amount} {x.currency}</td>
+                    <td data-label="Amount">{x.amount} {displayCurrencyCode(x.currency)}</td>
                     <td data-label="Notes" className="muted">{x.notes ?? "-"}</td>
                     <td data-label="Actions">
                       <button

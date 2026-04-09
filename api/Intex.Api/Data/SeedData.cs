@@ -61,10 +61,10 @@ public static class SeedData
             && !string.IsNullOrWhiteSpace(config["Seed:AdminEmail"])
             && !string.IsNullOrWhiteSpace(config["Seed:AdminPassword"]))
         {
-            var reqLen = config.GetValue("Identity:Password:RequiredLength", 12);
+            var reqLen = config.GetValue("Identity:Password:RequiredLength", 14);
             logger.LogCritical(
                 "Zero Identity users after seeding while Seed:AdminEmail and Seed:AdminPassword are set. " +
-                "The admin password almost certainly failed Identity validation (need length {RequiredLength}+ with upper, lower, digit, and non-alphanumeric). " +
+                "The admin password almost certainly failed Identity validation (need length {RequiredLength}+). " +
                 "Update Seed__AdminPassword in App Service (or adjust Identity__Password__* settings), then restart. See earlier SeedData logs for PasswordTooShort / etc.",
                 reqLen);
         }
@@ -239,7 +239,7 @@ public static class SeedData
                 var msg = string.Join("; ", vr.Errors.Select(e => $"{e.Code}: {e.Description}"));
                 logger.LogError(
                     "Seed password for {Label} ({Email}) failed Identity validation: {Errors}. " +
-                    "Azure: set Seed__AdminPassword (etc.) to at least the length in Identity:Password:RequiredLength with upper, lower, digit, and a symbol.",
+                    "Azure: set Seed__AdminPassword (etc.) to at least the length in Identity:Password:RequiredLength.",
                     label,
                     email,
                     msg);

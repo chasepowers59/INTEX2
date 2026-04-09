@@ -25,7 +25,7 @@ public sealed class ImpactAllocation
     public decimal Amount { get; set; }
 
     [MaxLength(10)]
-    public string Currency { get; set; } = "PHP";
+    public string Currency { get; set; } = "KRW";
 
     public string? Notes { get; set; }
 

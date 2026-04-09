@@ -152,7 +152,7 @@ export function AdminPartnerAssignmentsPage() {
           <div className="admin-header">
             <div className="admin-header-copy">
               <h1 style={{ marginTop: 0 }}>Partner assignments</h1>
-              <p className="muted">Partner coverage by safehouse and program area.</p>
+              <p className="muted">Where partners are currently helping.</p>
             </div>
             <button className="btn primary" onClick={() => { setShowCreate((open) => !open); setCreateForm(emptyForm); }}>
               {showCreate ? "Close" : "Add assignment"}
@@ -176,7 +176,7 @@ export function AdminPartnerAssignmentsPage() {
 
           <div className={`process-collapsible ${showCreate ? "open" : ""}`} aria-hidden={!showCreate}>
             <div className="card process-form-card">
-              <div className="process-header process-inline-header"><strong>Assignment details</strong></div>
+              <div className="process-header process-inline-header"><strong>Assignment info</strong></div>
               <div className="admin-inline-grid">
                 <label className="admin-form-label span-4"><span className="muted">Partner</span><select className="input" value={createForm.partnerId} onChange={(e) => setCreateForm((prev) => ({ ...prev, partnerId: e.target.value }))}><option value="">Select partner</option>{partners.map((partner) => <option key={partner.partnerId} value={partner.partnerId}>{partner.partnerName}</option>)}</select></label>
                 <label className="admin-form-label span-3"><span className="muted">Safehouse</span><select className="input" value={createForm.safehouseId} onChange={(e) => setCreateForm((prev) => ({ ...prev, safehouseId: e.target.value }))}><option value="">Shared support</option>{safehouses.map((safehouse) => <option key={safehouse.safehouseId} value={safehouse.safehouseId}>{safehouse.safehouseName}</option>)}</select></label>
@@ -231,7 +231,7 @@ export function AdminPartnerAssignmentsPage() {
                 <div className="card" style={{ boxShadow: "none" }}>
                   <div className="admin-header-copy">
                     <h3 style={{ marginTop: 0 }}>Assignment details</h3>
-                    <p className="muted">Coverage, dates, and notes.</p>
+                    <p className="muted">Area, dates, and notes.</p>
                   </div>
                   <div className="admin-inline-grid" style={{ marginTop: 10 }}>
                     <label className="admin-form-label span-4"><span className="muted">Partner</span><select className="input" value={editForm.partnerId} onChange={(e) => setEditForm((prev) => ({ ...prev, partnerId: e.target.value }))}>{partners.map((partner) => <option key={partner.partnerId} value={partner.partnerId}>{partner.partnerName}</option>)}</select></label>
@@ -247,7 +247,7 @@ export function AdminPartnerAssignmentsPage() {
                 <div className="card" style={{ boxShadow: "none" }}>
                   <div className="admin-header-copy">
                     <h3 style={{ marginTop: 0 }}>Coverage actions</h3>
-                    <p className="muted">Manage this assignment or open the partner record.</p>
+                    <p className="muted">Update this assignment or open the partner record.</p>
                   </div>
                   <div className="admin-mini-list" style={{ marginTop: 10 }}>
                     <div className="admin-mini-list-item"><span className="muted">Partner</span><strong>{selectedAssignment.partnerName}</strong></div>
@@ -312,7 +312,7 @@ export function AdminPartnerAssignmentsPage() {
           <div className="admin-table-head">
             <div className="admin-header-copy">
               <h2 style={{ marginTop: 0 }}>Coverage</h2>
-              <p className="muted">Partner assignments by safehouse and program area.</p>
+              <p className="muted">Current assignments by partner and area.</p>
             </div>
           </div>
           <div className="table-wrap">

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { formatSiteCurrency } from "../../../lib/currency";
 
 type ProgramInsights = {
   asOfUtc: string;
@@ -127,9 +128,9 @@ export function SocialMediaStrategyPage() {
 
       <div className="admin-kpi-grid">
         <div className="card admin-kpi tone-peach">
-          <div className="muted">Observed social donation value</div>
+          <div className="muted">Giving tied to outreach</div>
           <div className="admin-kpi-value">
-            PHP {Math.round(data?.socialRoi.totalEstimatedDonationValuePhp ?? 0).toLocaleString()}
+            {formatSiteCurrency(Math.round(data?.socialRoi.totalEstimatedDonationValuePhp ?? 0))}
           </div>
         </div>
         <div className="card admin-kpi tone-peach">
@@ -174,20 +175,20 @@ export function SocialMediaStrategyPage() {
 
           <div className="admin-split-grid" style={{ marginTop: 14 }}>
             <div className="card" style={{ boxShadow: "none" }}>
-              <strong>Monday · Story</strong>
+              <strong>Monday - Story</strong>
               <div className="muted" style={{ marginTop: 6 }}>
                 Share a {bestTopic.toLowerCase()} with one clear outcome and one simple ask.
               </div>
             </div>
             <div className="card" style={{ boxShadow: "none" }}>
-              <strong>Wednesday · Need</strong>
+              <strong>Wednesday - Need</strong>
               <div className="muted" style={{ marginTop: 6 }}>
                 Post one concrete need tied to a single program area and use a {bestCta.toLowerCase()} CTA.
               </div>
             </div>
           </div>
           <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
-            <strong>Friday · Gratitude</strong>
+            <strong>Friday - Gratitude</strong>
             <div className="muted" style={{ marginTop: 6 }}>
               Thank supporters with a measurable result from the week and invite them back to the strongest channel.
             </div>
@@ -204,14 +205,14 @@ export function SocialMediaStrategyPage() {
               <div className="muted">Best platform</div>
               <div style={{ fontSize: 22, fontWeight: 900 }}>{bestPlatform}</div>
               <div className="muted">
-                PHP {Math.round(platformRanked[0]?.[1].value ?? 0).toLocaleString()} observed value
+                {formatSiteCurrency(Math.round(platformRanked[0]?.[1].value ?? 0))} tied to recent giving
               </div>
             </div>
             <div className="card" style={{ boxShadow: "none" }}>
               <div className="muted">Best post type</div>
               <div style={{ fontSize: 22, fontWeight: 900 }}>{bestPostType}</div>
               <div className="muted">
-                PHP {Math.round(typeRanked[0]?.[1].value ?? 0).toLocaleString()} observed value
+                {formatSiteCurrency(Math.round(typeRanked[0]?.[1].value ?? 0))} tied to recent giving
               </div>
             </div>
             <div className="card" style={{ boxShadow: "none" }}>
@@ -220,7 +221,7 @@ export function SocialMediaStrategyPage() {
                 {avgBoostedValue > avgOrganicValue ? "Boosted wins" : "Organic wins"}
               </div>
               <div className="muted">
-                Avg PHP {Math.round(Math.max(avgBoostedValue, avgOrganicValue)).toLocaleString()} per top post
+                Avg {formatSiteCurrency(Math.round(Math.max(avgBoostedValue, avgOrganicValue)))} per top post
               </div>
             </div>
           </div>
@@ -228,10 +229,10 @@ export function SocialMediaStrategyPage() {
           <ul className="trust-list muted" style={{ marginTop: 14 }}>
             <li>Lead with {bestPlatform} for the next campaign cycle.</li>
             <li>Use more {bestPostType.toLowerCase()} content tied to clear outcomes.</li>
-            <li>Top predicted topic: {bestTopic}.</li>
-            <li>Top predicted CTA: {bestCta}.</li>
+            <li>Best topic right now: {bestTopic}.</li>
+            <li>Best call to action right now: {bestCta}.</li>
             {overallRoi !== null ? (
-              <li>Observed social ROI is about {overallRoi.toFixed(1)}x estimated donation value to boost spend.</li>
+              <li>Social activity is returning about {overallRoi.toFixed(1)}x estimated donation value to boost spend.</li>
             ) : null}
           </ul>
 
@@ -250,7 +251,7 @@ export function SocialMediaStrategyPage() {
       <div className="admin-two-column">
         <div className="card">
           <div className="admin-header-copy">
-            <h2 style={{ marginTop: 0 }}>Observed winners</h2>
+            <h2 style={{ marginTop: 0 }}>Posts already leading to gifts</h2>
             <p className="muted">Posts that already led to referrals and donation value.</p>
           </div>
           <div className="table-wrap" style={{ marginTop: 10 }}>
@@ -261,7 +262,7 @@ export function SocialMediaStrategyPage() {
                   <th>Platform</th>
                   <th>Campaign</th>
                   <th>Referrals</th>
-                  <th>Observed value</th>
+                  <th>Giving tied to post</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,14 +274,14 @@ export function SocialMediaStrategyPage() {
                     <td data-label="Platform" className="muted">{post.platform}</td>
                     <td data-label="Campaign" className="muted">{post.campaignName ?? "General"}</td>
                     <td data-label="Referrals">{post.referrals}</td>
-                    <td data-label="Observed value">
-                      PHP {Math.round(post.estimatedValuePhp).toLocaleString()}
+                    <td data-label="Giving tied to post">
+                      {formatSiteCurrency(Math.round(post.estimatedValuePhp))}
                     </td>
                   </tr>
                 ))}
                 {observedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="muted">No observed conversion rows available yet.</td>
+                    <td colSpan={5} className="muted">No strong donation-driving posts are available yet.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -317,11 +318,11 @@ export function SocialMediaStrategyPage() {
                   <tr key={post.postId}>
                     <td data-label="Content option">
                       {post.postType}
-                      {post.campaignName ? <span className="muted"> · {post.campaignName}</span> : null}
+                      {post.campaignName ? <span className="muted"> - {post.campaignName}</span> : null}
                     </td>
                     <td data-label="Platform" className="muted">{post.platform}</td>
                     <td data-label="Predicted value">
-                      PHP {Math.round(post.predictedValuePhp).toLocaleString()}
+                      {formatSiteCurrency(Math.round(post.predictedValuePhp))}
                     </td>
                     <td data-label="Topic" className="muted">{post.contentTopic ?? "-"}</td>
                     <td data-label="CTA" className="muted">{post.callToActionType ?? "-"}</td>
@@ -348,7 +349,7 @@ export function SocialMediaStrategyPage() {
             <thead>
               <tr>
                 <th>Platform</th>
-                <th>Observed value</th>
+                  <th>Giving tied to platform</th>
                 <th>Referrals</th>
                 <th>Recommendation</th>
               </tr>
@@ -357,8 +358,8 @@ export function SocialMediaStrategyPage() {
               {platformRanked.map(([platform, value], idx) => (
                 <tr key={platform}>
                   <td data-label="Platform">{platform}</td>
-                  <td data-label="Observed value">
-                    PHP {Math.round(value.value).toLocaleString()}
+                  <td data-label="Giving tied to platform">
+                    {formatSiteCurrency(Math.round(value.value))}
                   </td>
                   <td data-label="Referrals">{value.extra}</td>
                   <td data-label="Recommendation" className="muted">
