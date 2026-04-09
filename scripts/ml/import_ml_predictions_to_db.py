@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, UTC
 from pathlib import Path
 
 import pyodbc
@@ -59,6 +60,7 @@ def main() -> None:
         for prediction_type, items in batches:
             print(f"Replacing {prediction_type} with {len(items)} row(s)...")
             cursor.execute("DELETE FROM dbo.MlPredictions WHERE PredictionType = ?", prediction_type)
+            batch_created_at = datetime.now(UTC).replace(tzinfo=None)
             rows = [
                 (
                     prediction_type,
@@ -67,6 +69,7 @@ def main() -> None:
                     float(item["score"]),
                     (None if item.get("label") in (None, "") else str(item["label"]).strip()),
                     ("{}" if item.get("payloadJson") in (None, "") else str(item["payloadJson"])),
+                    batch_created_at,
                 )
                 for item in items
             ]
@@ -76,7 +79,7 @@ def main() -> None:
                 INSERT INTO dbo.MlPredictions
                     (PredictionType, EntityType, EntityId, Score, Label, PayloadJson, CreatedAtUtc)
                 VALUES
-                    (?, ?, ?, ?, ?, ?, SYSUTCDATETIME())
+                    (?, ?, ?, ?, ?, ?, ?)
                 """,
                 rows,
             )

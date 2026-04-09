@@ -95,14 +95,7 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
         take = Math.Clamp(take, 1, 200);
         if (string.IsNullOrWhiteSpace(type)) return BadRequest(new { message = "type is required." });
 
-        var latestCreatedAt = await GetLatestCreatedAtAsync(type);
-        if (latestCreatedAt is null)
-        {
-            return Ok(Array.Empty<object>());
-        }
-
-        var items = await db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == type && x.CreatedAtUtc == latestCreatedAt)
+        var items = await BuildCurrentPredictionQuery(type)
             .OrderByDescending(x => x.Score)
             .ThenBy(x => x.EntityId)
             .Take(take)
@@ -128,34 +121,28 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
         take = Math.Clamp(take, 1, 100);
         const string predictionType = "donor_lapse_90d";
 
-        var latestCreatedAt = await GetLatestCreatedAtAsync(predictionType, "Supporter");
-        if (latestCreatedAt is null)
+        var predictions = await GetLatestBatchAsync(predictionType, "Supporter", take);
+        if (predictions.Count == 0)
         {
             return Ok(Array.Empty<object>());
         }
 
-        var items = await db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == predictionType && x.EntityType == "Supporter" && x.CreatedAtUtc == latestCreatedAt)
-            .OrderByDescending(x => x.Score)
-            .ThenBy(x => x.EntityId)
-            .Take(take)
-            .Join(
-                db.Supporters.AsNoTracking(),
-                p => p.EntityId,
-                s => s.SupporterId,
-                (p, s) => new
-                {
-                    supporterId = s.SupporterId,
-                    displayName = s.FullName,
-                    email = s.Email,
-                    supporterType = s.SupporterType,
-                    isActive = s.IsActive,
-                    riskScore = p.Score,
-                    riskBand = p.Label,
-                    createdAtUtc = p.CreatedAtUtc
-                }
-            )
-            .ToListAsync();
+        var supporters = await LoadSupportersAsync(predictions);
+        var items = predictions.Select(p =>
+        {
+            supporters.TryGetValue(p.EntityId, out var supporter);
+            return new
+            {
+                supporterId = p.EntityId,
+                displayName = supporter?.FullName ?? $"Supporter {p.EntityId}",
+                email = supporter?.Email,
+                supporterType = supporter?.SupporterType,
+                isActive = supporter?.IsActive ?? false,
+                riskScore = p.Score,
+                riskBand = p.Label,
+                createdAtUtc = p.CreatedAtUtc
+            };
+        });
 
         return Ok(items);
     }
@@ -311,35 +298,29 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
         take = Math.Clamp(take, 1, 100);
         const string predictionType = "resident_incident_30d";
 
-        var latestCreatedAt = await GetLatestCreatedAtAsync(predictionType, "Resident");
-        if (latestCreatedAt is null)
+        var predictions = await GetLatestBatchAsync(predictionType, "Resident", take);
+        if (predictions.Count == 0)
         {
             return Ok(Array.Empty<object>());
         }
 
-        var items = await db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == predictionType && x.EntityType == "Resident" && x.CreatedAtUtc == latestCreatedAt)
-            .OrderByDescending(x => x.Score)
-            .ThenBy(x => x.EntityId)
-            .Take(take)
-            .Join(
-                db.Residents.AsNoTracking(),
-                p => p.EntityId,
-                r => r.ResidentId,
-                (p, r) => new
-                {
-                    residentId = r.ResidentId,
-                    displayName = r.DisplayName,
-                    caseStatus = r.CaseStatus,
-                    caseCategory = r.CaseCategory,
-                    safehouseId = r.SafehouseId,
-                    assignedSocialWorker = r.AssignedSocialWorker,
-                    riskScore = p.Score,
-                    riskBand = p.Label,
-                    createdAtUtc = p.CreatedAtUtc
-                }
-            )
-            .ToListAsync();
+        var residents = await LoadResidentsAsync(predictions);
+        var items = predictions.Select(p =>
+        {
+            residents.TryGetValue(p.EntityId, out var resident);
+            return new
+            {
+                residentId = p.EntityId,
+                displayName = resident?.DisplayName ?? $"Resident {p.EntityId}",
+                caseStatus = resident?.CaseStatus,
+                caseCategory = resident?.CaseCategory,
+                safehouseId = resident?.SafehouseId,
+                assignedSocialWorker = resident?.AssignedSocialWorker,
+                riskScore = p.Score,
+                riskBand = p.Label,
+                createdAtUtc = p.CreatedAtUtc
+            };
+        });
 
         return Ok(items);
     }
@@ -422,29 +403,45 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
 
     private async Task<DateTime?> GetLatestCreatedAtAsync(string predictionType, string? entityType = null)
     {
-        var query = db.MlPredictions.AsNoTracking().Where(x => x.PredictionType == predictionType);
-        if (!string.IsNullOrWhiteSpace(entityType))
-        {
-            query = query.Where(x => x.EntityType == entityType);
-        }
+        var query = BuildCurrentPredictionQuery(predictionType, entityType);
 
         return await query.MaxAsync(x => (DateTime?)x.CreatedAtUtc);
     }
 
     private async Task<List<MlPrediction>> GetLatestBatchAsync(string predictionType, string entityType, int take)
     {
-        var latestCreatedAt = await GetLatestCreatedAtAsync(predictionType, entityType);
-        if (latestCreatedAt is null)
-        {
-            return [];
-        }
-
-        return await db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == predictionType && x.EntityType == entityType && x.CreatedAtUtc == latestCreatedAt)
+        return await BuildCurrentPredictionQuery(predictionType, entityType)
             .OrderByDescending(x => x.Score)
             .ThenBy(x => x.EntityId)
             .Take(take)
             .ToListAsync();
+    }
+
+    private IQueryable<MlPrediction> BuildCurrentPredictionQuery(string predictionType, string? entityType = null)
+    {
+        var scoped = db.MlPredictions.AsNoTracking()
+            .Where(x => x.PredictionType == predictionType);
+
+        if (!string.IsNullOrWhiteSpace(entityType))
+        {
+            scoped = scoped.Where(x => x.EntityType == entityType);
+        }
+
+        var latestByEntity = scoped
+            .GroupBy(x => new { x.EntityType, x.EntityId })
+            .Select(g => new
+            {
+                g.Key.EntityType,
+                g.Key.EntityId,
+                CreatedAtUtc = g.Max(v => v.CreatedAtUtc)
+            });
+
+        return scoped.Join(
+            latestByEntity,
+            row => new { row.EntityType, row.EntityId, row.CreatedAtUtc },
+            latest => new { latest.EntityType, latest.EntityId, latest.CreatedAtUtc },
+            (row, _) => row
+        );
     }
 
     private async Task<Dictionary<int, Supporter>> LoadSupportersAsync(IEnumerable<MlPrediction> predictions)
