@@ -1,0 +1,8 @@
+jupyter
+matplotlib
+nbclient
+nbconvert
+numpy
+pandas
+pyodbc
+scikit-learn
