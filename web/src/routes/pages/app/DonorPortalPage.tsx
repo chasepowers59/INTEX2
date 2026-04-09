@@ -113,8 +113,14 @@ export function DonorPortalPage() {
       });
   }, [allocations]);
 
+  const latestContributionDate = useMemo(() => {
+    if (!data?.items.length) return null;
+    return data.items[0].contributionDate;
+  }, [data]);
+
   return (
     <RequireRole role="Donor">
+<<<<<<< jaewon-dev
       <div style={{ display: "grid", gap: 14 }}>
         <div className="card glow-donor" style={{ padding: 24 }}>
           <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
@@ -130,6 +136,19 @@ export function DonorPortalPage() {
           <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
             <Link className="btn primary" to="/give">
               Give again
+=======
+      <div className="donor-impact-page">
+        <section className="card glow-donor donor-impact-hero">
+          <div className="badge donor-role-badge">My impact</div>
+          <h1 className="donor-impact-title">Welcome back{auth.displayName ? `, ${auth.displayName.split(" ")[0]}` : ""}</h1>
+          <p className="muted donor-impact-subtitle">
+            This page shows how your giving is being translated into support across programs while keeping resident
+            identities protected.
+          </p>
+          <div className="row donor-impact-actions">
+            <Link className="btn primary donor-primary-cta" to="/donate">
+              Donate again
+>>>>>>> local
             </Link>
             <Link className="btn" to="/impact">
               Public impact
@@ -139,33 +158,113 @@ export function DonorPortalPage() {
             </Link>
           </div>
 
-          <div className="donor-hero-metrics">
+          <div className="donor-impact-metrics">
             <div className="metric-tile">
+<<<<<<< jaewon-dev
               <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>
                 Contributions (total rows)
+=======
+              <span className="muted donor-impact-label">
+                Contributions
+>>>>>>> local
               </span>
               <strong>{data ? data.total : "—"}</strong>
             </div>
             <div className="metric-tile">
-              <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>
+              <span className="muted donor-impact-label">
                 Listed gift total (PHP)
               </span>
               <strong>{data ? `₱${totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}</strong>
             </div>
             <div className="metric-tile">
-              <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>
+              <span className="muted donor-impact-label">
                 Allocation window (12 mo)
               </span>
               <strong>{allocations.length ? `₱${allocationPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"}</strong>
             </div>
+            <div className="metric-tile">
+              <span className="muted donor-impact-label">Last contribution</span>
+              <strong>{latestContributionDate ?? "-"}</strong>
+            </div>
           </div>
           {error ? (
-            <div className="badge danger" style={{ marginTop: 14 }}>
+            <div className="badge danger donor-impact-error">
               {error}
             </div>
           ) : null}
+        </section>
+
+        <div className="donor-impact-grid">
+          <section className="card donor-impact-primary">
+            <h2 className="donor-impact-section-title">Where your support went</h2>
+            <p className="muted donor-impact-section-copy">
+              These records are posted by staff and shown as aggregate program activity.
+            </p>
+            {allocations.length ? (
+              <>
+                <div className="donor-impact-chart">
+                  <InlineBarChart data={allocationChartData} valueFormatter={(value) => `PHP ${value.toLocaleString()}`} />
+                </div>
+
+                <div className="table-wrap donor-impact-table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Month</th>
+                        <th>Category</th>
+                        <th>Total</th>
+                        <th>Entries</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allocations.map((item, idx) => (
+                        <tr key={`${item.year}-${item.month}-${item.category}-${idx}`}>
+                          <td data-label="Month" className="muted">
+                            {item.year}-{String(item.month).padStart(2, "0")}
+                          </td>
+                          <td data-label="Category">
+                            <span className="badge">{item.category}</span>
+                          </td>
+                          <td data-label="Total">
+                            {item.totalAmount} {item.currency}
+                          </td>
+                          <td data-label="Entries" className="muted">
+                            {item.count}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <div className="muted donor-impact-empty">
+                No allocations are available yet. If your account email matches supporter records, this section updates
+                after staff post activity.
+              </div>
+            )}
+          </section>
+
+          <section className="card donor-impact-side">
+            <h2 className="donor-impact-section-title">Your impact story</h2>
+            <p className="muted donor-impact-section-copy">
+              A plain-language estimate based on your latest allocation totals.
+            </p>
+            {outcomeNarratives.length ? (
+              <ul className="trust-list muted donor-impact-story-list">
+                {outcomeNarratives.map((entry) => (
+                  <li key={entry}>{entry}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="muted donor-impact-empty">
+                Once allocations are posted, this section summarizes the outcomes they supported.
+              </div>
+            )}
+          </section>
         </div>
 
+<<<<<<< jaewon-dev
         <div className="row">
           <div className="card tone-aqua soft-pulse" style={{ flex: "1 1 300px" }}>
             <div style={{ fontWeight: 800 }}>Your giving focus</div>
@@ -207,6 +306,10 @@ export function DonorPortalPage() {
 
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Your contributions</h2>
+=======
+        <section className="card donor-impact-history">
+          <h2 className="donor-impact-section-title">Contribution history</h2>
+>>>>>>> local
           <div className="table-wrap">
             <table className="table">
               <thead>
@@ -244,6 +347,7 @@ export function DonorPortalPage() {
               </tbody>
             </table>
           </div>
+<<<<<<< jaewon-dev
         </div>
 
         <div className="card">
@@ -369,6 +473,9 @@ export function DonorPortalPage() {
             <div className="caption">Recovery milestones and hope</div>
           </div>
         </div>
+=======
+        </section>
+>>>>>>> local
       </div>
     </RequireRole>
   );

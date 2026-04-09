@@ -847,6 +847,87 @@ details.optional-block[open] summary {
   margin-top: 4px;
 }
 
+.donor-impact-page {
+  display: grid;
+  gap: 14px;
+}
+
+.donor-impact-hero {
+  padding: 24px;
+}
+
+.donor-impact-title {
+  margin: 10px 0 0;
+  font-size: clamp(34px, 5vw, 48px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.donor-impact-subtitle {
+  margin: 12px 0 0;
+  max-width: 700px;
+  font-size: 15px;
+  line-height: 1.62;
+}
+
+.donor-impact-actions {
+  margin-top: 16px;
+}
+
+.donor-impact-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.donor-impact-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.donor-impact-error {
+  margin-top: 14px;
+}
+
+.donor-impact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  gap: 14px;
+}
+
+.donor-impact-primary,
+.donor-impact-side,
+.donor-impact-history {
+  padding: 20px;
+}
+
+.donor-impact-section-title {
+  margin: 0;
+}
+
+.donor-impact-section-copy {
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+.donor-impact-chart {
+  margin-top: 10px;
+}
+
+.donor-impact-table-wrap {
+  margin-top: 12px;
+}
+
+.donor-impact-empty {
+  margin-top: 12px;
+}
+
+.donor-impact-story-list {
+  margin-top: 14px;
+}
+
 .mission-banner {
   margin-bottom: 14px;
   border: 1px solid rgba(45, 212, 191, 0.45);
@@ -1192,6 +1273,87 @@ details.optional-block[open] summary {
   .reports-snapshot-grid {
     grid-template-columns: 1fr;
   }
+<<<<<<< jaewon-dev
+=======
+
+  .reports-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .process-grid,
+  .process-grid--meta {
+    grid-template-columns: 1fr;
+  }
+
+  .process-field--full,
+  .process-field--wide {
+    grid-column: span 1;
+  }
+
+  .caseload-header,
+  .caseload-filter-actions,
+  .caseload-intake-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .caseload-summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-panel-header,
+  .admin-alert-head,
+  .admin-forecast-item,
+  .admin-status-row,
+  .admin-quick-link {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-status-row strong,
+  .admin-forecast-metric {
+    max-width: none;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .donor-hero {
+    padding: 22px;
+  }
+
+  .donor-impact-hero,
+  .donor-impact-primary,
+  .donor-impact-side,
+  .donor-impact-history {
+    padding: 18px;
+  }
+
+  .donor-impact-metrics,
+  .donor-impact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .donate-hero {
+    padding: 22px;
+  }
+
+  .donor-hero-actions .btn,
+  .donor-inline-cta,
+  .donate-form-actions .btn {
+    width: 100%;
+  }
+
+  .allocation-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .impact-bar-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+>>>>>>> local
 }
 
 @media (max-width: 900px) {
