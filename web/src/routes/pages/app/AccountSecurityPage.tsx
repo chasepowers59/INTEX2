@@ -42,7 +42,7 @@ export function AccountSecurityPage() {
   }, [token]);
 
   return (
-    <div className="admin-page" style={{ maxWidth: 860 }}>
+    <div className="admin-page account-security-page">
       <div className="card">
         <div className="admin-header-copy">
           <h1 style={{ marginTop: 0 }}>Account Security</h1>
