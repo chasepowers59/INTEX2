@@ -8,17 +8,11 @@ import { getCookie, setCookie } from "../lib/cookies";
 const THEME_COOKIE = "ui_theme";
 const CONSENT_COOKIE = "cookie_consent";
 
-function getActiveTheme() {
-  const theme = getCookie(THEME_COOKIE);
-  if (theme === "light" || theme === "dark") {
-    return theme;
-  }
-  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-}
-
 function applyThemeFromCookie() {
   const theme = getCookie(THEME_COOKIE);
-  document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
+  if (theme === "light" || theme === "dark") {
+    document.documentElement.setAttribute("data-theme", theme);
+  }
 }
 
 export function PublicLayout() {
@@ -32,7 +26,7 @@ export function PublicLayout() {
   const portalTo =
     staff ? "/app/dashboard" : auth.hasRole("Donor") ? "/app/donor" : "/app/dashboard";
   const toggleTheme = () => {
-    const current = getActiveTheme();
+    const current = getCookie(THEME_COOKIE) === "light" ? "light" : "dark";
     const next = current === "light" ? "dark" : "light";
     if (getCookie(CONSENT_COOKIE) === "accepted") {
       setCookie(THEME_COOKIE, next, 180);
@@ -42,42 +36,27 @@ export function PublicLayout() {
 
   return (
     <>
+      <div className="public-top-strip">
+        <div className="container public-top-strip-inner">
+          <span>South Korea Victim Support Line: +82 02-555-0147</span>
+          <span>Email: support@stepsofhope.org · Donor Relations: donors@stepsofhope.org</span>
+        </div>
+      </div>
       <header className="public-header">
         <div className="container public-header-inner">
           <Link to="/" className="public-brand">
             <span className="public-brand-mark" aria-hidden>
-              <img className="public-brand-logo" src="/logo-icon.png" alt="" />
+              <img src="/logo-steps-of-hope.svg" alt="Steps of Hope logo" />
             </span>
             <span className="public-brand-text">
               <span className="public-brand-title">Steps of Hope</span>
-              <span className="public-brand-sub">Survivor support nonprofit</span>
+              <span className="public-brand-sub">Support for South Korean victims · donor and staff portal</span>
+              <span className="public-slogan">Safety · Healing · Justice · Empowerment</span>
             </span>
           </Link>
-          <div className="nav-pill-actions" aria-label="Donation and account actions">
-            {auth.isAuthenticated ? (
-              <Link className="nav-pill nav-pill-primary" to={portalTo}>
-                My portal
-              </Link>
-            ) : (
-              <>
-                <Link className="nav-pill nav-pill-glow" to="/donate">
-                  Donate
-                </Link>
-                <Link className="nav-pill nav-pill-outline-accent" to="/login">
-                  Sign in
-                </Link>
-              </>
-            )}
-          </div>
           <nav className="nav-pills" aria-label="Primary">
             <Link className="nav-pill" to="/">
               Home
-            </Link>
-            <Link className="nav-pill" to="/programs">
-              How We Help
-            </Link>
-            <Link className="nav-pill" to="/impact">
-              Impact
             </Link>
             <Link className="nav-pill" to="/about">
               About
@@ -85,15 +64,61 @@ export function PublicLayout() {
             <Link className="nav-pill" to="/contact">
               Contact
             </Link>
+            <Link className="nav-pill" to="/roles">
+              Roles
+            </Link>
+            <div className="nav-dropdown">
+              <span className="nav-pill">Programs</span>
+              <div className="nav-dropdown-menu" role="menu" aria-label="Programs">
+                <Link className="nav-dropdown-item" to="/impact">
+                  Survivor safety and shelter
+                </Link>
+                <Link className="nav-dropdown-item" to="/impact">
+                  Healing and reintegration
+                </Link>
+                <Link className="nav-dropdown-item" to="/about">
+                  Education and wellbeing support
+                </Link>
+                <Link className="nav-dropdown-item" to="/give">
+                  Donor funding pathways
+                </Link>
+              </div>
+            </div>
+            <Link className="nav-pill" to="/impact">
+              Impact
+            </Link>
+            <Link className="nav-pill nav-pill-accent" to="/give">
+              Give
+            </Link>
+            <button className="nav-pill" type="button" onClick={toggleTheme}>
+              Toggle theme
+            </button>
+            {auth.isAuthenticated ? (
+              <Link className="nav-pill nav-pill-primary" to={portalTo}>
+                My portal
+              </Link>
+            ) : (
+              <>
+                <Link className="nav-pill nav-pill-glow" to="/register">
+                  Join as donor
+                </Link>
+                <Link className="nav-pill nav-pill-primary" to="/login">
+                  Sign in
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>
 
       <main className="container public-main">
+        <div className="mission-banner">
+          Your support helps South Korean victims access safe shelter, case follow-up, and recovery pathways.
+        </div>
         <Outlet />
       </main>
 
-      <Footer onToggleTheme={toggleTheme} />
+      <Footer />
       <CookieConsentBanner />
     </>
   );
@@ -110,7 +135,7 @@ export function AppLayout() {
   }, []);
 
   const toggleTheme = () => {
-    const current = getActiveTheme();
+    const current = getCookie(THEME_COOKIE) === "light" ? "light" : "dark";
     const next = current === "light" ? "dark" : "light";
     // Only persist optional preference cookies after explicit consent.
     if (getCookie(CONSENT_COOKIE) === "accepted") {
@@ -126,6 +151,9 @@ export function AppLayout() {
           <div className="title">Steps of Hope</div>
           <div className="muted" style={{ fontSize: 12 }}>
             Signed in as {auth.displayName ?? auth.username}
+          </div>
+          <div className="muted" style={{ fontSize: 12 }}>
+            Mission focus: South Korean victim support
           </div>
         </div>
 
@@ -173,7 +201,7 @@ export function AppLayout() {
               </NavLink>
             </nav>
 
-            <div className="sidebar-section-label">Strategy</div>
+            <div className="sidebar-section-label">Machine Learning</div>
             <nav className="nav">
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/social-media">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
@@ -191,6 +219,12 @@ export function AppLayout() {
                   <path d="M9.5 12.5 11 14l3.5-4" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
                 Action Center
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/ml">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 16V8M8 18V6M12 20V4M16 18V6M20 16V8" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                ML Insights
               </NavLink>
             </nav>
           </>
@@ -264,11 +298,11 @@ export function AppLayout() {
                 </svg>
                 My Impact
               </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/donate">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/give">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
-                Donate
+                Give
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/impact">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
@@ -281,17 +315,33 @@ export function AppLayout() {
           </>
         ) : null}
 
-        <div className="sidebar-section-label">Security</div>
-        <nav className="nav">
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/security">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3 5 6v6c0 4.8 2.9 8.4 7 9.9 4.1-1.5 7-5.1 7-9.9V6l-7-3Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M9.5 11.5a2.5 2.5 0 1 1 5 0V14h-5v-2.5Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M10.5 14v2h3v-2" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            Security & MFA
-          </NavLink>
-        </nav>
+        {auth.hasRole("Admin") ? (
+          <>
+            <div className="sidebar-section-label">User Views</div>
+            <nav className="nav">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donor">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 14a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+                Donor Portal View
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/give">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Public Give Page
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/impact">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Public Impact View
+              </NavLink>
+            </nav>
+          </>
+        ) : null}
 
         <div style={{ marginTop: 14 }} className="row">
           <button className="btn" onClick={toggleTheme}>

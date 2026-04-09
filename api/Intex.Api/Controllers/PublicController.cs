@@ -1,9 +1,7 @@
 using Intex.Api.Data;
-using Intex.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace Intex.Api.Controllers;
 
@@ -15,20 +13,11 @@ public sealed class PublicController(AppDbContext db) : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult> GetPublishedImpactSnapshots()
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var snapshots = await db.PublicImpactSnapshots
+        var items = await db.PublicImpactSnapshots
             .AsNoTracking()
-            .Where(x => x.IsPublished && x.SnapshotDate <= today)
+            .Where(x => x.IsPublished)
             .OrderByDescending(x => x.SnapshotDate)
-            .Take(24)
-            .ToListAsync();
-
-        var filtered = snapshots
-            .Where(HasMeaningfulSnapshotPayload)
             .Take(12)
-            .ToList();
-
-        var items = (filtered.Count > 0 ? filtered : snapshots.Take(12))
             .Select(x => new
             {
                 x.SnapshotId,
@@ -37,7 +26,7 @@ public sealed class PublicController(AppDbContext db) : ControllerBase
                 x.SummaryText,
                 x.MetricPayloadJson
             })
-            .ToList();
+            .ToListAsync();
 
         return Ok(items);
     }
@@ -50,8 +39,6 @@ public sealed class PublicController(AppDbContext db) : ControllerBase
     public async Task<ActionResult> GetImpactHighlights()
     {
         var nowUtc = DateTime.UtcNow;
-        var today = DateOnly.FromDateTime(nowUtc);
-        var currentMonthStart = new DateOnly(today.Year, today.Month, 1);
 
         var activeSafehouses = await db.Safehouses.AsNoTracking()
             .CountAsync(x => x.Status == "Active");
@@ -64,31 +51,23 @@ public sealed class PublicController(AppDbContext db) : ControllerBase
         var totalBeds = capacity.Sum(x => x.CapacityGirls);
         var totalHoused = capacity.Sum(x => x.CurrentOccupancy);
 
+        var latestMonth = await db.SafehouseMonthlyMetrics.AsNoTracking()
+            .MaxAsync(x => (DateOnly?)x.MonthStart);
+
         object? latestMonthSummary = null;
-        var monthlyRows = await db.SafehouseMonthlyMetrics.AsNoTracking()
-            .Where(x => x.MonthStart <= currentMonthStart)
-            .OrderByDescending(x => x.MonthStart)
-            .ToListAsync();
-
-        var latestMonth = monthlyRows
-            .GroupBy(x => x.MonthStart)
-            .OrderByDescending(g => g.Key)
-            .FirstOrDefault(HasMeaningfulMonth)
-            ?? monthlyRows
-                .GroupBy(x => x.MonthStart)
-                .OrderByDescending(g => g.Key)
-                .FirstOrDefault();
-
-        if (latestMonth is not null)
+        if (latestMonth != null)
         {
-            var rows = latestMonth.ToList();
+            var rows = await db.SafehouseMonthlyMetrics.AsNoTracking()
+                .Where(x => x.MonthStart == latestMonth)
+                .ToListAsync();
+
             if (rows.Count > 0)
             {
                 var edu = rows.Where(x => x.AvgEducationProgress.HasValue).Select(x => x.AvgEducationProgress!.Value).ToList();
                 var health = rows.Where(x => x.AvgHealthScore.HasValue).Select(x => x.AvgHealthScore!.Value).ToList();
                 latestMonthSummary = new
                 {
-                    monthStart = latestMonth.Key,
+                    monthStart = latestMonth.Value,
                     activeResidentsTotal = rows.Sum(x => x.ActiveResidents),
                     avgEducationProgress = edu.Count > 0 ? Math.Round(edu.Average(), 1) : (decimal?)null,
                     avgHealthScore = health.Count > 0 ? Math.Round(health.Average(), 2) : (decimal?)null,
@@ -123,57 +102,6 @@ public sealed class PublicController(AppDbContext db) : ControllerBase
             publishedImpactSnapshots = publishedSnapshots,
             activeSupporters
         });
-    }
-
-    private static bool HasMeaningfulMonth(IGrouping<DateOnly, SafehouseMonthlyMetric> rows)
-        => rows.Any(x =>
-            x.ActiveResidents > 0
-            || (x.AvgEducationProgress ?? 0m) > 0m
-            || (x.AvgHealthScore ?? 0m) > 0m
-            || x.ProcessRecordingCount > 0
-            || x.HomeVisitationCount > 0
-            || x.IncidentCount > 0);
-
-    private static bool HasMeaningfulSnapshotPayload(PublicImpactSnapshot snapshot)
-    {
-        if (string.IsNullOrWhiteSpace(snapshot.MetricPayloadJson))
-        {
-            return false;
-        }
-
-        try
-        {
-            using var doc = JsonDocument.Parse(snapshot.MetricPayloadJson);
-            if (doc.RootElement.ValueKind != JsonValueKind.Object)
-            {
-                return true;
-            }
-
-            foreach (var prop in doc.RootElement.EnumerateObject())
-            {
-                var value = prop.Value;
-                if (value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number) && number > 0m)
-                {
-                    return true;
-                }
-
-                if (value.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(value.GetString()))
-                {
-                    return true;
-                }
-
-                if (value.ValueKind == JsonValueKind.True)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        catch (JsonException)
-        {
-            return true;
-        }
     }
 }
 

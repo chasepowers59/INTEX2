@@ -65,32 +65,6 @@ public sealed class ImpactSnapshotsAdminController(AppDbContext db) : Controller
         return Ok(new { entity.SnapshotId });
     }
 
-    public sealed record UpdateImpactSnapshotRequest(
-        DateOnly SnapshotDate,
-        string Headline,
-        string SummaryText,
-        string MetricPayloadJson
-    );
-
-    [HttpPut("{snapshotId:int}")]
-    public async Task<ActionResult> Update([FromRoute] int snapshotId, [FromBody] UpdateImpactSnapshotRequest req)
-    {
-        if (req.SnapshotDate == default) return BadRequest(new { message = "SnapshotDate is required." });
-        if (string.IsNullOrWhiteSpace(req.Headline)) return BadRequest(new { message = "Headline is required." });
-        if (string.IsNullOrWhiteSpace(req.SummaryText)) return BadRequest(new { message = "SummaryText is required." });
-
-        var snap = await db.PublicImpactSnapshots.FirstOrDefaultAsync(x => x.SnapshotId == snapshotId);
-        if (snap == null) return NotFound(new { message = "Snapshot not found." });
-
-        snap.SnapshotDate = req.SnapshotDate;
-        snap.Headline = req.Headline.Trim();
-        snap.SummaryText = req.SummaryText.Trim();
-        snap.MetricPayloadJson = string.IsNullOrWhiteSpace(req.MetricPayloadJson) ? "{}" : req.MetricPayloadJson;
-        await db.SaveChangesAsync();
-
-        return Ok(new { snap.SnapshotId });
-    }
-
     public sealed record PublishImpactSnapshotRequest(bool Publish);
 
     [HttpPut("{snapshotId:int}/publish")]

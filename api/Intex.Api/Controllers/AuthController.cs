@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Text;
 using Intex.Api.Auth;
 using Intex.Api.Data;
 using Intex.Api.Dtos;
@@ -21,8 +20,6 @@ public sealed class AuthController(
     ILogger<AuthController> logger
 ) : ControllerBase
 {
-    private const string TwoFactorIssuer = "Steps of Hope";
-
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
@@ -72,33 +69,6 @@ public sealed class AuthController(
                 return Unauthorized(new { message = "Invalid username or password." });
             }
 
-            if (user.TwoFactorEnabled)
-            {
-                var code = NormalizeTwoFactorCode(request.TwoFactorCode);
-                if (code is null)
-                {
-                    return Unauthorized(new
-                    {
-                        message = "Two-factor authentication code required.",
-                        requiresTwoFactor = true
-                    });
-                }
-
-                var valid = await userManager.VerifyTwoFactorTokenAsync(
-                    user,
-                    TokenOptions.DefaultAuthenticatorProvider,
-                    code);
-
-                if (!valid)
-                {
-                    return Unauthorized(new
-                    {
-                        message = "Invalid two-factor authentication code.",
-                        requiresTwoFactor = true
-                    });
-                }
-            }
-
             var roles = await userManager.GetRolesAsync(user);
             return TryIssueToken(user, roles);
         }
@@ -114,144 +84,6 @@ public sealed class AuthController(
                     traceId = HttpContext.TraceIdentifier
                 });
         }
-    }
-
-    [HttpGet("mfa/status")]
-    [Authorize]
-    public async Task<ActionResult> GetMfaStatus()
-    {
-        var user = await GetCurrentUserAsync();
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
-        var key = await userManager.GetAuthenticatorKeyAsync(user);
-        return Ok(new
-        {
-            enabled = user.TwoFactorEnabled,
-            hasSharedKey = !string.IsNullOrWhiteSpace(key)
-        });
-    }
-
-    [HttpPost("mfa/setup")]
-    [Authorize]
-    public async Task<ActionResult> SetupMfa()
-    {
-        var user = await GetCurrentUserAsync();
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
-        if (!user.TwoFactorEnabled)
-        {
-            await userManager.ResetAuthenticatorKeyAsync(user);
-        }
-
-        var sharedKey = await userManager.GetAuthenticatorKeyAsync(user);
-        if (string.IsNullOrWhiteSpace(sharedKey))
-        {
-            await userManager.ResetAuthenticatorKeyAsync(user);
-            sharedKey = await userManager.GetAuthenticatorKeyAsync(user);
-        }
-
-        if (string.IsNullOrWhiteSpace(sharedKey))
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Could not generate an authenticator key." });
-        }
-
-        var email = user.Email ?? user.UserName ?? "user";
-        return Ok(new
-        {
-            enabled = user.TwoFactorEnabled,
-            sharedKey,
-            manualEntryKey = FormatKey(sharedKey),
-            otpauthUri = BuildOtpAuthUri(email, sharedKey)
-        });
-    }
-
-    [HttpPost("mfa/enable")]
-    [Authorize]
-    public async Task<ActionResult> EnableMfa([FromBody] EnableTwoFactorRequest request)
-    {
-        var user = await GetCurrentUserAsync();
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
-        var code = NormalizeTwoFactorCode(request.Code);
-        if (code is null)
-        {
-            return BadRequest(new { message = "A valid 6-digit authenticator code is required." });
-        }
-
-        var valid = await userManager.VerifyTwoFactorTokenAsync(
-            user,
-            TokenOptions.DefaultAuthenticatorProvider,
-            code);
-
-        if (!valid)
-        {
-            return BadRequest(new { message = "Authenticator code is invalid." });
-        }
-
-        var setResult = await userManager.SetTwoFactorEnabledAsync(user, true);
-        if (!setResult.Succeeded)
-        {
-            return BadRequest(new { message = JoinIdentityErrors(setResult) });
-        }
-
-        await userManager.UpdateSecurityStampAsync(user);
-        return Ok(new { enabled = true, message = "Multi-factor authentication enabled." });
-    }
-
-    [HttpPost("mfa/disable")]
-    [Authorize]
-    public async Task<ActionResult> DisableMfa([FromBody] DisableTwoFactorRequest request)
-    {
-        var user = await GetCurrentUserAsync();
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Password))
-        {
-            return BadRequest(new { message = "Current password is required." });
-        }
-
-        var passwordOk = await userManager.CheckPasswordAsync(user, request.Password);
-        if (!passwordOk)
-        {
-            return BadRequest(new { message = "Current password is incorrect." });
-        }
-
-        var code = NormalizeTwoFactorCode(request.Code);
-        if (code is null)
-        {
-            return BadRequest(new { message = "A valid 6-digit authenticator code is required." });
-        }
-
-        var valid = await userManager.VerifyTwoFactorTokenAsync(
-            user,
-            TokenOptions.DefaultAuthenticatorProvider,
-            code);
-
-        if (!valid)
-        {
-            return BadRequest(new { message = "Authenticator code is invalid." });
-        }
-
-        var disableResult = await userManager.SetTwoFactorEnabledAsync(user, false);
-        if (!disableResult.Succeeded)
-        {
-            return BadRequest(new { message = JoinIdentityErrors(disableResult) });
-        }
-
-        await userManager.UpdateSecurityStampAsync(user);
-        return Ok(new { enabled = false, message = "Multi-factor authentication disabled." });
     }
 
     [HttpGet("me")]
@@ -427,49 +259,6 @@ public sealed class AuthController(
                 });
         }
     }
-
-    private async Task<AppUser?> GetCurrentUserAsync()
-    {
-        var userId = userManager.GetUserId(User);
-        return userId is null ? null : await userManager.FindByIdAsync(userId);
-    }
-
-    private static string? NormalizeTwoFactorCode(string? code)
-    {
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            return null;
-        }
-
-        var normalized = new string(code.Where(char.IsDigit).ToArray());
-        return normalized.Length == 6 ? normalized : null;
-    }
-
-    private static string FormatKey(string rawKey)
-    {
-        var sb = new StringBuilder();
-        for (var i = 0; i < rawKey.Length; i++)
-        {
-            if (i > 0 && i % 4 == 0)
-            {
-                sb.Append(' ');
-            }
-
-            sb.Append(char.ToUpperInvariant(rawKey[i]));
-        }
-
-        return sb.ToString();
-    }
-
-    private static string BuildOtpAuthUri(string email, string sharedKey)
-    {
-        var issuer = Uri.EscapeDataString(TwoFactorIssuer);
-        var account = Uri.EscapeDataString($"{TwoFactorIssuer}:{email}");
-        return $"otpauth://totp/{account}?secret={sharedKey}&issuer={issuer}&digits=6";
-    }
-
-    private static string JoinIdentityErrors(IdentityResult result) =>
-        string.Join("; ", result.Errors.Select(e => $"{e.Code}: {e.Description}"));
 
     private static string? BuildDisplayName(DonorRegisterRequest req)
     {
