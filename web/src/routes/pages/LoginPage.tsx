@@ -10,6 +10,7 @@ export function LoginPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem("intex_remember_me") === "true");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [externalLoading, setExternalLoading] = useState(false);
@@ -46,7 +47,7 @@ export function LoginPage() {
   }, [auth, loc.search, nav]);
 
   return (
-    <div style={{ maxWidth: 540, margin: "0 auto" }}>
+    <div className="auth-page-center" style={{ maxWidth: 540, margin: "0 auto" }}>
       <div className="card auth-panel">
         <h1 style={{ marginTop: 0, fontSize: 26, letterSpacing: "-0.02em" }}>Sign in</h1>
         <p className="muted" style={{ marginTop: 0 }}>
@@ -76,6 +77,18 @@ export function LoginPage() {
           />
         </label>
 
+        <div className="auth-inline-row" style={{ marginTop: 10 }}>
+          <label className="muted" style={{ fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              style={{ marginRight: 6 }}
+            />
+            Remember me
+          </label>
+        </div>
+
         {error ? (
           <div className="badge danger" style={{ marginTop: 14 }}>
             {error}
@@ -93,7 +106,7 @@ export function LoginPage() {
               setError(null);
               setLoading(true);
               try {
-                const roles = await auth.login(username.trim(), password);
+                const roles = await auth.login(username.trim(), password, rememberMe);
                 const isStaff = roles.includes("Admin") || roles.includes("Employee");
                 const donorOnly = roles.includes("Donor") && !isStaff;
                 const dest =

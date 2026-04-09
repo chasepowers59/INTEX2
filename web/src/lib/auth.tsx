@@ -34,7 +34,7 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   isAuthenticated: boolean;
   hasRole: (role: string) => boolean;
-  login: (username: string, password: string, twoFactorCode?: string) => Promise<string[]>;
+  login: (username: string, password: string, rememberMe?: boolean, twoFactorCode?: string) => Promise<string[]>;
   acceptExternalToken: (accessToken: string) => Promise<string[]>;
   registerDonor: (payload: DonorRegisterPayload) => Promise<string[]>;
   logout: () => void;
@@ -44,9 +44,35 @@ type AuthContextValue = AuthState & {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_KEY = "intex_access_token";
+const REMEMBER_KEY = "intex_remember_me";
+
+function loadStoredToken(): string | null {
+  const persistent = localStorage.getItem(TOKEN_KEY);
+  if (persistent) return persistent;
+  return sessionStorage.getItem(TOKEN_KEY);
+}
+
+function persistToken(token: string, rememberMe: boolean) {
+  if (rememberMe) {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(REMEMBER_KEY, "true");
+    sessionStorage.removeItem(TOKEN_KEY);
+    return;
+  }
+
+  sessionStorage.setItem(TOKEN_KEY, token);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REMEMBER_KEY);
+}
+
+function clearStoredToken() {
+  sessionStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REMEMBER_KEY);
+}
 
 function loadInitial(): AuthState {
-  const token = sessionStorage.getItem(TOKEN_KEY);
+  const token = loadStoredToken();
   return { token, username: null, displayName: null, roles: [] };
 }
 
@@ -54,7 +80,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(() => loadInitial());
 
   useEffect(() => {
-    const t = sessionStorage.getItem(TOKEN_KEY);
+    const t = loadStoredToken();
     if (!t) return;
     (async () => {
       try {
@@ -66,7 +92,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
           roles: me.roles,
         });
       } catch {
-        sessionStorage.removeItem(TOKEN_KEY);
+        clearStoredToken();
         setState({ token: null, username: null, displayName: null, roles: [] });
       }
     })();
@@ -76,12 +102,12 @@ export function AuthProvider(props: { children: React.ReactNode }) {
     const isAuthenticated = !!state.token;
     const hasRole = (role: string) => state.roles.includes(role);
 
-    const login = async (username: string, password: string, twoFactorCode?: string) => {
+    const login = async (username: string, password: string, rememberMe = false, twoFactorCode?: string) => {
       const res = await apiFetch<LoginResponse>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ username, password, twoFactorCode: twoFactorCode?.trim() || null }),
       });
-      sessionStorage.setItem(TOKEN_KEY, res.accessToken);
+      persistToken(res.accessToken, rememberMe);
       setState({
         token: res.accessToken,
         username: res.username,
@@ -93,7 +119,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
 
     const acceptExternalToken = async (accessToken: string) => {
       const me = await apiFetch<MeResponse>("/api/auth/me", { token: accessToken });
-      sessionStorage.setItem(TOKEN_KEY, accessToken);
+      persistToken(accessToken, localStorage.getItem(REMEMBER_KEY) === "true");
       setState({
         token: accessToken,
         username: me.username,
@@ -116,7 +142,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
           organizationName: payload.organizationName ?? null,
         }),
       });
-      sessionStorage.setItem(TOKEN_KEY, res.accessToken);
+      persistToken(res.accessToken, false);
       setState({
         token: res.accessToken,
         username: res.username,
@@ -127,7 +153,7 @@ export function AuthProvider(props: { children: React.ReactNode }) {
     };
 
     const logout = () => {
-      sessionStorage.removeItem(TOKEN_KEY);
+      clearStoredToken();
       setState({ token: null, username: null, displayName: null, roles: [] });
     };
 
