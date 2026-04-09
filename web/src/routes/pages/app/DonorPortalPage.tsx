@@ -79,6 +79,24 @@ export function DonorPortalPage() {
     [data],
   );
   const allocationPhp = useMemo(() => allocations.reduce((s, x) => s + x.totalAmount, 0), [allocations]);
+  const monthlyAllocationSeries = useMemo(() => {
+    const byMonth = new Map<string, number>();
+    for (const x of allocations) {
+      const key = `${x.year}-${String(x.month).padStart(2, "0")}`;
+      byMonth.set(key, (byMonth.get(key) ?? 0) + x.totalAmount);
+    }
+    return [...byMonth.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, value]) => ({ label, value }));
+  }, [allocations]);
+  const topCampaigns = useMemo(() => {
+    const byCampaign = new Map<string, number>();
+    for (const x of data?.items ?? []) {
+      const key = (x.campaignName ?? "General").trim() || "General";
+      byCampaign.set(key, (byCampaign.get(key) ?? 0) + x.amount);
+    }
+    return [...byCampaign.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+  }, [data]);
   const outcomeNarratives = useMemo(() => {
     const byCat = new Map<string, number>();
     for (const x of allocations) byCat.set(x.category, (byCat.get(x.category) ?? 0) + x.totalAmount);
@@ -105,9 +123,9 @@ export function DonorPortalPage() {
           <h1 style={{ marginTop: 0, fontSize: 30, fontWeight: 800, letterSpacing: "-0.03em" }}>
             Hello{auth.displayName ? `, ${auth.displayName.split(" ")[0]}` : ""}
           </h1>
-          <p className="muted" style={{ margin: 0, fontSize: 15, lineHeight: 1.55, maxWidth: 640 }}>
-            Your receipts and where funds were applied—always aggregated. You are supporting South Korean victims through
-            safe shelter, counseling, and reintegration support while resident identities stay in the staff-only portal.
+          <p className="muted" style={{ margin: 0, fontSize: 15, lineHeight: 1.55, maxWidth: 680 }}>
+            This page shows your donation history, where funds were allocated, and an easy-to-read impact summary.
+            Data is always aggregated to protect resident identity while keeping transparency for donors.
           </p>
           <div className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
             <Link className="btn primary" to="/give">
@@ -116,8 +134,8 @@ export function DonorPortalPage() {
             <Link className="btn" to="/impact">
               Public impact
             </Link>
-            <Link className="btn" to="/app/ml">
-              View ML transparency
+            <Link className="btn" to="/about">
+              Program overview
             </Link>
           </div>
 
@@ -149,22 +167,42 @@ export function DonorPortalPage() {
         </div>
 
         <div className="row">
-          <div className="card tone-aqua soft-pulse" style={{ flex: "1 1 280px" }}>
-            <div style={{ fontWeight: 800 }}>What donors can do here</div>
+          <div className="card tone-aqua soft-pulse" style={{ flex: "1 1 300px" }}>
+            <div style={{ fontWeight: 800 }}>Your giving focus</div>
+            {topCampaigns.length ? (
+              <ul className="trust-list muted">
+                {topCampaigns.map(([campaign, amount]) => (
+                  <li key={campaign}>
+                    {campaign}: ₱{amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="muted" style={{ marginTop: 8 }}>
+                Your top campaign mix appears here once contributions are linked.
+              </div>
+            )}
+          </div>
+          <div className="card tone-peach" style={{ flex: "1 1 300px" }}>
+            <div style={{ fontWeight: 800 }}>Transparency commitment</div>
             <ul className="trust-list muted">
-              <li>Review contribution history and allocation trends.</li>
-              <li>Understand anonymized impact without exposing survivor identity.</li>
-              <li>Use public impact and giving pages for next donation actions.</li>
+              <li>Every allocation shown here is recorded through staff-controlled workflows.</li>
+              <li>Resident identities and case details remain staff-only.</li>
+              <li>Totals and trends are updated from the same operational data used internally.</li>
             </ul>
           </div>
-          <div className="card tone-peach" style={{ flex: "1 1 280px" }}>
-            <div style={{ fontWeight: 800 }}>What staff/admin do elsewhere</div>
-            <ul className="trust-list muted">
-              <li>Staff: manage cases, check-ins, and intervention workflows.</li>
-              <li>Admin: CRUD users, allocations, imports, and published snapshots.</li>
-              <li>ML workflows remain role-gated to protect sensitive operations.</li>
-            </ul>
-          </div>
+        </div>
+
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Allocation trend (last 12 months)</h2>
+          <p className="muted">Monthly total allocations linked to your donor history.</p>
+          {monthlyAllocationSeries.length ? (
+            <InlineBarChart data={monthlyAllocationSeries} valueFormatter={(v) => `₱${v.toLocaleString()}`} />
+          ) : (
+            <div className="muted" style={{ marginTop: 6 }}>
+              No monthly allocation trend yet.
+            </div>
+          )}
         </div>
 
         <div className="card">
