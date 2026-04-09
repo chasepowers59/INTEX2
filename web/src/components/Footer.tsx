@@ -1,33 +1,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-type FooterProps = {
-  onToggleTheme?: () => void;
-};
-
-export function Footer({ onToggleTheme }: FooterProps) {
+export function Footer() {
   return (
-    <footer className="public-footer">
-      <div className="container public-footer-inner">
-        <div className="public-footer-brand">
-          <strong>Steps of Hope</strong>
-          <span>Serving South Korean survivors through trauma-informed, privacy-first support.</span>
-        </div>
-
-        <div className="public-footer-links" aria-label="Footer links">
-          <Link to="/privacy">Privacy Policy</Link>
-          <Link to="/contact">Contact</Link>
-          <span>Support Line: +82 02-555-0147</span>
-          <span>Email: support@stepsofhope.org</span>
-          <span>Donor Relations: donors@stepsofhope.org</span>
-          {onToggleTheme ? (
-            <button className="theme-toggle-link" type="button" onClick={onToggleTheme}>
-              Toggle theme
-            </button>
-          ) : null}
-        </div>
-
-        <div className="public-footer-copy">© {new Date().getFullYear()} Steps of Hope</div>
+    <footer className="container" style={{ paddingTop: 8, paddingBottom: 28 }}>
+      <div className="muted" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <span>© {new Date().getFullYear()} Steps of Hope Portal</span>
+        <span aria-hidden="true">•</span>
+        <span>Serving South Korean victims through trauma-informed, privacy-first support.</span>
+        <span aria-hidden="true">•</span>
+        <Link to="/privacy">Privacy Policy</Link>
       </div>
     </footer>
   );

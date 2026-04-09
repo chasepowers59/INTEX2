@@ -18,7 +18,6 @@ Pipelines:
 - `social-post-donation-referrals.ipynb` - Social Post Donation Value Predictor
 - `safehouse-capacity-forecast.ipynb` - Safehouse Capacity and Incident Forecast
 - `resident-risk-and-readiness.ipynb` - Resident Risk and Reintegration Readiness Predictor
-- `donation-allocation-efficiency.ipynb` - Donation Allocation Efficiency Predictor
 
 Notes:
 - Each notebook exports app-compatible JSON to `output/ml-predictions/`.

@@ -1,11 +1,6 @@
 namespace Intex.Api.Dtos;
 
-public sealed record LoginRequest(
-    string? Username,
-    string? Email,
-    string? Password,
-    string? TwoFactorCode
-);
+public sealed record LoginRequest(string? Username, string? Email, string? Password);
 
 public sealed record LoginResponse(
     string AccessToken,
@@ -30,8 +25,4 @@ public sealed record DonorRegisterRequest(
     string? Phone,
     string? OrganizationName
 );
-
-public sealed record EnableTwoFactorRequest(string Code);
-
-public sealed record DisableTwoFactorRequest(string Password, string Code);
 

@@ -34,7 +34,7 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   isAuthenticated: boolean;
   hasRole: (role: string) => boolean;
-  login: (username: string, password: string, twoFactorCode?: string) => Promise<string[]>;
+  login: (username: string, password: string) => Promise<string[]>;
   registerDonor: (payload: DonorRegisterPayload) => Promise<string[]>;
   logout: () => void;
   refreshMe: () => Promise<void>;
@@ -75,10 +75,10 @@ export function AuthProvider(props: { children: React.ReactNode }) {
     const isAuthenticated = !!state.token;
     const hasRole = (role: string) => state.roles.includes(role);
 
-    const login = async (username: string, password: string, twoFactorCode?: string) => {
+    const login = async (username: string, password: string) => {
       const res = await apiFetch<LoginResponse>("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ username, password, twoFactorCode: twoFactorCode?.trim() || null }),
+        body: JSON.stringify({ username, password }),
       });
       sessionStorage.setItem(TOKEN_KEY, res.accessToken);
       setState({

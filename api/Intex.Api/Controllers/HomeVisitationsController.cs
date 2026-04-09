@@ -35,6 +35,7 @@ public sealed class HomeVisitationsController(AppDbContext db) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<HomeVisitation>> Create([FromBody] HomeVisitation input)
     {
         input.HomeVisitationId = 0;
@@ -44,6 +45,7 @@ public sealed class HomeVisitationsController(AppDbContext db) : ControllerBase
     }
 
     [HttpPut("{homeVisitationId:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult> Update([FromRoute] int homeVisitationId, [FromBody] HomeVisitation input)
     {
         var item = await db.HomeVisitations.FirstOrDefaultAsync(x => x.HomeVisitationId == homeVisitationId);

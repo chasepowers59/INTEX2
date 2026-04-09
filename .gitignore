@@ -22,8 +22,6 @@ data/raw/**/lighthouse_csv_v7/
 # ML exports (keep only .gitkeep)
 output/ml-predictions/*.json
 output/ml-predictions/eda-plots/
-output/ml-predictions/run-reports/
-tmp/executed-notebooks/
 
 # OS
 .DS_Store
@@ -33,7 +31,6 @@ tmp/executed-notebooks/
 
 # Python
 __pycache__/
-*.pyc
 
 # IDE
 .idea/

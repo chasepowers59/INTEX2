@@ -1,11 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
-export type ApiError = {
-  message?: string;
-  log?: string[];
-  requiresTwoFactor?: boolean;
-  [key: string]: unknown;
-};
+export type ApiError = { message?: string; log?: string[] };
 
 function requireApiBaseUrl(): string {
   if (!API_BASE_URL) throw new Error("Missing VITE_API_BASE_URL");
@@ -34,21 +29,14 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     let msg = `Request failed (${res.status})`;
-    let details: ApiError | null = null;
     try {
-      details = (await res.json()) as ApiError;
-      if (details?.message) msg = details.message;
-      if (details?.log?.length) msg += `\n\n${details.log.join("\n")}`;
+      const json = (await res.json()) as ApiError;
+      if (json?.message) msg = json.message;
+      if (json?.log?.length) msg += `\n\n${json.log.join("\n")}`;
     } catch {
       // ignore
     }
-
-    const error = new Error(msg) as Error & ApiError & { status?: number };
-    error.status = res.status;
-    if (details) {
-      Object.assign(error, details);
-    }
-    throw error;
+    throw new Error(msg);
   }
 
   if (res.status === 204) return undefined as T;

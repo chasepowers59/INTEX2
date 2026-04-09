@@ -2,16 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
-function validatePassword(password: string): string | null {
-  if (password.length < 12) return "Password must be at least 12 characters.";
-  if (!/[a-z]/.test(password)) return "Password must include a lowercase letter.";
-  if (!/[A-Z]/.test(password)) return "Password must include an uppercase letter.";
-  if (!/\d/.test(password)) return "Password must include a number.";
-  if (!/[^A-Za-z0-9]/.test(password)) return "Password must include a symbol.";
-  if (new Set(password).size < 4) return "Password must include at least 4 unique characters.";
-  return null;
-}
-
 export function RegisterDonorPage() {
   const auth = useAuth();
   const nav = useNavigate();
@@ -35,77 +25,47 @@ export function RegisterDonorPage() {
     nav(staff ? "/app/dashboard" : "/app/donor", { replace: true });
   }, [auth, nav]);
 
-  async function handleRegister() {
-    setError(null);
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      setError(passwordError);
-      return;
-    }
-    setLoading(true);
-    try {
-      await auth.registerDonor({
-        email: email.trim(),
-        password,
-        displayName: displayName.trim() || undefined,
-        firstName: firstName.trim() || undefined,
-        lastName: lastName.trim() || undefined,
-        phone: phone.trim() || undefined,
-        organizationName: organizationName.trim() || undefined,
-      });
-      nav("/app/donor", { replace: true });
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
-    <div className="register-page">
-      <section className="card register-intro-card">
-        <span className="eyebrow">Donor account</span>
-        <h1>Create your Steps of Hope account.</h1>
-        <p className="muted">
-          Save your giving history, return to future gifts faster, and see anonymized updates about the work your support helps make possible.
+    <div className="auth-split">
+      <div className="auth-aside">
+        <div className="badge donor-role-badge" style={{ marginBottom: 12 }}>
+          Free donor account · Donor role · South Korea victim support
+        </div>
+        <h2>Give and see your impact—in about a minute</h2>
+        <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
+          We assign the <strong>Donor</strong> role automatically. You can give, view receipts, and track anonymized impact.
+        </p>
+        <ul className="muted" style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+          <li>Use the <strong>same email</strong> as your supporter record to link giving history.</li>
+          <li>Password must be <strong>12+</strong> characters with upper, lower, number, and a symbol.</li>
+        </ul>
+        <div className="row" style={{ marginTop: 18 }}>
+          <Link className="btn" to="/login" state={from ? { from } : undefined}>
+            Staff sign-in
+          </Link>
+          <Link className="btn" to="/impact">
+            Public impact
+          </Link>
+        </div>
+      </div>
+
+      <div className="card auth-panel glow-donor">
+        <div className="step-track">
+          <span className="step-pill active">1 · Email</span>
+          <span className="step-pill active">2 · Password</span>
+          <span className="step-pill active">3 · Name</span>
+        </div>
+        <h1 style={{ marginTop: 0, fontSize: 26, letterSpacing: "-0.02em" }}>Create your donor account</h1>
+        <p className="muted" style={{ marginTop: 0 }}>
+          One short form. You’ll be signed in immediately with the Donor role.
         </p>
 
-        <div className="register-photo">
-          <img src="/photos/community-support.jpg" alt="Community members supporting survivor care." />
-          <div>
-            <strong>Support with confidence</strong>
-            <span>Your account keeps donor activity separate from private survivor care records.</span>
-          </div>
+        <div className="photo-placeholder" role="img" aria-label="Donors joining support efforts for South Korean victims" style={{ marginBottom: 12 }}>
+          <img src="/photos/community-support.jpg" alt="Donors joining survivor support efforts." />
+          <div className="caption">Donors joining South Korean victim support efforts</div>
         </div>
 
-        <div className="register-benefit-grid">
-          <div>
-            <strong>Private by design</strong>
-            <span>Public updates stay aggregated and anonymized.</span>
-          </div>
-          <div>
-            <strong>Impact in one place</strong>
-            <span>Return to view your giving and broad program updates.</span>
-          </div>
-          <div>
-            <strong>Simple sign-in</strong>
-            <span>Use this same email whenever you give again.</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="card register-form-card">
-        <div className="register-form-heading">
-          <span className="eyebrow">Start here</span>
-          <h2>Create your account</h2>
-          <p className="muted">This short form creates a donor account for future gifts and impact updates.</p>
-        </div>
-
-        <label className="field-stack">
+        <div className="field-stack" style={{ marginTop: 16 }}>
           <span className="field-label">Email</span>
           <input
             className="input"
@@ -115,10 +75,10 @@ export function RegisterDonorPage() {
             autoComplete="email"
             placeholder="you@example.com"
           />
-        </label>
+        </div>
 
-        <label className="field-stack">
-          <span className="field-label">How we should greet you</span>
+        <div className="field-stack" style={{ marginTop: 14 }}>
+          <span className="field-label">How we’ll greet you</span>
           <input
             className="input"
             value={displayName}
@@ -126,55 +86,49 @@ export function RegisterDonorPage() {
             autoComplete="name"
             placeholder="e.g. Jordan Lee or Hope Church"
           />
-        </label>
-
-        <div className="register-two-column">
-          <label className="field-stack">
-            <span className="field-label">Password</span>
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              placeholder="12+ chars with upper, lower, number, symbol"
-            />
-          </label>
-          <label className="field-stack">
-            <span className="field-label">Confirm password</span>
-            <input
-              className="input"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              autoComplete="new-password"
-              placeholder="Re-enter password"
-            />
-          </label>
+          <span className="password-hint">Or add first &amp; last name in optional details below.</span>
         </div>
 
-        <p className="password-hint">
-          Passwords must be at least <strong>12 characters</strong> and include an uppercase letter, lowercase letter,
-          number, symbol, and at least 4 unique characters.
-        </p>
+        <div className="field-stack" style={{ marginTop: 14 }}>
+          <span className="field-label">Password</span>
+          <input
+            className="input"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            placeholder="12+ characters, mixed case, number, symbol"
+          />
+        </div>
 
-        <details className="optional-block register-optional-block">
-          <summary>Optional contact details</summary>
-          <div className="register-two-column">
-            <label className="field-stack">
+        <div className="field-stack" style={{ marginTop: 14 }}>
+          <span className="field-label">Confirm password</span>
+          <input
+            className="input"
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="new-password"
+          />
+        </div>
+
+        <details className="optional-block">
+          <summary>Optional details</summary>
+          <div className="row" style={{ marginTop: 10, gap: 10, flexWrap: "wrap" }}>
+            <label className="field-stack" style={{ flex: "1 1 140px" }}>
               <span className="field-label">First name</span>
               <input className="input" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" />
             </label>
-            <label className="field-stack">
+            <label className="field-stack" style={{ flex: "1 1 140px" }}>
               <span className="field-label">Last name</span>
               <input className="input" value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
             </label>
           </div>
-          <label className="field-stack">
+          <label className="field-stack" style={{ marginTop: 12 }}>
             <span className="field-label">Phone</span>
             <input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
           </label>
-          <label className="field-stack">
+          <label className="field-stack" style={{ marginTop: 12 }}>
             <span className="field-label">Organization</span>
             <input
               className="input"
@@ -185,20 +139,48 @@ export function RegisterDonorPage() {
           </label>
         </details>
 
-        {error ? <div className="badge danger">{error}</div> : null}
+        {error ? (
+          <div className="badge danger" style={{ marginTop: 14 }}>
+            {error}
+          </div>
+        ) : null}
 
-        <div className="register-actions">
-          <button className="btn primary" disabled={loading} onClick={handleRegister}>
-            {loading ? "Creating your account..." : "Create donor account"}
+        <div className="row" style={{ marginTop: 18, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+          <button
+            className="btn primary"
+            disabled={loading}
+            onClick={async () => {
+              setError(null);
+              if (password !== confirm) {
+                setError("Passwords do not match.");
+                return;
+              }
+              setLoading(true);
+              try {
+                await auth.registerDonor({
+                  email: email.trim(),
+                  password,
+                  displayName: displayName.trim() || undefined,
+                  firstName: firstName.trim() || undefined,
+                  lastName: lastName.trim() || undefined,
+                  phone: phone.trim() || undefined,
+                  organizationName: organizationName.trim() || undefined,
+                });
+                nav("/app/donor", { replace: true });
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            {loading ? "Creating your account…" : "Register & go to my portal"}
           </button>
-          <span className="muted">
-            Already have an account?{" "}
-            <Link className="auth-link-subtle" to="/login" state={from ? { from } : undefined}>
-              Sign in
-            </Link>
-          </span>
+          <Link className="btn" to="/login" state={from ? { from } : undefined}>
+            Already have an account?
+          </Link>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
