@@ -35,7 +35,7 @@ Set environment variables:
 - If you change a seed password in config but the user already exists in the DB, set `Seed__SyncPasswords=true` for one run (then set back to `false`), or use `Seed__ClearLockouts=true` after failed login lockout.
 - Optional `LighthouseImport__SourceDirectory` — default folder on the API host for Lighthouse CSV import (see below).
 
-Copy `api/Intex.Api/appsettings.Development.json.example` to `api/Intex.Api/appsettings.Development.json` (gitignored) for local secrets. Passwords must satisfy `Identity:Password` in `appsettings.json` (minimum length 12, upper, lower, digit, non-alphanumeric, unique characters).
+Copy `api/Intex.Api/appsettings.Development.json.example` to `api/Intex.Api/appsettings.Development.json` (gitignored) for local secrets. Passwords must satisfy `Identity:Password` in `appsettings.json` (minimum length 14, upper, lower, digit, non-alphanumeric, unique characters).
 
 Run:
 ```bash
@@ -70,6 +70,33 @@ npm run dev
    - `POST /api/ml/import?replace=true`
 5. View outputs in the deployed web app:
    - `/app/ml` (Staff Portal → ML Insights)
+
+### Nightly ML refresh
+
+The grading notebooks remain committed in `ml-pipelines/` and still serve as the visible ML artifacts for the project. The nightly automation runs those same notebooks headlessly; it does not replace them with a hidden-only pipeline.
+
+- Workflow: `.github/workflows/nightly-ml-predictions.yml`
+- Notebook runner: `scripts/ml/execute_notebooks.py`
+- SQL importer: `scripts/ml/import_ml_predictions_to_db.py`
+
+What the nightly job does:
+
+1. Loads `INTEX_ODBC` from a GitHub Actions secret
+2. Executes the committed notebooks headlessly
+3. Regenerates `output/ml-predictions/*.json`
+4. Replaces the matching rows in `dbo.MlPredictions`
+5. Uploads executed notebooks and prediction exports as workflow artifacts
+
+GitHub Actions secret required:
+
+- `ML_INTEX_ODBC` = ODBC connection string for the Azure SQL database used by the deployed app
+
+Manual equivalent from repo root:
+
+```bash
+python scripts/ml/execute_notebooks.py --repo-root . --clean-exports
+python scripts/ml/import_ml_predictions_to_db.py --connection-string "<odbc connection string>" --input-dir output/ml-predictions
+```
 
 ## Deployment notes (Azure)
 

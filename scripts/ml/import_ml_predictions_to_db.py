@@ -4,22 +4,38 @@ import argparse
 import json
 from datetime import datetime, UTC
 from pathlib import Path
+from typing import Sequence
 
 import pyodbc
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Replace ML prediction batches directly in SQL Server.")
-    parser.add_argument("--server", required=True)
-    parser.add_argument("--database", required=True)
-    parser.add_argument("--user", required=True)
-    parser.add_argument("--password", required=True)
+    parser.add_argument("--server")
+    parser.add_argument("--database")
+    parser.add_argument("--user")
+    parser.add_argument("--password")
+    parser.add_argument("--connection-string")
     parser.add_argument("--input-dir", required=True)
     parser.add_argument("--odbc-driver", default="ODBC Driver 17 for SQL Server")
+    parser.add_argument("--expected-types", nargs="*")
     return parser.parse_args()
 
 
 def build_connection_string(args: argparse.Namespace) -> str:
+    if args.connection_string:
+        return args.connection_string
+
+    required = {
+        "--server": args.server,
+        "--database": args.database,
+        "--user": args.user,
+        "--password": args.password,
+    }
+    missing = [flag for flag, value in required.items() if not value]
+    if missing:
+        raise ValueError(f"Provide --connection-string or all of: {', '.join(required)}. Missing: {', '.join(missing)}.")
+
     return (
         f"Driver={{{args.odbc_driver}}};"
         f"Server=tcp:{args.server},1433;"
@@ -32,8 +48,9 @@ def build_connection_string(args: argparse.Namespace) -> str:
     )
 
 
-def load_batches(input_dir: Path) -> list[tuple[str, list[dict]]]:
+def load_batches(input_dir: Path, expected_types: Sequence[str] | None = None) -> list[tuple[str, list[dict]]]:
     batches: list[tuple[str, list[dict]]] = []
+    normalized_expected = {value.strip() for value in (expected_types or []) if value and value.strip()}
     for path in sorted(input_dir.glob("*.json")):
         items = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(items, list):
@@ -43,14 +60,26 @@ def load_batches(input_dir: Path) -> list[tuple[str, list[dict]]]:
         prediction_types = sorted({str(item.get("predictionType", "")).strip() for item in items})
         if len(prediction_types) != 1 or not prediction_types[0]:
             raise ValueError(f"{path.name} must contain exactly one non-empty predictionType.")
-        batches.append((prediction_types[0], items))
+
+        prediction_type = prediction_types[0]
+        if normalized_expected and prediction_type not in normalized_expected:
+            continue
+
+        batches.append((prediction_type, items))
+
+    if normalized_expected:
+        found = {prediction_type for prediction_type, _ in batches}
+        missing = sorted(normalized_expected - found)
+        if missing:
+            raise ValueError(f"Missing expected prediction export(s): {', '.join(missing)}")
+
     return batches
 
 
 def main() -> None:
     args = parse_args()
     input_dir = Path(args.input_dir)
-    batches = load_batches(input_dir)
+    batches = load_batches(input_dir, expected_types=args.expected_types)
     if not batches:
         raise ValueError(f"No JSON batches found in {input_dir}.")
 
