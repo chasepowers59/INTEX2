@@ -1273,9 +1273,6 @@ details.optional-block[open] summary {
   .reports-snapshot-grid {
     grid-template-columns: 1fr;
   }
-<<<<<<< jaewon-dev
-=======
-
   .reports-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -1353,7 +1350,6 @@ details.optional-block[open] summary {
     grid-template-columns: 1fr;
     gap: 8px;
   }
->>>>>>> local
 }
 
 @media (max-width: 900px) {
