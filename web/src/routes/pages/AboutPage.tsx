@@ -1,53 +1,201 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+const values = [
+  {
+    title: "Safety first",
+    description: "Survivor protection, privacy, and dignity guide every public message and every internal workflow.",
+  },
+  {
+    title: "Transparent stewardship",
+    description: "Donors deserve to see how support moves into shelter, counseling, wellbeing, and reintegration care.",
+  },
+  {
+    title: "Local partnership",
+    description: "Sustainable recovery depends on coordinated safehouses, social workers, family follow-up, and partners.",
+  },
+  {
+    title: "Human judgment",
+    description: "Data can help staff prioritize needs, but sensitive care decisions remain with trained people.",
+  },
+];
+
+const workSteps = [
+  "Provide immediate safehouse and emergency support.",
+  "Document counseling, wellbeing, education, and follow-up needs.",
+  "Coordinate home visitation, family cooperation, and reintegration planning.",
+  "Report public impact only through aggregate, anonymized data.",
+];
+
+const trustStats = [
+  { value: "Safe", label: "survivor privacy comes before every public update" },
+  { value: "Clear", label: "donors can see how support is used across care programs" },
+  { value: "Human", label: "trained staff guide care decisions with data as support" },
+  { value: "Hopeful", label: "every gift supports recovery, dignity, and a safer next step" },
+];
+
+const leadership = [
+  {
+    name: "Mina Park",
+    role: "Executive Director",
+    photo: "/photos/team-collaboration.jpg",
+    description: "Guides the mission, partnerships, and survivor-centered operating model.",
+  },
+  {
+    name: "Daniel Cho",
+    role: "Donor Stewardship Lead",
+    photo: "/photos/community-support.jpg",
+    description: "Helps donors understand how their support becomes practical care.",
+  },
+  {
+    name: "Jiwoo Han",
+    role: "Survivor Services Coordinator",
+    photo: "/photos/counseling-support.jpg",
+    description: "Coordinates care pathways across safe shelter, follow-up, and wellbeing support.",
+  },
+  {
+    name: "Grace Kim",
+    role: "Program Impact Analyst",
+    photo: "/photos/education-support.jpg",
+    description: "Turns anonymized program data into safer, clearer public impact reporting.",
+  },
+];
+
 export function AboutPage() {
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div className="card">
-        <h1 style={{ marginTop: 0 }}>About Steps of Hope</h1>
-        <p className="muted" style={{ lineHeight: 1.65 }}>
-          Steps of Hope is a trauma-informed support platform focused on helping South Korean victims access safe shelter,
-          follow-up care, and recovery pathways. The project combines donor transparency with strict privacy controls for
-          sensitive operations.
-        </p>
-      </div>
+    <div className="about-page">
+      <section className="about-hero card">
+        <div className="about-hero-copy">
+          <div className="sub-kicker">About Steps of Hope</div>
+          <h1>We exist to help survivors move from immediate danger toward safety, healing, and hope.</h1>
+          <p className="muted">
+            Steps of Hope is a nonprofit concept focused on supporting South Korean survivors through safe shelter,
+            trauma-informed follow-up, wellbeing services, education support, and careful reintegration planning.
+          </p>
+          <div className="donor-hero-actions">
+            <Link className="btn primary donor-primary-cta" to="/donate">
+              Support the mission
+            </Link>
+            <Link className="btn" to="/impact">
+              View impact
+            </Link>
+          </div>
+        </div>
+        <div className="about-hero-image">
+          <img src="/photos/community-support.jpg" alt="Volunteers preparing donor-backed care supplies." />
+        </div>
+      </section>
 
-      <div className="photo-grid">
-        <div className="photo-placeholder" role="img" aria-label="Coordinated safehouse support team">
-          <img src="/photos/shelter-recovery.jpg" alt="Coordinated safehouse support team." />
-          <div className="caption">Coordinated safehouse support team</div>
-        </div>
-        <div className="photo-placeholder" role="img" aria-label="Counseling and recovery support session">
-          <img src="/photos/counseling-support.jpg" alt="Counseling and recovery support session." />
-          <div className="caption">Counseling and recovery support</div>
-        </div>
-        <div className="photo-placeholder" role="img" aria-label="Donor-backed community resilience">
-          <img src="/photos/community-support.jpg" alt="Donor-backed community resilience and aid support." />
-          <div className="caption">Donor-backed community resilience</div>
-        </div>
-      </div>
+      <section className="about-mission-grid">
+        <article className="card about-mission-card">
+          <div className="sub-kicker">Our mission</div>
+          <h2>Fund practical care while protecting survivor dignity.</h2>
+          <p className="muted">
+            We connect donor generosity to safehouse support, counseling documentation, health and education progress,
+            home visitation, and reintegration planning. Public reporting stays anonymized so transparency never comes
+            at the expense of safety.
+          </p>
+        </article>
+        <article className="card about-mission-card">
+          <div className="sub-kicker">Our vision</div>
+          <h2>A future where survivors are seen, protected, and supported.</h2>
+          <p className="muted">
+            We imagine a network of care where every survivor can access the next right step: protection, healing,
+            trusted adults, education support, and a safer path forward.
+          </p>
+        </article>
+      </section>
 
-      <div className="card panel2-bg">
-        <h2 style={{ marginTop: 0 }}>Why this model works</h2>
-        <ul className="muted trust-list">
-          <li>Role-based access keeps sensitive resident workflows in staff-only views.</li>
-          <li>Donors get clear contribution and allocation visibility without exposing identities.</li>
-          <li>Staff teams see operational alerts and analytics for faster intervention decisions.</li>
-          <li>Public impact pages provide aggregate outcomes suitable for accountability reporting.</li>
-        </ul>
-        <div className="row" style={{ marginTop: 12 }}>
-          <Link className="btn primary" to="/give">
-            Support the mission
-          </Link>
-          <Link className="btn" to="/impact">
-            View public impact
-          </Link>
-          <Link className="btn" to="/roles">
-            View role guide
+      <section className="impact-stat-row" aria-label="About page trust metrics">
+        {trustStats.map((stat) => (
+          <div className="impact-stat-card" key={stat.label}>
+            <strong>{stat.value}</strong>
+            <span>{stat.label}</span>
+          </div>
+        ))}
+      </section>
+
+      <section className="about-work card">
+        <div>
+          <div className="sub-kicker">How we work</div>
+          <h2 className="section-title">Support is strongest when care is coordinated.</h2>
+          <p className="muted">
+            Prominent nonprofits often make their operating model easy to understand. Our public story follows that
+            same pattern: show the need, explain the care pathway, prove stewardship, and invite supporters to act.
+          </p>
+        </div>
+        <ol className="about-step-list">
+          {workSteps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="card donor-section">
+        <div className="section-intro">
+          <div className="sub-kicker">Our values</div>
+          <h2 className="section-title">The principles behind every gift and every report.</h2>
+        </div>
+        <div className="values-grid">
+          {values.map((value) => (
+            <article className="value-card" key={value.title}>
+              <h3>{value.title}</h3>
+              <p>{value.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="donor-story card">
+        <div className="story-photo">
+          <img src="/photos/shelter-recovery.jpg" alt="A calm safehouse recovery environment." />
+        </div>
+        <div className="story-copy">
+          <div className="sub-kicker">Why donor trust matters</div>
+          <h2 className="section-title">The work is personal. The reporting must be careful.</h2>
+          <p className="muted">
+            Donors should understand the difference their support makes, but survivors should never become public
+            proof points. Our model balances both responsibilities by showing allocations, program outcomes, and
+            aggregate progress without exposing resident-identifying data.
+          </p>
+          <Link className="btn" to="/privacy">
+            Read our privacy policy
           </Link>
         </div>
-      </div>
+      </section>
+
+      <section className="card donor-section">
+        <div className="section-intro">
+          <div className="sub-kicker">Leadership and stewardship</div>
+          <h2 className="section-title">Meet the people guiding the mission.</h2>
+          <p className="muted">
+            Donor trust grows when the work feels accountable and human. These placeholder profiles can be replaced
+            with professional photos when your team is ready.
+          </p>
+        </div>
+        <div className="leadership-grid">
+          {leadership.map((person) => (
+            <article className="leader-card" key={person.name}>
+              <div className="leader-photo">
+                <img src={person.photo} alt={`${person.name}, ${person.role}`} />
+              </div>
+              <div className="leader-body">
+                <h3>{person.name}</h3>
+                <div>{person.role}</div>
+                <p>{person.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="cta-ribbon donor-final-cta">
+        <div className="sub-kicker">Your support helps make the pathway possible</div>
+        <h2>Help fund shelter, care, and reintegration support for survivors.</h2>
+        <Link className="btn primary donor-primary-cta" to="/donate">
+          Donate now
+        </Link>
+      </section>
     </div>
   );
 }

@@ -93,11 +93,26 @@ def load_df(stem: str) -> pd.DataFrame:
 
                 df = df.rename(columns={c: pascal_to_snake(str(c)) for c in df.columns})
                 if stem == "donations":
-                    df = df.rename(columns={"contribution_id": "donation_id"})
+                    df = df.rename(columns={
+                        "contribution_id": "donation_id",
+                        "contribution_date": "donation_date",
+                        "contribution_type": "donation_type",
+                    })
+                if stem == "social_media_posts" and "forwards" not in df.columns:
+                    df["forwards"] = 0
                 if stem == "process_recordings":
                     df = df.rename(columns={"process_recording_id": "recording_id"})
                 if stem == "home_visitations":
                     df = df.rename(columns={"home_visitation_id": "visitation_id"})
+                if stem == "education_records":
+                    df = df.rename(columns={"attendance_status": "enrollment_status"})
+                if stem == "health_wellbeing_records":
+                    df = df.rename(columns={
+                        "sleep_score": "sleep_quality_score",
+                        "energy_score": "energy_level_score",
+                    })
+                if stem == "residents":
+                    df = df.rename(columns={"family_is4ps": "family_is_4ps"})
                 return df
         except Exception as ex:
             print("INTEX_ODBC failed, using CSV:", ex)

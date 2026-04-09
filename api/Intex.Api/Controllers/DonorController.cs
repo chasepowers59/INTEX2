@@ -10,7 +10,7 @@ namespace Intex.Api.Controllers;
 
 [ApiController]
 [Route("api/donor")]
-[Authorize(Roles = $"{AppRoles.Donor},{AppRoles.Admin}")]
+[Authorize(Roles = AppRoles.Donor)]
 public sealed class DonorController(AppDbContext db, Microsoft.AspNetCore.Identity.UserManager<AppUser> userManager) : ControllerBase
 {
     public sealed record DonateRequest(
