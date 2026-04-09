@@ -25,7 +25,6 @@ export function AdminUsersPage() {
   const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [notice, setNotice] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
 
   const [createEmail, setCreateEmail] = useState("");
   const [createDisplayName, setCreateDisplayName] = useState("");
@@ -56,167 +55,171 @@ export function AdminUsersPage() {
 
   return (
     <RequireRole role="Admin">
-      <div className="admin-page">
+      <div style={{ display: "grid", gap: 12 }}>
         <div className="card">
-          <div className="admin-header">
-            <div className="admin-header-copy">
-              <h1 style={{ marginTop: 0 }}>User Administration</h1>
-              <p className="muted">Accounts, access, password resets, and donor links.</p>
+          <h1 style={{ marginTop: 0 }}>User Administration</h1>
+          <p className="muted">
+            Create staff accounts, disable access, reset passwords, and link donor accounts to supporter records. Link donor cannot be used on Admin accounts (use a Donor login for grading).
+          </p>
+          {error ? (
+            <div className="badge danger" style={{ marginTop: 10 }}>
+              {error}
             </div>
-            <button className="btn primary" onClick={() => setShowCreate((open) => !open)}>
-              {showCreate ? "Close" : "Create user"}
-            </button>
-          </div>
-          {error ? <div className="badge danger" style={{ marginTop: 10 }}>{error}</div> : null}
-          {notice ? <div className="badge ok" style={{ marginTop: 10 }}>{notice}</div> : null}
+          ) : null}
+          {notice ? (
+            <div className="badge ok" style={{ marginTop: 10 }}>
+              {notice}
+            </div>
+          ) : null}
 
-          <div className="admin-inline-grid" style={{ marginTop: 10 }}>
-            <label className="admin-form-label span-8">
+          <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
+            <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 260 }}>
               <span className="muted">Search</span>
-              <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email, username, or name" />
+              <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email, username, name…" />
             </label>
             <button className="btn" onClick={() => void load()} disabled={busy}>
               Search
             </button>
           </div>
-
-          <div className={`process-collapsible ${showCreate ? "open" : ""}`} aria-hidden={!showCreate}>
-            <div className="card process-form-card">
-              <div className="process-header process-inline-header">
-                <div>
-                  <strong>User details</strong>
-                </div>
-              </div>
-              <div className="admin-inline-grid">
-                <label className="admin-form-label span-4">
-                  <span className="muted">Email</span>
-                  <input className="input" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
-                </label>
-                <label className="admin-form-label span-3">
-                  <span className="muted">Display name</span>
-                  <input className="input" value={createDisplayName} onChange={(e) => setCreateDisplayName(e.target.value)} />
-                </label>
-                <label className="admin-form-label span-2">
-                  <span className="muted">Role</span>
-                  <select className="input" value={createRole} onChange={(e) => setCreateRole(e.target.value as "Admin" | "Employee" | "Donor")}>
-                    <option value="Employee">Employee</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Donor">Donor</option>
-                  </select>
-                </label>
-                <label className="admin-form-label span-3">
-                  <span className="muted">Supporter ID</span>
-                  <input className="input" value={createSupporterId} onChange={(e) => setCreateSupporterId(e.target.value)} placeholder="Optional" />
-                </label>
-                <label className="admin-form-label span-6">
-                  <span className="muted">Password</span>
-                  <input className="input" type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} />
-                </label>
-              </div>
-              <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "space-between" }}>
-                <span className="muted admin-note">Minimum 12 characters with uppercase, lowercase, number, and symbol.</span>
-                <button
-                  className="btn primary"
-                  disabled={!canAdmin || busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    setError(null);
-                    try {
-                      const supporterId = createSupporterId.trim() ? Number(createSupporterId.trim()) : undefined;
-                      await apiFetch("/api/admin/users/create", {
-                        method: "POST",
-                        token: auth.token ?? undefined,
-                        body: JSON.stringify({
-                          email: createEmail.trim(),
-                          displayName: createDisplayName.trim() || null,
-                          password: createPassword,
-                          role: createRole,
-                          supporterId: Number.isFinite(supporterId) ? supporterId : null,
-                        }),
-                      });
-                      setCreateEmail("");
-                      setCreateDisplayName("");
-                      setCreatePassword("");
-                      setCreateSupporterId("");
-                      setShowCreate(false);
-                      await load();
-                    } catch (e) {
-                      setError((e as Error).message);
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  Save user
-                </button>
-              </div>
+          <div className="row" style={{ marginTop: 10 }}>
+            <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 260px" }}>
+              <div style={{ fontWeight: 800 }}>Simple admin flow</div>
+              <ol className="trust-list muted">
+                <li>Create user with role and optional supporter link.</li>
+                <li>Use Actions to reset password or enable and disable access.</li>
+                <li>Use Link donor when donor account and supporter row must be connected.</li>
+              </ol>
             </div>
           </div>
         </div>
 
         <div className="card">
-          <div className="admin-table-head">
-            <div className="admin-header-copy">
-              <h2 style={{ marginTop: 0 }}>Users</h2>
-              <p className="muted">Select a user below to reset a password or link a donor account.</p>
-            </div>
-            <div className="admin-pill-row admin-compact-actions">
-              <button
-                className="btn"
-                disabled={selectedEmails.length === 0 || busy}
-                onClick={async () => {
-                  setBusy(true);
-                  setError(null);
-                  try {
-                    for (const email of selectedEmails) {
-                      await apiFetch("/api/admin/users/set-enabled", {
-                        method: "POST",
-                        token: auth.token ?? undefined,
-                        body: JSON.stringify({ email, enabled: true }),
-                      });
-                    }
-                    setSelectedEmails([]);
-                    await load();
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Bulk enable ({selectedEmails.length})
-              </button>
-              <button
-                className="btn danger"
-                disabled={selectedEmails.length === 0 || busy}
-                onClick={async () => {
-                  setBusy(true);
-                  setError(null);
-                  try {
-                    for (const email of selectedEmails) {
-                      await apiFetch("/api/admin/users/set-enabled", {
-                        method: "POST",
-                        token: auth.token ?? undefined,
-                        body: JSON.stringify({ email, enabled: false }),
-                      });
-                    }
-                    setSelectedEmails([]);
-                    await load();
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Bulk disable ({selectedEmails.length})
-              </button>
-            </div>
+          <h2 style={{ marginTop: 0 }}>Create user</h2>
+          <div className="row" style={{ alignItems: "end" }}>
+            <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 260 }}>
+              <span className="muted">Email (username)</span>
+              <input className="input" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
+            </label>
+            <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 220 }}>
+              <span className="muted">Display name</span>
+              <input className="input" value={createDisplayName} onChange={(e) => setCreateDisplayName(e.target.value)} />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 180 }}>
+              <span className="muted">Role</span>
+              <select className="input" value={createRole} onChange={(e) => setCreateRole(e.target.value as any)}>
+                <option value="Employee">Employee</option>
+                <option value="Admin">Admin</option>
+                <option value="Donor">Donor</option>
+              </select>
+            </label>
           </div>
+          <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
+            <label style={{ display: "grid", gap: 6, flex: 1, minWidth: 260 }}>
+              <span className="muted">Password</span>
+              <input className="input" type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} />
+            </label>
+            <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+              <span className="muted">SupporterId (optional)</span>
+              <input
+                className="input"
+                value={createSupporterId}
+                onChange={(e) => setCreateSupporterId(e.target.value)}
+                placeholder="e.g., 123"
+              />
+            </label>
+            <button
+              className="btn primary"
+              disabled={!canAdmin || busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  const supporterId = createSupporterId.trim() ? Number(createSupporterId.trim()) : undefined;
+                  await apiFetch("/api/admin/users/create", {
+                    method: "POST",
+                    token: auth.token ?? undefined,
+                    body: JSON.stringify({
+                      email: createEmail.trim(),
+                      displayName: createDisplayName.trim() || null,
+                      password: createPassword,
+                      role: createRole,
+                      supporterId: Number.isFinite(supporterId) ? supporterId : null,
+                    }),
+                  });
+                  setCreateEmail("");
+                  setCreateDisplayName("");
+                  setCreatePassword("");
+                  setCreateSupporterId("");
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Create user
+            </button>
+          </div>
+        </div>
 
-          <div className="admin-inline-grid" style={{ marginBottom: 12 }}>
-            <label className="admin-form-label span-6">
-              <span className="muted">Reset password</span>
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Users</h2>
+          <div className="row" style={{ marginBottom: 8 }}>
+            <button
+              className="btn"
+              disabled={selectedEmails.length === 0 || busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  for (const email of selectedEmails) {
+                    await apiFetch("/api/admin/users/set-enabled", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({ email, enabled: true }),
+                    });
+                  }
+                  setSelectedEmails([]);
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Bulk enable ({selectedEmails.length})
+            </button>
+            <button
+              className="btn danger"
+              disabled={selectedEmails.length === 0 || busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  for (const email of selectedEmails) {
+                    await apiFetch("/api/admin/users/set-enabled", {
+                      method: "POST",
+                      token: auth.token ?? undefined,
+                      body: JSON.stringify({ email, enabled: false }),
+                    });
+                  }
+                  setSelectedEmails([]);
+                  await load();
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Bulk disable ({selectedEmails.length})
+            </button>
+          </div>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <label style={{ display: "grid", gap: 6, minWidth: 300, flex: 1 }}>
+              <span className="muted">Reset password for selected user</span>
               <input
                 className="input"
                 type="password"
@@ -249,12 +252,14 @@ export function AdminUsersPage() {
             >
               Apply reset
             </button>
-            <label className="admin-form-label span-4">
-              <span className="muted">Link donor account</span>
+          </div>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <label style={{ display: "grid", gap: 6, minWidth: 260 }}>
+              <span className="muted">Link donor user</span>
               <input className="input" value={linkTargetEmail} readOnly placeholder="Select a user below first" />
             </label>
-            <label className="admin-form-label span-2">
-              <span className="muted">Supporter ID</span>
+            <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+              <span className="muted">SupporterId</span>
               <input className="input" value={linkSupporterIdValue} onChange={(e) => setLinkSupporterIdValue(e.target.value)} />
             </label>
             <button
@@ -287,8 +292,7 @@ export function AdminUsersPage() {
               Apply link
             </button>
           </div>
-
-          <div className="table-wrap">
+          <div className="table-wrap" style={{ marginTop: 10 }}>
             <table className="table">
               <thead>
                 <tr>
@@ -317,32 +321,40 @@ export function AdminUsersPage() {
                           }
                         />
                       </td>
-                      <td data-label="Email" style={{ fontWeight: 800 }}>{u.email}</td>
-                      <td data-label="Name" className="muted">{u.displayName ?? "-"}</td>
+                      <td data-label="Email" style={{ fontWeight: 800 }}>
+                        {u.email}
+                      </td>
+                      <td data-label="Name" className="muted">
+                        {u.displayName ?? "—"}
+                      </td>
                       <td data-label="Roles">
                         <div className="row" style={{ gap: 8 }}>
                           {u.roles.map((r) => (
-                            <span key={r} className="badge">{r}</span>
+                            <span key={r} className="badge">
+                              {r}
+                            </span>
                           ))}
-                          {u.roles.length === 0 ? <span className="muted">-</span> : null}
+                          {u.roles.length === 0 ? <span className="muted">—</span> : null}
                         </div>
                       </td>
                       <td data-label="Status">{disabled ? <span className="badge warn">Disabled</span> : <span className="badge ok">Active</span>}</td>
-                      <td data-label="SupporterId" className="muted">{u.supporterId ?? "-"}</td>
+                      <td data-label="SupporterId" className="muted">
+                        {u.supporterId ?? "—"}
+                      </td>
                       <td data-label="Actions">
-                        <div className="row admin-compact-actions">
+                        <div className="row">
                           <button
-                            className="btn admin-table-action"
+                            className="btn"
                             disabled={busy}
                             onClick={() => {
                               setResetTargetEmail(u.email);
-                              setNotice(`Ready to reset password for ${u.email}.`);
+                              setNotice(`Ready to reset password for ${u.email}. Enter the new password above.`);
                             }}
                           >
-                            Choose for reset
+                            Reset password
                           </button>
                           <button
-                            className="btn admin-table-action"
+                            className="btn"
                             disabled={busy}
                             onClick={async () => {
                               setBusy(true);
@@ -361,18 +373,18 @@ export function AdminUsersPage() {
                               }
                             }}
                           >
-                            {disabled ? "Enable sign-in" : "Disable sign-in"}
+                            {disabled ? "Enable" : "Disable"}
                           </button>
                           <button
-                            className="btn admin-table-action"
+                            className="btn"
                             disabled={busy}
                             onClick={() => {
                               setLinkTargetEmail(u.email);
                               setLinkSupporterIdValue(u.supporterId?.toString() ?? "");
-                              setNotice(`Ready to link donor for ${u.email}.`);
+                              setNotice(`Ready to link donor for ${u.email}. Set SupporterId above and apply.`);
                             }}
                           >
-                            Prepare donor link
+                            Link donor
                           </button>
                         </div>
                       </td>
@@ -400,3 +412,4 @@ export function AdminUsersPage() {
     </RequireRole>
   );
 }
+

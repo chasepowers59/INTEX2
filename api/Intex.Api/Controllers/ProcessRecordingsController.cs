@@ -35,6 +35,7 @@ public sealed class ProcessRecordingsController(AppDbContext db) : ControllerBas
     }
 
     [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult<ProcessRecording>> Create([FromBody] ProcessRecording input)
     {
         input.ProcessRecordingId = 0;
@@ -44,6 +45,7 @@ public sealed class ProcessRecordingsController(AppDbContext db) : ControllerBas
     }
 
     [HttpPut("{processRecordingId:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
     public async Task<ActionResult> Update([FromRoute] int processRecordingId, [FromBody] ProcessRecording input)
     {
         var item = await db.ProcessRecordings.FirstOrDefaultAsync(x => x.ProcessRecordingId == processRecordingId);

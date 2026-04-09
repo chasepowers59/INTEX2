@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { apiFetch } from "../../../lib/api";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth";
-import { InlineBarChart } from "../../../components/ui/InlineBarChart";
+import { apiFetch } from "../../../lib/api";
 import { StatCard } from "../../../components/ui/StatCard";
+import { Link } from "react-router-dom";
+import { InlineBarChart } from "../../../components/ui/InlineBarChart";
 
 type Overview = {
   asOfUtc: string;
@@ -23,6 +23,9 @@ type OpsAlerts = {
     displayName: string;
     safehouseId: number;
     assignedSocialWorker: string | null;
+    lastHomeVisitDate: string | null;
+    lastProcessRecordingDate: string | null;
+    riskScore: number | null;
     riskBand: string | null;
     reasons: string[];
   }[];
@@ -45,466 +48,365 @@ type ProgramInsights = {
       campaignName: string | null;
       referrals: number;
       estimatedValuePhp: number;
+      isBoosted: boolean;
+      boostPhp: number;
     }[];
   };
 };
 
-type MlPredictionRow = {
-  label: string | null;
-};
-
-type SafehouseForecast = {
-  safehouseId: number;
-  name: string;
-  city: string | null;
-  currentOccupancy: number | null;
-  capacityGirls: number | null;
-  predictedIncidentsNextMonth: number;
-};
-
-function formatPhp(value: number | null | undefined) {
-  if (value == null) return "-";
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "PHP",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatStamp(value: string | null | undefined) {
-  if (!value) return "Awaiting sync";
-  return new Date(value).toLocaleString();
-}
-
-function formatCompact(value: number | null | undefined) {
-  if (value == null) return "-";
-  return new Intl.NumberFormat(undefined, {
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
-}
-
 export function AppDashboardPage() {
   const auth = useAuth();
   const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
-  const token = auth.token ?? undefined;
-
   const [data, setData] = useState<Overview | null>(null);
   const [alerts, setAlerts] = useState<OpsAlerts | null>(null);
   const [insights, setInsights] = useState<ProgramInsights | null>(null);
-  const [safehouseForecast, setSafehouseForecast] = useState<SafehouseForecast[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [readinessBands, setReadinessBands] = useState<string>("-");
+  const [readinessBands, setReadinessBands] = useState<string>("—");
 
   useEffect(() => {
-    if (!token || !staff) return;
-
+    if (!auth.token || !staff) return;
     (async () => {
-      const [overviewRes, alertsRes, insightsRes, readinessRes, safehouseRes] = await Promise.allSettled([
-        apiFetch<Overview>("/api/analytics/overview", { token }),
-        apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token }),
-        apiFetch<ProgramInsights>("/api/analytics/program-insights", { token }),
-        apiFetch<MlPredictionRow[]>("/api/ml/predictions?type=resident_reintegration_readiness&take=200", { token }),
-        apiFetch<SafehouseForecast[]>("/api/ml/safehouse-forecast/top?take=5", { token }),
+      const [res, ops, prog, readiness] = await Promise.allSettled([
+        apiFetch<Overview>("/api/analytics/overview", { token: auth.token ?? undefined }),
+        apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token: auth.token ?? undefined }),
+        apiFetch<ProgramInsights>("/api/analytics/program-insights", { token: auth.token ?? undefined }),
+        apiFetch<any[]>("/api/ml/predictions?type=resident_reintegration_readiness&take=200", { token: auth.token ?? undefined }),
       ]);
 
-      const errs: string[] = [];
-
-      if (overviewRes.status === "fulfilled") setData(overviewRes.value);
-      else errs.push(`Overview: ${(overviewRes.reason as Error).message}`);
-
-      if (alertsRes.status === "fulfilled") setAlerts(alertsRes.value);
-      else errs.push(`Operational alerts: ${(alertsRes.reason as Error).message}`);
-
-      if (insightsRes.status === "fulfilled") setInsights(insightsRes.value);
-      else errs.push(`Program insights: ${(insightsRes.reason as Error).message}`);
-
-      if (safehouseRes.status === "fulfilled") setSafehouseForecast(safehouseRes.value);
-      else errs.push(`Safehouse forecast: ${(safehouseRes.reason as Error).message}`);
-
-      if (readinessRes.status === "fulfilled") {
+      if (res.status === "fulfilled") setData(res.value);
+      if (ops.status === "fulfilled") setAlerts(ops.value);
+      if (prog.status === "fulfilled") setInsights(prog.value);
+      if (readiness.status === "fulfilled") {
         const counts = new Map<string, number>();
-        for (const row of readinessRes.value) {
-          const band = row.label ?? "Unknown";
+        for (const row of readiness.value) {
+          const band = (row.label ?? "Unknown") as string;
           counts.set(band, (counts.get(band) ?? 0) + 1);
         }
-        const summary = [...counts.entries()]
+        const txt = [...counts.entries()]
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
-          .map(([label, count]) => `${label}:${count}`)
-          .join(" | ");
-        setReadinessBands(summary || "-");
-      } else {
-        errs.push(`Readiness: ${(readinessRes.reason as Error).message}`);
+          .map(([k, v]) => `${k}:${v}`)
+          .join(" · ");
+        setReadinessBands(txt || "—");
       }
 
-      setError(errs.length ? errs.join(" | ") : null);
+      const errs: string[] = [];
+      if (res.status === "rejected") errs.push(`Overview: ${(res.reason as Error)?.message ?? "failed"}`);
+      if (ops.status === "rejected") errs.push(`Operational alerts: ${(ops.reason as Error)?.message ?? "failed"}`);
+      if (prog.status === "rejected") errs.push(`Program insights: ${(prog.reason as Error)?.message ?? "failed"}`);
+      if (readiness.status === "rejected") errs.push(`Readiness: ${(readiness.reason as Error)?.message ?? "failed"}`);
+      if (errs.length > 0) {
+        setError(errs.join(" | "));
+      }
     })();
-  }, [staff, token]);
-
-  const followUpCoveragePct =
-    data && data.activeResidents > 0
-      ? Math.max(0, ((data.activeResidents - data.checkInsDue30d) / data.activeResidents) * 100)
-      : null;
-
-  const readinessChart = useMemo(
-    () =>
-      readinessBands === "-"
-        ? []
-        : readinessBands.split(" | ").map((entry) => {
-            const [label, raw] = entry.split(":");
-            return { label: label ?? "Unknown", value: Number(raw ?? 0) || 0 };
-          }),
-    [readinessBands],
-  );
-
-  const topProgramArea = insights?.donationAllocationsByProgram?.length
-    ? [...insights.donationAllocationsByProgram].sort((a, b) => b.totalPhp - a.totalPhp)[0]
-    : null;
-
-  const topForecast = safehouseForecast.length
-    ? [...safehouseForecast].sort((a, b) => b.predictedIncidentsNextMonth - a.predictedIncidentsNextMonth)[0]
-    : null;
-
-  const socialRoiMultiple =
-    insights && insights.socialRoi.totalBoostSpendPhp > 0
-      ? insights.socialRoi.totalEstimatedDonationValuePhp / insights.socialRoi.totalBoostSpendPhp
-      : null;
-
-  const workloadItems = [
-    { label: "Check-ins due", value: data?.checkInsDue30d ?? 0 },
-    { label: "Process recordings", value: data?.processRecordings7d ?? 0 },
-    { label: "Conferences", value: data?.upcomingConferences14d ?? 0 },
-    { label: "Open alerts", value: alerts?.items.length ?? 0 },
-  ];
-
-  const actionHeadline =
-    (alerts?.items.length ?? 0) > 0
-      ? `${alerts?.items.length ?? 0} residents need timely review`
-      : followUpCoveragePct != null && followUpCoveragePct < 85
-        ? "Follow-up coverage needs attention"
-        : "Operations look stable today";
+  }, [auth.token, staff]);
 
   return (
-    <div className="admin-dashboard-page">
-      <section className="card admin-command-hero">
-        <div className="admin-command-copy">
-          <h1>Operations at a glance</h1>
-          <div className="admin-command-meta">
-            <span className="badge brand">Updated {formatStamp(data?.asOfUtc ?? alerts?.asOfUtc ?? insights?.asOfUtc)}</span>
+    <div style={{ display: "grid", gap: 12 }}>
+      <div className="card">
+        <h1 style={{ marginTop: 0 }}>Operations Dashboard</h1>
+        <p className="muted">
+          High-signal, privacy-first view of operations supporting South Korean victims: follow-up health, donor momentum,
+          and safety-critical alerts.
+        </p>
+        {error ? (
+          <div className="badge danger" style={{ marginTop: 10 }}>
+            {error}
           </div>
-          {error ? <div className="badge danger">{error}</div> : null}
-          <div className="admin-quick-action-grid">
-            <Link className="btn primary" to="/app/cases">
-              Open caseload
-            </Link>
-            <Link className="btn" to="/app/donors">
-              Review donors
-            </Link>
-            <Link className="btn" to="/app/action-center">
-              Action center
-            </Link>
+        ) : null}
+        {data ? (
+          <div className="muted" style={{ marginTop: 10, fontSize: 12 }}>
+            Updated {new Date(data.asOfUtc).toLocaleString()}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="card panel2-bg">
+        <h2 style={{ marginTop: 0 }}>Operational trend charts</h2>
+        <p className="muted" style={{ marginTop: 6 }}>
+          Live chart view for resident risk, readiness, and activity load. Use this section for daily triage and staffing decisions.
+        </p>
+        <div className="row" style={{ marginTop: 12, alignItems: "stretch", gap: 12 }}>
+          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>Resident incident risk distribution</div>
+            <div style={{ marginTop: 10 }}>
+              <InlineBarChart
+                data={(data?.residentRisk.byBand ?? []).map((x) => ({ label: x.band, value: x.count }))}
+              />
+            </div>
+          </div>
+          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>Reintegration readiness distribution</div>
+            <div style={{ marginTop: 10 }}>
+              <InlineBarChart
+                data={(() => {
+                  if (readinessBands === "—") return [];
+                  return readinessBands.split(" · ").map((entry) => {
+                    const [label, raw] = entry.split(":");
+                    const value = Number(raw ?? 0);
+                    return { label: label ?? "Unknown", value: Number.isFinite(value) ? value : 0 };
+                  });
+                })()}
+              />
+            </div>
+          </div>
+          <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+            <div style={{ fontWeight: 800 }}>Current operations workload</div>
+            <div style={{ marginTop: 10 }}>
+              <InlineBarChart
+                data={[
+                  { label: "Check-ins due (30d)", value: data?.checkInsDue30d ?? 0 },
+                  { label: "Process recordings (7d)", value: data?.processRecordings7d ?? 0 },
+                  { label: "Conferences (14d)", value: data?.upcomingConferences14d ?? 0 },
+                  { label: "Open alerts", value: alerts?.items.length ?? 0 },
+                ]}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-overview-grid">
+        <div className="admin-overview-card">
+          <div className="muted">Residents</div>
+          <div className="admin-overview-kpi">{data?.activeResidents ?? "—"}</div>
+          <div className="muted">Active caseload count</div>
+        </div>
+        <div className="admin-overview-card">
+          <div className="muted">Donations 30d</div>
+          <div className="admin-overview-kpi">{data?.donations30d.count ?? "—"}</div>
+          <div className="muted">{data ? `₱${data.donations30d.totalAmount.toFixed(0)} total` : "—"}</div>
+        </div>
+        <div className="admin-overview-card">
+          <div className="muted">Check-ins due</div>
+          <div className="admin-overview-kpi">{data?.checkInsDue30d ?? "—"}</div>
+          <div className="muted">30-day follow-up window</div>
+        </div>
+        <div className="admin-overview-card">
+          <div className="muted">Readiness bands</div>
+          <div className="admin-overview-kpi" style={{ fontSize: 20 }}>{readinessBands}</div>
+          <div className="muted">Resident reintegration view</div>
+        </div>
+      </div>
+
+      <div className="card panel2-bg">
+        <div style={{ fontWeight: 800 }}>Executive note</div>
+        <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+          Use this dashboard to brief staff and partners on outcomes, risks, and stewardship while preserving survivor
+          privacy. Data shown here is operational and staff-only.
+        </p>
+        <div className="row" style={{ marginTop: 10 }}>
+          <Link className="btn" to="/app/cases">Employee case workflow</Link>
+          <Link className="btn" to="/app/reports">Admin reporting and snapshots</Link>
+          <Link className="btn" to="/app/admin/users">Admin user CRUD</Link>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <StatCard label="Active residents" value={data?.activeResidents ?? "—"} />
+        <StatCard
+          label="Donations in last 30 days"
+          value={data ? `${data.donations30d.count}` : "—"}
+          hint={data ? `₱${data.donations30d.totalAmount.toFixed(2)} total` : undefined}
+          tone="brand"
+        />
+        <StatCard label="Check-ins due in 30 days" value={data?.checkInsDue30d ?? "—"} tone="warn" />
+        <StatCard label="Process recordings in 7 days" value={data?.processRecordings7d ?? "—"} tone="ok" />
+        <StatCard label="Case conferences in 14 days" value={data?.upcomingConferences14d ?? "—"} />
+        <StatCard
+          label="Resident incident risk bands"
+          value={data ? data.residentRisk.byBand.map((b) => `${b.band}:${b.count}`).slice(0, 3).join(" · ") || "—" : "—"}
+          hint={data?.residentRisk.asOfUtc ? `As of ${new Date(data.residentRisk.asOfUtc).toLocaleString()}` : "No ML import yet"}
+        />
+        <StatCard label="Reintegration readiness bands" value={readinessBands} hint="From resident readiness ML imports" tone="ok" />
+      </div>
+
+      {insights ? (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Program outcomes &amp; stewardship signals</h2>
+          <p className="muted" style={{ marginTop: 6 }}>
+            Pulled from intervention plans, allocations, education/health records, incidents, and social posts—use this to
+            brief teams and tune campaigns. Updated {new Date(insights.asOfUtc).toLocaleString()}.
+          </p>
+
+          <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
+              <div style={{ fontWeight: 800 }}>Annual-report style pillars</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Mentions in services provided, plans can match multiple pillars.
+              </p>
+              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>Caring: {insights.servicesPillarMentions.caring}</li>
+                <li>Healing: {insights.servicesPillarMentions.healing}</li>
+                <li>Teaching: {insights.servicesPillarMentions.teaching}</li>
+                <li>Legal: {insights.servicesPillarMentions.legal}</li>
+              </ul>
+            </div>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
+              <div style={{ fontWeight: 800 }}>Resident outcomes (records)</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Education progress &amp; health scores across all monthly rows.
+              </p>
+              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>Avg education progress: {insights.education.avgProgressPercent ?? "—"}%</li>
+                <li>Completed education records: {insights.education.recordsCompleted}</li>
+                <li>Avg general health score: {insights.health.avgGeneralHealthScore ?? "—"}</li>
+              </ul>
+            </div>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 240px" }}>
+              <div style={{ fontWeight: 800 }}>Safety in 90 days</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Open follow-ups: {insights.incidents90d.openFollowUps}
+              </p>
+              <ul className="muted" style={{ margin: "8px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                {insights.incidents90d.byType.slice(0, 5).map((r) => (
+                  <li key={r.incidentType}>
+                    {r.incidentType}: {r.count}
+                  </li>
+                ))}
+                {insights.incidents90d.byType.length === 0 ? <li>No incidents in window</li> : null}
+              </ul>
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 14, alignItems: "stretch", flexWrap: "wrap", gap: 12 }}>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+              <div style={{ fontWeight: 800 }}>Donation allocations by program area</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Where pledged value is directed—helps explain impact to donors.
+              </p>
+              {(() => {
+                const rows = insights.donationAllocationsByProgram;
+                const max = Math.max(...rows.map((r) => r.totalPhp), 1);
+                return (
+                  <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                    {rows.length === 0 ? <div className="muted">No allocation rows yet.</div> : null}
+                    {rows.map((r) => (
+                      <div key={r.programArea}>
+                        <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}>
+                          <span>{r.programArea}</span>
+                          <span className="muted">₱{r.totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        </div>
+                        <div className="mini-track">
+                          <div
+                            style={{
+                              width: `${Math.min(100, (r.totalPhp / max) * 100)}%`,
+                              height: "100%",
+                              background: "var(--brand)",
+                              borderRadius: 4,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="card card-flat-panel2" style={{ flex: "1 1 280px" }}>
+              <div style={{ fontWeight: 800 }}>Outreach ROI, dataset estimates</div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Boost spend vs. modeled donation value from social posts.
+              </p>
+              <ul className="muted" style={{ margin: "10px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>Total boost spend: ₱{insights.socialRoi.totalBoostSpendPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
+                <li>Est. donation value: ₱{insights.socialRoi.totalEstimatedDonationValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</li>
+              </ul>
+              <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700 }}>Top referral posts</div>
+              <ul className="muted" style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.6 }}>
+                {insights.socialRoi.topPosts.length === 0 ? <li>None yet</li> : null}
+                {insights.socialRoi.topPosts.map((p) => (
+                  <li key={p.postId}>
+                    #{p.postId} {p.platform} · {p.postType}
+                    {p.campaignName ? ` · ${p.campaignName}` : ""} — ₱{p.estimatedValuePhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}{" "}
+                    {p.referrals} referrals
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 12, gap: 10 }}>
             <Link className="btn" to="/app/reports">
-              Run reports
+              Full reports &amp; publish snapshots
+            </Link>
+            <Link className="btn" to="/impact">
+              Preview public impact page
             </Link>
           </div>
         </div>
+      ) : null}
 
-        <aside className="admin-command-side">
-          <div className="admin-command-status">
-            <div className="admin-status-row">
-              <span>Priority</span>
-              <strong>{actionHeadline}</strong>
-            </div>
-            <div className="admin-status-row">
-              <span>Follow-up coverage</span>
-              <strong>{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</strong>
-            </div>
-            <div className="admin-status-row">
-              <span>Top funding area</span>
-              <strong>{topProgramArea ? topProgramArea.programArea : "Awaiting allocations"}</strong>
-            </div>
-            <div className="admin-status-row">
-              <span>Highest forecast pressure</span>
-              <strong>{topForecast ? topForecast.name : "Awaiting forecast import"}</strong>
-            </div>
-          </div>
-        </aside>
-      </section>
+      <div className="card">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Operational alerts</h2>
+          <Link className="btn" to="/app/action-center">
+            View ML Action Center
+          </Link>
+        </div>
 
-      <div className="admin-dashboard-main">
-          <div className="kpi-grid">
-            <StatCard label="Residents currently in care" value={data?.activeResidents ?? "-"} />
-            <StatCard
-              label="Gifts recorded in the last 30 days"
-              value={data?.donations30d.count ?? "-"}
-              hint={data ? `${formatPhp(data.donations30d.totalAmount)} total recorded` : "Awaiting donation data"}
-              tone="brand"
-            />
-            <StatCard
-              label="Resident check-ins due in 30 days"
-              value={data?.checkInsDue30d ?? "-"}
-              tone="warn"
-            />
-            <StatCard
-              label="Case notes entered in the last 7 days"
-              value={data?.processRecordings7d ?? "-"}
-              tone="ok"
-            />
-            <StatCard
-              label="Case conferences scheduled in 14 days"
-              value={data?.upcomingConferences14d ?? "-"}
-            />
-            <StatCard
-              label="Residents currently flagged for review"
-              value={alerts?.items.length ?? "-"}
-              tone={(alerts?.items.length ?? 0) > 0 ? "danger" : "ok"}
-            />
-          </div>
+        <p className="muted" style={{ marginTop: 8 }}>
+          Prioritize follow-ups without exposing sensitive details.
+        </p>
 
-          <div className="admin-two-column">
-            <section className="card admin-panel">
-              <div className="admin-panel-header">
-                <div>
-                  <h2>Immediate attention</h2>
-                  <p className="muted">Residents and follow-ups that should be reviewed first.</p>
-                </div>
-                <Link className="btn" to="/app/action-center">
-                  View ML triage
-                </Link>
-              </div>
-
-              {alerts?.items?.length ? (
-                <div className="admin-alert-list">
-                  {alerts.items.slice(0, 4).map((row) => (
-                    <article key={row.residentId} className="admin-alert-card">
-                      <div className="admin-alert-head">
-                        <div className="admin-alert-title">
-                          <strong>{row.displayName}</strong>
-                          <span className="muted">
-                            Safehouse {row.safehouseId}
-                            {row.assignedSocialWorker ? ` - ${row.assignedSocialWorker}` : ""}
-                          </span>
-                        </div>
-                        <span className={`badge ${row.riskBand?.toLowerCase().includes("high") ? "danger" : "warn"}`}>
-                          {row.riskBand ?? "Review"}
-                        </span>
-                      </div>
-                      <div className="admin-alert-reasons">
-                        {row.reasons.map((reason) => (
+        {alerts?.items?.length ? (
+          <div className="table-wrap" style={{ marginTop: 10 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Resident</th>
+                  <th>Safehouse</th>
+                  <th>Worker</th>
+                  <th>Reasons</th>
+                  <th style={{ width: 260 }}>Quick links</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alerts.items.map((x) => (
+                  <tr key={x.residentId}>
+                    <td data-label="Resident" style={{ fontWeight: 800 }}>
+                      {x.displayName}
+                    </td>
+                    <td data-label="Safehouse" className="muted">
+                      {x.safehouseId}
+                    </td>
+                    <td data-label="Worker" className="muted">
+                      {x.assignedSocialWorker ?? "—"}
+                    </td>
+                    <td data-label="Reasons">
+                      <div className="row" style={{ gap: 8 }}>
+                        {x.reasons.map((r) => (
                           <span
-                            key={reason}
-                            className={`badge ${reason.includes("High incident risk") ? "danger" : reason.includes("due") ? "warn" : "ok"}`}
+                            key={r}
+                            className={`badge ${
+                              r.includes("High incident risk") ? "danger" : r.includes("due") ? "warn" : "ok"
+                            }`}
                           >
-                            {reason}
+                            {r}
                           </span>
                         ))}
                       </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div className="admin-empty-state">
-                  No operational alerts right now.
-                </div>
-              )}
-            </section>
-
-            <section className="card admin-panel">
-              <div className="admin-panel-header">
-                <div>
-                  <h2>Workload and care pulse</h2>
-                  <p className="muted">Check-ins, notes, conferences, and readiness.</p>
-                </div>
-              </div>
-
-              <InlineBarChart data={workloadItems} />
-
-              <div className="admin-mini-metrics">
-                <div className="admin-mini-metric">
-                  <span>Coverage</span>
-                  <strong>{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</strong>
-                </div>
-                <div className="admin-mini-metric">
-                  <span>Readiness mix</span>
-                  <strong>{readinessBands}</strong>
-                </div>
-                <div className="admin-mini-metric">
-                  <span>Top donor lapse band</span>
-                  <strong>{data?.donorLapse.byBand?.[0]?.band ?? "Awaiting import"}</strong>
-                </div>
-                <div className="admin-mini-metric">
-                  <span>Programs with service notes</span>
-                  <strong>{insights?.servicesPillarMentions.plansWithServicesText ?? "-"}</strong>
-                </div>
-              </div>
-
-              <div className="admin-inline-summary">
-                {followUpCoveragePct == null
-                  ? "Follow-up coverage will appear here once resident follow-up timing is available."
-                  : `Current follow-up coverage is ${followUpCoveragePct.toFixed(0)}%. ${alerts?.items.length ?? 0} residents are currently surfaced for review, and ${data?.upcomingConferences14d ?? 0} case conferences are scheduled soon.`}
-              </div>
-            </section>
+                    </td>
+                    <td data-label="Quick links">
+                      <div className="row">
+                        <Link className="btn" to={`/app/residents/${x.residentId}/process-recordings`}>
+                          Process recordings
+                        </Link>
+                        <Link className="btn" to={`/app/residents/${x.residentId}/home-visits`}>
+                          Home visits
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          <section className="card admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Care signals</h2>
-                <p className="muted">Risk, readiness, and donor lapse distribution.</p>
-              </div>
-              <Link className="btn" to="/app/ml">
-                Open ML insights
-              </Link>
-            </div>
-
-            <div className="admin-signal-grid">
-              <div className="admin-signal-card">
-                <h3>Resident incident risk</h3>
-                {data?.residentRisk.byBand?.length ? (
-                  <InlineBarChart data={data.residentRisk.byBand.map((row) => ({ label: row.band, value: row.count }))} />
-                ) : (
-                  <div className="admin-empty-state">Import `resident_incident_30d` predictions to populate this chart.</div>
-                )}
-              </div>
-
-              <div className="admin-signal-card">
-                <h3>Reintegration readiness</h3>
-                {readinessChart.length ? (
-                  <InlineBarChart data={readinessChart} />
-                ) : (
-                  <div className="admin-empty-state">Import `resident_reintegration_readiness` predictions to populate this chart.</div>
-                )}
-              </div>
-
-              <div className="admin-signal-card">
-                <h3>Donor lapse outlook</h3>
-                {data?.donorLapse.byBand?.length ? (
-                  <InlineBarChart data={data.donorLapse.byBand.map((row) => ({ label: row.band, value: row.count }))} />
-                ) : (
-                  <div className="admin-empty-state">Import `donor_lapse_90d` predictions to populate this chart.</div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <div className="admin-two-column">
-            <section className="card admin-panel">
-              <div className="admin-panel-header">
-                <div>
-                  <h2>Safehouse forecast</h2>
-                  <p className="muted">Next-month incident pressure by safehouse.</p>
-                </div>
-              </div>
-
-              {safehouseForecast.length ? (
-                <div className="admin-forecast-list">
-                  {safehouseForecast.map((row) => (
-                    <div key={row.safehouseId} className="admin-forecast-item">
-                      <div>
-                        <strong>{row.name}</strong>
-                        <span className="muted">
-                          {row.city ?? "Location not set"}
-                          {row.capacityGirls != null ? ` - ${row.currentOccupancy ?? "-"} / ${row.capacityGirls} occupied` : ""}
-                        </span>
-                      </div>
-                      <div className="admin-forecast-metric">
-                        {row.predictedIncidentsNextMonth.toFixed(2)}
-                        <span>predicted incidents</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="admin-empty-state">
-                  No safehouse forecast imported yet. Import `safehouse_incident_next_month` to show capacity pressure here.
-                </div>
-              )}
-            </section>
-
-            <section className="card admin-panel">
-              <div className="admin-panel-header">
-                <div>
-                  <h2>Funding and stewardship</h2>
-                  <p className="muted">Allocations, recent donations, and ROI.</p>
-                </div>
-              </div>
-
-              <div className="admin-program-bars">
-                {insights?.donationAllocationsByProgram?.length ? (
-                  [...insights.donationAllocationsByProgram]
-                    .sort((a, b) => b.totalPhp - a.totalPhp)
-                    .slice(0, 4)
-                    .map((row) => {
-                    const max = Math.max(...insights.donationAllocationsByProgram.map((item) => item.totalPhp), 1);
-                    const width = `${Math.min(100, (row.totalPhp / max) * 100)}%`;
-                    return (
-                      <div key={row.programArea}>
-                        <div className="admin-program-bar-label">
-                          <span>{row.programArea}</span>
-                          <span>{formatPhp(row.totalPhp)}</span>
-                        </div>
-                        <div className="admin-program-bar">
-                          <span style={{ width }} />
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="admin-empty-state">No allocation rows yet. Admin allocations will populate this panel.</div>
-                )}
-              </div>
-
-              <div className="admin-mini-metrics">
-                <div className="admin-mini-metric">
-                  <span>Donations in last 30 days</span>
-                  <strong>{formatPhp(data?.donations30d.totalAmount)}</strong>
-                </div>
-                <div className="admin-mini-metric">
-                  <span>Top funding area</span>
-                  <strong>{topProgramArea?.programArea ?? "-"}</strong>
-                </div>
-                <div className="admin-mini-metric">
-                  <span>Approx. ROI multiple</span>
-                  <strong>{socialRoiMultiple == null ? "-" : `${socialRoiMultiple.toFixed(1)}x`}</strong>
-                </div>
-              </div>
-            </section>
+        ) : (
+          <div className="muted" style={{ marginTop: 10 }}>
+            No alerts yet. Add home visits/process recordings, or import `resident_incident_30d` predictions.
           </div>
-
-          <section className="card admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Program outcomes</h2>
-                <p className="muted">Education, health, and follow-up metrics.</p>
-              </div>
-              <Link className="btn" to="/app/reports">
-                View detailed reports
-              </Link>
-            </div>
-
-            <div className="admin-outcome-grid">
-              <div className="admin-mini-metric">
-                <span>Avg education progress</span>
-                <strong>{insights?.education.avgProgressPercent == null ? "-" : `${insights.education.avgProgressPercent}%`}</strong>
-              </div>
-              <div className="admin-mini-metric">
-                <span>Avg health score</span>
-                <strong>{insights?.health.avgGeneralHealthScore ?? "-"}</strong>
-              </div>
-              <div className="admin-mini-metric">
-                <span>Open incident follow-ups</span>
-                <strong>{formatCompact(insights?.incidents90d.openFollowUps)}</strong>
-              </div>
-            </div>
-
-            <div className="admin-service-pillars">
-              <span>Caring: {insights?.servicesPillarMentions.caring ?? "-"}</span>
-              <span>Healing: {insights?.servicesPillarMentions.healing ?? "-"}</span>
-              <span>Teaching: {insights?.servicesPillarMentions.teaching ?? "-"}</span>
-              <span>Legal: {insights?.servicesPillarMentions.legal ?? "-"}</span>
-            </div>
-          </section>
+        )}
       </div>
     </div>
   );

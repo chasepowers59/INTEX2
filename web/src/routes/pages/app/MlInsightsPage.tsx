@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { Link } from "react-router-dom";
 
 type MlPred = {
   predictionId: number;
@@ -34,56 +34,6 @@ type MlCoverage = {
   }[];
 };
 
-const PIPELINE_GUIDE: Record<string, {
-  title: string;
-  prediction: string;
-  explanation: string;
-  operationalUse: string;
-}> = {
-  donor_lapse_90d: {
-    title: "Donor lapse risk",
-    prediction: "Predicts which donors are most likely to stop giving in the near term.",
-    explanation: "Helps explain which patterns such as recency, cadence, and donor history are associated with lapse risk.",
-    operationalUse: "Use in the Action Center to prioritize stewardship and recovery outreach."
-  },
-  donor_upgrade_next_amount: {
-    title: "Donor upgrade next amount",
-    prediction: "Predicts the next likely gift amount or ask level for a donor.",
-    explanation: "Helps explain what donor characteristics are associated with larger future gifts.",
-    operationalUse: "Use to guide tailored ask amounts instead of generic fundraising appeals."
-  },
-  next_channel_source: {
-    title: "Next best channel",
-    prediction: "Predicts which outreach channel is most likely to work for a donor.",
-    explanation: "Helps explain which past campaign and acquisition patterns are associated with successful channels.",
-    operationalUse: "Use with donor upgrade guidance to choose both the ask and the contact method."
-  },
-  post_donation_value: {
-    title: "Social post donation value",
-    prediction: "Predicts the expected donation value of a social post before you spend more on it.",
-    explanation: "Helps explain which content topics, platforms, and calls to action tend to convert better.",
-    operationalUse: "Use in Social Strategy to choose what to post and what to boost."
-  },
-  safehouse_incident_next_month: {
-    title: "Safehouse incident forecast",
-    prediction: "Predicts next-month incident pressure at the safehouse level.",
-    explanation: "Helps explain which site-level conditions are associated with future incident load.",
-    operationalUse: "Use for staffing and capacity planning, not as a replacement for case judgment."
-  },
-  resident_incident_30d: {
-    title: "Resident incident risk",
-    prediction: "Predicts which residents are at higher near-term incident risk.",
-    explanation: "Helps explain what patterns in recent activity and case context are associated with elevated risk.",
-    operationalUse: "Use to escalate follow-up and safety planning earlier."
-  },
-  resident_reintegration_readiness: {
-    title: "Resident reintegration readiness",
-    prediction: "Predicts which residents appear more ready for reintegration planning.",
-    explanation: "Helps explain which progress signals are associated with readiness, without claiming causation.",
-    operationalUse: "Use to support conference planning and reintegration discussions."
-  }
-};
-
 export function MlInsightsPage() {
   const auth = useAuth();
   const [types, setTypes] = useState<string[]>([]);
@@ -93,26 +43,20 @@ export function MlInsightsPage() {
   const [coverage, setCoverage] = useState<MlCoverage | null>(null);
   const [importBusy, setImportBusy] = useState<boolean>(false);
   const [importReplace, setImportReplace] = useState<boolean>(true);
-  const [showImportHelp, setShowImportHelp] = useState<boolean>(false);
 
   const canAdminImport = useMemo(() => auth.hasRole("Admin"), [auth]);
-  const selectedGuide = type ? PIPELINE_GUIDE[type] : null;
 
   const loadTypes = async () => {
-    const token = auth.token ?? undefined;
-    const discoveredTypes = await apiFetch<string[]>("/api/ml/types", { token });
-    setTypes(discoveredTypes);
-    if (!type && discoveredTypes.length > 0) {
-      setType(discoveredTypes[0]);
-    }
-    const currentCoverage = await apiFetch<MlCoverage>("/api/ml/coverage", { token });
-    setCoverage(currentCoverage);
+    const t = await apiFetch<string[]>("/api/ml/types", { token: auth.token ?? undefined });
+    setTypes(t);
+    if (!type && t.length > 0) setType(t[0]);
+    const c = await apiFetch<MlCoverage>("/api/ml/coverage", { token: auth.token ?? undefined });
+    setCoverage(c);
   };
 
   const loadPreds = async (predictionType: string) => {
-    const token = auth.token ?? undefined;
     const res = await apiFetch<MlPred[]>(`/api/ml/predictions?type=${encodeURIComponent(predictionType)}&take=100`, {
-      token,
+      token: auth.token ?? undefined,
     });
     setItems(res);
   };
@@ -142,73 +86,87 @@ export function MlInsightsPage() {
   }, [type]);
 
   return (
-    <div className="admin-page">
+    <div style={{ display: "grid", gap: 12 }}>
       <div className="card">
-        <div className="admin-header">
-          <div className="admin-header-copy">
-            <h1 style={{ marginTop: 0 }}>Prediction Admin</h1>
-            <p className="muted">Prediction coverage, upload status, and latest rows.</p>
+        <h1 style={{ marginTop: 0 }}>ML Insights</h1>
+        <p className="muted">
+          This page displays model outputs imported from the IS455 notebooks. Import is admin-only.
+        </p>
+        <div className="staff-ml-grid" style={{ marginTop: 12 }}>
+          <div className="card tone-aqua" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 800 }}>Integration status</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              ML prediction types discovered: <strong>{types.length}</strong>
+            </div>
+            <div className="muted" style={{ fontSize: 13 }}>Loaded rows for selected type: <strong>{items.length}</strong></div>
+            <div className="muted" style={{ fontSize: 13 }}>
+              Expected pipelines loaded: <strong>{coverage ? `${coverage.expectedPresent}/${coverage.expectedTotal}` : "—"}</strong>
+            </div>
           </div>
-          <div className="admin-toolbar">
-            <Link className="btn" to="/app/action-center">Action Center</Link>
-            <Link className="btn" to="/app/social-media">Social strategy</Link>
-            <Link className="btn" to="/app/dashboard">Dashboard</Link>
+          <div className="card tone-berry" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 800 }}>Who should use this</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Employees triage via Action Center; admins import/validate models; donors view anonymized impact only.
+            </div>
           </div>
-        </div>
-
-        <div className="admin-kpi-grid" style={{ marginTop: 12 }}>
-          <div className="card admin-kpi tone-aqua">
-            <div className="muted">Prediction types</div>
-            <div className="admin-kpi-value">{types.length}</div>
-          </div>
-          <div className="card admin-kpi tone-peach">
-            <div className="muted">Rows in selected type</div>
-            <div className="admin-kpi-value">{items.length}</div>
-          </div>
-          <div className="card admin-kpi tone-berry">
-            <div className="muted">Expected pipelines loaded</div>
-            <div className="admin-kpi-value">{coverage ? `${coverage.expectedPresent}/${coverage.expectedTotal}` : "-"}</div>
+          <div className="card tone-peach" style={{ boxShadow: "none" }}>
+            <div style={{ fontWeight: 800 }}>Operational links</div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <Link className="btn" to="/app/action-center">Action Center</Link>
+              <Link className="btn" to="/app/social-media">Social strategy</Link>
+            </div>
           </div>
         </div>
 
         {coverage ? (
           <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
-            <div style={{ fontWeight: 900 }}>Coverage</div>
+            <div style={{ fontWeight: 900 }}>Expected ML pipeline coverage</div>
             <div className="table-wrap" style={{ marginTop: 10 }}>
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Model</th>
-                    <th>Prediction</th>
-                    <th>Relationship view</th>
+                    <th>Prediction type</th>
+                    <th>Entity</th>
+                    <th>Purpose</th>
                     <th>Status</th>
                     <th>Rows</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {coverage.expected.map((row) => {
-                    const guide = PIPELINE_GUIDE[row.predictionType];
-                    return (
-                      <tr key={row.predictionType}>
-                        <td data-label="Model">
-                          <div style={{ fontWeight: 700 }}>{guide?.title ?? row.predictionType}</div>
-                          <div className="muted" style={{ fontSize: 12 }}>{row.predictionType}</div>
-                        </td>
-                        <td data-label="Prediction">{guide?.prediction ?? row.purpose}</td>
-                        <td data-label="Relationship view">{guide?.explanation ?? "Relationship analysis available in the supporting notebook."}</td>
-                        <td data-label="Status">
-                          {row.present ? <span className="badge ok">Imported</span> : <span className="badge warn">Missing</span>}
-                        </td>
-                        <td data-label="Rows">{row.rowCount}</td>
-                      </tr>
-                    );
-                  })}
+                  {coverage.expected.map((x) => (
+                    <tr key={x.predictionType}>
+                      <td data-label="Prediction type" className="muted">{x.predictionType}</td>
+                      <td data-label="Entity">{x.entityType}</td>
+                      <td data-label="Purpose">{x.purpose}</td>
+                      <td data-label="Status">{x.present ? <span className="badge ok">Imported</span> : <span className="badge warn">Missing</span>}</td>
+                      <td data-label="Rows">{x.rowCount}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         ) : null}
-
+        <div className="row" style={{ marginTop: 10 }}>
+          <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 230px" }}>
+            <div style={{ fontWeight: 800 }}>Risk pipelines</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Resident incident risk and donor lapse detection guide proactive interventions.
+            </div>
+          </div>
+          <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 230px" }}>
+            <div style={{ fontWeight: 800 }}>Growth pipelines</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Donor upgrade and next-best campaign outputs improve outreach conversion.
+            </div>
+          </div>
+          <div className="card tone-berry" style={{ boxShadow: "none", flex: "1 1 230px" }}>
+            <div style={{ fontWeight: 800 }}>Social media pipelines</div>
+            <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+              Social post referral prediction helps prioritize content themes and channels.
+            </div>
+          </div>
+        </div>
         {error ? (
           <div className="badge danger" style={{ marginTop: 10 }}>
             {error}
@@ -217,14 +175,14 @@ export function MlInsightsPage() {
 
         <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
           <label style={{ display: "grid", gap: 6, minWidth: 260, flex: 1 }}>
-            <span className="muted">Model</span>
+            <span className="muted">Prediction type</span>
             <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
               <option value="" disabled>
-                Select...
+                Select…
               </option>
-              {types.map((discoveredType) => (
-                <option key={discoveredType} value={discoveredType}>
-                  {PIPELINE_GUIDE[discoveredType]?.title ?? discoveredType}
+              {types.map((t) => (
+                <option key={t} value={t}>
+                  {t}
                 </option>
               ))}
             </select>
@@ -237,47 +195,29 @@ export function MlInsightsPage() {
           <button
             className="btn primary"
             disabled={!canAdminImport}
-            onClick={() => setShowImportHelp((current) => !current)}
+            onClick={async () => {
+              alert(
+                "Admin import is done from notebooks:\n\n" +
+                  "1) Run a notebook to export JSON predictions.\n" +
+                  "2) POST to /api/ml/import?replace=true with the JSON array as the body.\n\n" +
+                  "See ml-pipelines/ and PROJECT_CONTEXT.md for details."
+              );
+            }}
           >
-            {showImportHelp ? "Hide upload help" : "Upload help"}
+            How to import
           </button>
         </div>
 
-        {showImportHelp ? (
-          <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
-            <div style={{ fontWeight: 900 }}>Upload steps</div>
-            <ol className="admin-plain-list muted" style={{ marginTop: 8 }}>
-              <li>Export a prediction JSON file from the analytics workflow.</li>
-              <li>Upload the file below to refresh the selected model rows.</li>
-              <li>Use replace mode when publishing a new batch for the same model.</li>
-            </ol>
-          </div>
-        ) : null}
-
-        {selectedGuide ? (
-          <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
-            <div className="card tone-aqua" style={{ boxShadow: "none", flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>{selectedGuide.title}: prediction</div>
-              <div className="muted" style={{ marginTop: 6 }}>{selectedGuide.prediction}</div>
-            </div>
-            <div className="card tone-peach" style={{ boxShadow: "none", flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>{selectedGuide.title}: explanation</div>
-              <div className="muted" style={{ marginTop: 6 }}>{selectedGuide.explanation}</div>
-            </div>
-            <div className="card tone-berry" style={{ boxShadow: "none", flex: "1 1 280px" }}>
-              <div style={{ fontWeight: 800 }}>Operational use</div>
-              <div className="muted" style={{ marginTop: 6 }}>{selectedGuide.operationalUse}</div>
-            </div>
-          </div>
-        ) : null}
-
         {canAdminImport ? (
           <div className="card" style={{ boxShadow: "none", marginTop: 12 }}>
-            <div style={{ fontWeight: 900 }}>Upload prediction file</div>
+            <div style={{ fontWeight: 900 }}>Admin import (in-browser)</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Upload a JSON array exported by the notebooks. This sends it to <code>/api/ml/import</code>.
+            </div>
 
             <div className="row" style={{ marginTop: 10, alignItems: "end" }}>
               <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
-                <span className="muted">Replace existing rows</span>
+                <span className="muted">Replace existing type</span>
                 <select
                   className="input"
                   value={importReplace ? "yes" : "no"}
@@ -347,11 +287,12 @@ export function MlInsightsPage() {
 
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Latest prediction rows</h2>
+          <h2 style={{ marginTop: 0, marginBottom: 0 }}>Predictions</h2>
           <div className="muted" style={{ fontSize: 12 }}>
             Showing {items.length} rows
           </div>
         </div>
+
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">
             <thead>
@@ -363,24 +304,24 @@ export function MlInsightsPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((row) => (
-                <tr key={row.predictionId}>
+              {items.map((x) => (
+                <tr key={x.predictionId}>
                   <td data-label="Entity" className="muted">
-                    {row.entityType}:{row.entityId}
+                    {x.entityType}:{x.entityId}
                   </td>
-                  <td data-label="Score">{row.score.toFixed(4)}</td>
+                  <td data-label="Score">{x.score.toFixed(4)}</td>
                   <td data-label="Label" className="muted">
-                    {row.label ?? "-"}
+                    {x.label ?? "—"}
                   </td>
                   <td data-label="Created (UTC)" className="muted">
-                    {row.createdAtUtc}
+                    {x.createdAtUtc}
                   </td>
                 </tr>
               ))}
               {items.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="muted">
-                    No rows available for this model.
+                    No predictions imported yet for this type.
                   </td>
                 </tr>
               ) : null}
@@ -388,39 +329,31 @@ export function MlInsightsPage() {
           </table>
         </div>
 
-        <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
-          <div className="card" style={{ boxShadow: "none", flex: "1 1 280px" }}>
-            <div style={{ fontWeight: 800 }}>Payload highlights</div>
-            {items[0]?.payloadJson ? (
-              (() => {
-                try {
-                  const payload = JSON.parse(items[0].payloadJson) as Record<string, unknown>;
-                  const entries = Object.entries(payload).slice(0, 8);
-                  return entries.length ? (
-                    <ul className="muted mini-widget-list">
-                      {entries.map(([key, value]) => (
-                        <li key={key}>
-                          {key.replaceAll("_", " ")}: {String(value)}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="muted" style={{ marginTop: 8 }}>No payload attributes in first row.</div>
-                  );
-                } catch {
-                  return <div className="muted" style={{ marginTop: 8 }}>Payload details are available after the next model export.</div>;
-                }
-              })()
-            ) : (
-              <div className="muted" style={{ marginTop: 8 }}>No payload details available yet.</div>
-            )}
-          </div>
-          <div className="card" style={{ boxShadow: "none", flex: "1 1 280px" }}>
-            <div style={{ fontWeight: 800 }}>Interpretation guardrail</div>
-            <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              Use these rows to support prioritization and planning. They should guide review, not replace staff judgment.
-            </p>
-          </div>
+        <div className="card" style={{ marginTop: 12, boxShadow: "none" }}>
+          <div style={{ fontWeight: 800 }}>Payload highlights</div>
+          {items[0]?.payloadJson ? (
+            (() => {
+              try {
+                const payload = JSON.parse(items[0].payloadJson) as Record<string, unknown>;
+                const entries = Object.entries(payload).slice(0, 8);
+                return entries.length ? (
+                  <ul className="muted mini-widget-list">
+                    {entries.map(([k, v]) => (
+                      <li key={k}>
+                        {k.replaceAll("_", " ")}: {String(v)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="muted" style={{ marginTop: 8 }}>No payload attributes in first row.</div>
+                );
+              } catch {
+                return <div className="muted" style={{ marginTop: 8 }}>Payload details are available after the next model export.</div>;
+              }
+            })()
+          ) : (
+            <div className="muted" style={{ marginTop: 8 }}>No payload details available yet.</div>
+          )}
         </div>
       </div>
     </div>
