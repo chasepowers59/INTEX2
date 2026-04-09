@@ -41,19 +41,20 @@ builder.Services
     {
         var pwd = builder.Configuration.GetSection("Identity:Password");
         options.Password.RequiredLength = pwd.GetValue("RequiredLength", 12);
-        // Project requirement: password policy is length-only (no complexity checks).
-        options.Password.RequireDigit = false;
-        options.Password.RequireLowercase = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequiredUniqueChars = 1;
+        // Mirror the configured password policy instead of silently weakening it at runtime.
+        options.Password.RequireDigit = pwd.GetValue("RequireDigit", true);
+        options.Password.RequireLowercase = pwd.GetValue("RequireLowercase", true);
+        options.Password.RequireUppercase = pwd.GetValue("RequireUppercase", true);
+        options.Password.RequireNonAlphanumeric = pwd.GetValue("RequireNonAlphanumeric", true);
+        options.Password.RequiredUniqueChars = pwd.GetValue("RequiredUniqueChars", 4);
 
         options.Lockout.MaxFailedAccessAttempts = 8;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager();
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -241,6 +242,11 @@ app.MapGet("/health/info", async (IConfiguration config, IServiceProvider sp) =>
         aspNetUserCount,
         seedAdminConfiguredButNoUsers = seedAdminOk && aspNetUserCount == 0,
         identityPasswordRequiredLength = config.GetValue("Identity:Password:RequiredLength", 12),
+        identityPasswordRequireDigit = config.GetValue("Identity:Password:RequireDigit", true),
+        identityPasswordRequireLowercase = config.GetValue("Identity:Password:RequireLowercase", true),
+        identityPasswordRequireUppercase = config.GetValue("Identity:Password:RequireUppercase", true),
+        identityPasswordRequireNonAlphanumeric = config.GetValue("Identity:Password:RequireNonAlphanumeric", true),
+        identityPasswordRequiredUniqueChars = config.GetValue("Identity:Password:RequiredUniqueChars", 4),
         lighthouseAutoImportIfEmpty = config.GetValue("LighthouseImport:AutoImportIfEmpty", true),
         lighthouseSyncBeforeSeed = config.GetValue("LighthouseImport:SyncBeforeSeed", true),
         supporterRowCount,

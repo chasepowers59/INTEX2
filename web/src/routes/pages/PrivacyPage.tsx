@@ -11,8 +11,8 @@ export function PrivacyPage() {
 
       <h2>Controller and scope</h2>
       <p className="muted">
-        For this project deployment, Steps of Hope acts as the data controller for supporter account data, donor activity,
-        and operational case-management records. Public pages only display anonymized and aggregated reporting.
+        Steps of Hope acts as the data controller for supporter account data, donor activity, and operational
+        case-management records. Public pages only display anonymized and aggregated reporting.
       </p>
 
       <h2>What we collect</h2>
