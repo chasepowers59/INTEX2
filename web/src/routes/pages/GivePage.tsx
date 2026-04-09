@@ -12,6 +12,25 @@ type DonationConfirmation = {
   givingFocus: string;
 };
 
+const DRAFT_KEY = "donation_draft";
+
+type DonationDraft = {
+  amount?: string;
+  givingFocus?: string;
+  notes?: string;
+};
+
+function readDonationDraft(): DonationDraft {
+  try {
+    const saved = sessionStorage.getItem(DRAFT_KEY);
+    if (!saved) return {};
+    return JSON.parse(saved) as DonationDraft;
+  } catch {
+    sessionStorage.removeItem(DRAFT_KEY);
+    return {};
+  }
+}
+
 const givingFocusOptions = [
   "General Fund",
   "Safe Shelter",
@@ -37,31 +56,20 @@ const waysToSupport = [
 ];
 
 export function GivePage() {
-  const DRAFT_KEY = "donation_draft";
   const auth = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
+  const inAppShell = loc.pathname.startsWith("/app/");
+  const impactRoute = inAppShell ? "/app/impact" : "/impact";
+  const initialDraft = readDonationDraft();
 
-  const [amount, setAmount] = useState<string>("");
-  const [givingFocus, setGivingFocus] = useState<string>("General Fund");
-  const [notes, setNotes] = useState<string>("");
+  const [amount, setAmount] = useState<string>(initialDraft.amount ?? "");
+  const [givingFocus, setGivingFocus] = useState<string>(initialDraft.givingFocus ?? "General Fund");
+  const [notes, setNotes] = useState<string>(initialDraft.notes ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<number | null>(null);
   const [confirmation, setConfirmation] = useState<DonationConfirmation | null>(null);
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem(DRAFT_KEY);
-    if (!saved) return;
-    try {
-      const draft = JSON.parse(saved) as { amount?: string; givingFocus?: string; notes?: string };
-      setAmount(draft.amount ?? "");
-      setGivingFocus(draft.givingFocus ?? "General Fund");
-      setNotes(draft.notes ?? "");
-    } catch {
-      sessionStorage.removeItem(DRAFT_KEY);
-    }
-  }, []);
 
   useEffect(() => {
     sessionStorage.setItem(
@@ -146,11 +154,6 @@ export function GivePage() {
               <div className="sub-kicker">Donate now</div>
               <h1>Make a difference today.</h1>
             </div>
-            {donorLoggedIn ? (
-              <Link className="btn" to="/app/donor">
-                Donor portal
-              </Link>
-            ) : null}
           </div>
 
           <p className="muted">
@@ -243,8 +246,8 @@ export function GivePage() {
             ))}
           </div>
           <div className="donor-hero-actions">
-            <Link className="btn" to="/impact">
-              See public impact
+            <Link className="btn" to={impactRoute}>
+              {inAppShell ? "See impact" : "See public impact"}
             </Link>
             <Link className="btn" to="/programs">
               How we help

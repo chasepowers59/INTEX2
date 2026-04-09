@@ -115,11 +115,11 @@ export function DonorPortalPage() {
             This page shows how your giving is helping across care areas while protecting survivor privacy.
           </p>
           <div className="row donor-impact-actions">
-            <Link className="btn primary donor-primary-cta" to="/donate">
+            <Link className="btn primary donor-primary-cta" to="/app/donate">
               Donate again
             </Link>
-            <Link className="btn" to="/impact">
-              Public impact
+            <Link className="btn" to="/app/impact">
+              Impact
             </Link>
           </div>
 
