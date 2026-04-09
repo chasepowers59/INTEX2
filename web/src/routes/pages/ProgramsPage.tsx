@@ -49,9 +49,9 @@ const careSteps = [
 ];
 
 const supportItems = [
-  "Funds are tracked across the care pathway so donor support can be reported clearly.",
-  "Public impact updates stay aggregated and anonymized to protect survivor identity.",
-  "Staff use data as decision support, not as a replacement for human care.",
+  "Donors can see how support helps across each step of care.",
+  "Public updates protect survivor privacy.",
+  "Care decisions stay with trained staff.",
 ];
 
 export function ProgramsPage() {
@@ -108,7 +108,7 @@ export function ProgramsPage() {
                   <span key={outcome}>{outcome}</span>
                 ))}
               </div>
-              <Link className="btn program-outline-cta" to="/donate">
+              <Link className="btn primary donor-primary-cta" to="/donate">
                 Help fund this work
               </Link>
             </div>
@@ -122,7 +122,7 @@ export function ProgramsPage() {
           <h2 className="section-title">Clear reporting without exposing survivor stories.</h2>
           <p className="muted">
             Donors should understand how their support helps, but survivor safety comes first. Public pathway reporting
-            focuses on aggregate outcomes, resource allocation, and privacy-first impact signals.
+            focuses on clear progress updates while protecting private details.
           </p>
           <Link className="btn" to="/impact">
             Explore public impact

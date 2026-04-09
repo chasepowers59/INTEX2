@@ -5,21 +5,21 @@ export function PrivacyPage() {
     <div className="card">
       <h1 style={{ marginTop: 0 }}>Privacy Policy</h1>
       <p className="muted">
-        Steps of Hope applies privacy-by-design to sensitive survivor-support data. This notice explains what we process,
-        why we process it, how long we retain it, and how to request data-rights actions.
+        Steps of Hope is committed to protecting sensitive information. This notice explains what we collect, why we
+        collect it, how long we keep it, and how to request privacy-related help.
       </p>
 
       <h2>Controller and scope</h2>
       <p className="muted">
-        Steps of Hope acts as the data controller for supporter account data, donor activity, and operational
-        case-management records. Public pages only display anonymized and aggregated reporting.
+        Steps of Hope acts as the data controller for supporter account data, donor activity, and operational case
+        management records. Public pages only display privacy-protected summary information.
       </p>
 
       <h2>What we collect</h2>
       <ul className="muted" style={{ lineHeight: 1.6 }}>
         <li>
-          Account login information (username/email, password hash, roles)—including donor self-registration, which creates
-          or links a supporter profile
+          Account login information (username/email, password hash, roles) - including donor self-registration, which
+          creates or links a supporter profile
         </li>
         <li>Operational case management data (resident records, counseling notes, home visits, conferences)</li>
         <li>Donor/supporter and contribution records (as needed for internal reporting)</li>
@@ -28,15 +28,15 @@ export function PrivacyPage() {
 
       <h2>How we use data</h2>
       <ul className="muted" style={{ lineHeight: 1.6 }}>
-        <li>Run authenticated operations, donor, and reporting features</li>
-        <li>Support internal case management workflows and safeguarding follow-up</li>
-        <li>Publish anonymized, aggregated impact snapshots on the public dashboard</li>
+        <li>Run donor, staff, and reporting features that require sign-in</li>
+        <li>Support case management work and safeguarding follow-up</li>
+        <li>Publish privacy-protected impact updates on the public site</li>
         <li>Maintain audit trails for sensitive operational actions</li>
       </ul>
 
       <h2>Legal basis</h2>
       <ul className="muted" style={{ lineHeight: 1.6 }}>
-        <li>Legitimate interests: operating donor reporting and case-management workflows</li>
+        <li>Legitimate interests: operating donor reporting and case management</li>
         <li>Consent: optional preference cookies (for example, theme preference)</li>
         <li>Legal/safeguarding obligations: handling sensitive support records with restricted access</li>
       </ul>
@@ -68,7 +68,7 @@ export function PrivacyPage() {
       <h2>Data sharing and processors</h2>
       <p className="muted">
         We do not sell personal data. Data is processed by Steps of Hope personnel with role-based access and may be
-        stored/processed by cloud infrastructure providers required to run this service.
+        stored or processed by cloud infrastructure providers required to run this service.
       </p>
 
       <h2>International transfers</h2>
@@ -94,10 +94,9 @@ export function PrivacyPage() {
 
       <h2>Contact</h2>
       <p className="muted">
-        For privacy requests or questions, contact the site administrator via the Contact page. Requests are reviewed and
-        answered using the role-restricted audit trail.
+        For privacy requests or questions, contact the site administrator via the Contact page. Requests are reviewed
+        and answered through our protected internal process.
       </p>
     </div>
   );
 }
-

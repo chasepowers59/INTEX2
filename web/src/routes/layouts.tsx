@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { CookieConsentBanner } from "../components/CookieConsentBanner";
 import { useAuth } from "../lib/auth";
@@ -21,12 +21,35 @@ function applyThemeFromCookie() {
   document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
 }
 
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
 export function PublicLayout() {
   const auth = useAuth();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     applyThemeFromCookie();
   }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [menuOpen]);
 
   const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
   const portalTo =
@@ -53,41 +76,56 @@ export function PublicLayout() {
               <span className="public-brand-sub">Survivor support nonprofit</span>
             </span>
           </Link>
-          <div className="nav-pill-actions" aria-label="Donation and account actions">
-            {auth.isAuthenticated ? (
-              <Link className="nav-pill nav-pill-primary" to={portalTo}>
-                My portal
+
+          <button
+            className="mobile-menu-toggle public-mobile-menu-toggle"
+            type="button"
+            aria-label={menuOpen ? "Close site menu" : "Open site menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <MenuIcon />
+          </button>
+
+          <div className={`public-nav-shell ${menuOpen ? "open" : ""}`}>
+            <nav className="nav-pills" aria-label="Primary">
+              <Link className="nav-pill" to="/">
+                Home
               </Link>
-            ) : (
-              <>
-                <Link className="nav-pill nav-pill-glow" to="/donate">
-                  Donate
+              <Link className="nav-pill" to="/programs">
+                How We Help
+              </Link>
+              <Link className="nav-pill" to="/impact">
+                Impact
+              </Link>
+              <Link className="nav-pill" to="/about">
+                About
+              </Link>
+              <Link className="nav-pill" to="/contact">
+                Contact
+              </Link>
+            </nav>
+
+            <div className="nav-pill-actions" aria-label="Donation and account actions">
+              {auth.isAuthenticated ? (
+                <Link className="nav-pill nav-pill-primary" to={portalTo}>
+                  My portal
                 </Link>
-                <Link className="nav-pill nav-pill-outline-accent" to="/login">
-                  Sign in
-                </Link>
-              </>
-            )}
+              ) : (
+                <>
+                  <Link className="nav-pill nav-pill-glow" to="/donate">
+                    Donate
+                  </Link>
+                  <Link className="nav-pill nav-pill-outline-accent" to="/login">
+                    Sign in
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
-          <nav className="nav-pills" aria-label="Primary">
-            <Link className="nav-pill" to="/">
-              Home
-            </Link>
-            <Link className="nav-pill" to="/programs">
-              How We Help
-            </Link>
-            <Link className="nav-pill" to="/impact">
-              Impact
-            </Link>
-            <Link className="nav-pill" to="/about">
-              About
-            </Link>
-            <Link className="nav-pill" to="/contact">
-              Contact
-            </Link>
-          </nav>
         </div>
       </header>
+      {menuOpen ? <button className="mobile-drawer-backdrop" aria-label="Close site menu" onClick={() => setMenuOpen(false)} /> : null}
 
       <main className="container public-main">
         <Outlet />
@@ -101,7 +139,9 @@ export function PublicLayout() {
 
 export function AppLayout() {
   const auth = useAuth();
+  const location = useLocation();
   const donorOnly = auth.hasRole("Donor") && !auth.hasRole("Admin") && !auth.hasRole("Employee");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     applyThemeFromCookie();
@@ -109,10 +149,22 @@ export function AppLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [sidebarOpen]);
+
   const toggleTheme = () => {
     const current = getActiveTheme();
     const next = current === "light" ? "dark" : "light";
-    // Only persist optional preference cookies after explicit consent.
     if (getCookie(CONSENT_COOKIE) === "accepted") {
       setCookie(THEME_COOKIE, next, 180);
     }
@@ -121,7 +173,7 @@ export function AppLayout() {
 
   return (
     <div className={`layout ${donorOnly ? "layout-donor" : "layout-staff"}`}>
-      <aside className="sidebar">
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
           <div className="title">Steps of Hope</div>
           <div className="muted" style={{ fontSize: 12 }}>
@@ -231,27 +283,10 @@ export function AppLayout() {
             <nav className="nav">
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/users">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path
-                    d="M4 21a8 8 0 0 1 16 0"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
+                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                 </svg>
                 Users
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/security">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3 5 6v6c0 4.8 2.9 8.4 7 9.9 4.1-1.5 7-5.1 7-9.9V6l-7-3Z" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M9.5 11.5a2.5 2.5 0 1 1 5 0V14h-5v-2.5Z" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M10.5 14v2h3v-2" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Security & MFA
               </NavLink>
             </nav>
           </>
@@ -263,17 +298,8 @@ export function AppLayout() {
             <nav className="nav">
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donor">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 14a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path
-                    d="M4 21a8 8 0 0 1 16 0"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
+                  <path d="M12 14a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M4 21a8 8 0 0 1 16 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                 </svg>
                 My Impact
               </NavLink>
@@ -312,17 +338,30 @@ export function AppLayout() {
             ))
           ) : auth.token ? (
             <span className="muted" style={{ fontSize: 12 }}>
-              Loading roles…
+              Loading roles...
             </span>
           ) : (
             <span className="muted" style={{ fontSize: 12 }}>
-              —
+              -
             </span>
           )}
         </div>
       </aside>
+      {sidebarOpen ? <button className="mobile-drawer-backdrop app-drawer-backdrop" aria-label="Close app menu" onClick={() => setSidebarOpen(false)} /> : null}
 
       <main className="content">
+        <div className="app-mobile-bar">
+          <button
+            className="mobile-menu-toggle"
+            type="button"
+            aria-label={sidebarOpen ? "Close app menu" : "Open app menu"}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            <MenuIcon />
+          </button>
+          <div className="app-mobile-title">Steps of Hope</div>
+        </div>
         <Outlet />
         <CookieConsentBanner />
       </main>

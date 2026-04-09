@@ -2,10 +2,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const impactStats = [
-  { value: "60", label: "survivors represented in anonymized care data" },
-  { value: "9", label: "safehouse programs supported by donor resources" },
-  { value: "812", label: "outreach posts analyzed to improve donor reach" },
-  { value: "100%", label: "public impact reporting kept aggregate and private" },
+  { value: "60", label: "survivors supported through care services" },
+  { value: "9", label: "safehouses supported by donor generosity" },
+  { value: "812", label: "outreach posts reviewed to strengthen donor reach" },
+  { value: "100%", label: "public updates designed to protect survivor privacy" },
 ];
 
 const giftOptions = [
@@ -32,10 +32,10 @@ const giftOptions = [
 ];
 
 const trustItems = [
-  "Anonymized public reporting protects survivor identity.",
-  "Donation allocations are tracked across programs and safehouses.",
-  "Donor-facing impact summaries use aggregate data only.",
-  "Sensitive case details remain restricted to authorized staff.",
+  "Public updates protect survivor privacy.",
+  "Gifts are tracked across shelter, care, and reintegration support.",
+  "Donors see broad results without exposing private details.",
+  "Sensitive case information stays with authorized staff.",
 ];
 
 export function HomePage() {
@@ -85,8 +85,7 @@ export function HomePage() {
           <div className="sub-kicker">What your gift provides</div>
           <h2 className="section-title">Turn compassion into concrete care.</h2>
           <p className="muted">
-            Leading nonprofits make the next step clear: donors should quickly understand what their gift can make
-            possible. These examples translate support into visible program outcomes.
+            Here are a few examples of what a gift can help provide for survivors and the staff supporting them.
           </p>
         </div>
         <div className="gift-grid">
@@ -113,7 +112,7 @@ export function HomePage() {
           <p className="muted">
             When a survivor reaches a safehouse, support has to arrive quickly: a stable place to stay, a case worker
             who can follow up, counseling documentation, health and education check-ins, and careful planning for what
-            comes next. Donor support helps make that pathway possible without exposing private resident details.
+            comes next. Donor support helps make that care possible while protecting every survivor's privacy.
           </p>
           <Link className="btn" to="/impact">
             View public impact data
@@ -140,8 +139,8 @@ export function HomePage() {
           <div className="sub-kicker">Impact dashboard preview</div>
           <h2 className="section-title">See how support creates change.</h2>
           <p className="muted">
-            Public dashboards show aggregate progress across resource allocation, education, health, safehouse support,
-            and outreach effectiveness. No identifying survivor information is shown.
+            See how support is helping across shelter, counseling, education, wellbeing, and reintegration care without
+            showing private survivor information.
           </p>
           <Link className="btn" to="/impact">
             Explore the dashboard
@@ -186,7 +185,7 @@ export function HomePage() {
           </article>
           <article className="way-card">
             <h3>Become a donor</h3>
-            <p>Create a donor account to give again and view your anonymized impact over time.</p>
+            <p>Create a donor account to give again and stay connected to public updates about the work.</p>
             <Link className="btn" to="/register">
               Create donor account
             </Link>

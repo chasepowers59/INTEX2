@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { InlineBarChart } from "../../../components/ui/InlineBarChart";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { displayCurrencyCode, formatSiteCurrency } from "../../../lib/currency";
 import { RequireRole } from "../../guards";
 
 type Paged<T> = { page: number; pageSize: number; total: number; items: T[] };
@@ -89,13 +90,13 @@ export function DonorPortalPage() {
       .map(([category, total]) => {
         const definition = outcomeMap[category];
         if (!definition) {
-          return `${category}: PHP ${total.toLocaleString(undefined, { maximumFractionDigits: 0 })} applied`;
+          return `${category}: ${formatSiteCurrency(total)} applied`;
         }
 
         const units = Math.floor(total / definition.unitPhp);
         return units > 0
           ? `${category}: around ${units.toLocaleString()} ${definition.text}`
-          : `${category}: PHP ${total.toLocaleString(undefined, { maximumFractionDigits: 0 })} applied`;
+          : `${category}: ${formatSiteCurrency(total)} applied`;
       });
   }, [allocations]);
 
@@ -111,8 +112,7 @@ export function DonorPortalPage() {
           <div className="badge donor-role-badge">My impact</div>
           <h1 className="donor-impact-title">Welcome back{auth.displayName ? `, ${auth.displayName.split(" ")[0]}` : ""}</h1>
           <p className="muted donor-impact-subtitle">
-            This page shows how your giving is being translated into support across programs while keeping resident
-            identities protected.
+            This page shows how your giving is helping across care areas while protecting survivor privacy.
           </p>
           <div className="row donor-impact-actions">
             <Link className="btn primary donor-primary-cta" to="/donate">
@@ -132,15 +132,15 @@ export function DonorPortalPage() {
             </div>
             <div className="metric-tile">
               <span className="muted donor-impact-label">
-                Listed gift total (PHP)
+                Listed gift total
               </span>
-              <strong>{data ? `PHP ${totalPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "-"}</strong>
+              <strong>{data ? formatSiteCurrency(totalPhp) : "-"}</strong>
             </div>
             <div className="metric-tile">
               <span className="muted donor-impact-label">
                 Allocation window (12 mo)
               </span>
-              <strong>{allocations.length ? `PHP ${allocationPhp.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "-"}</strong>
+              <strong>{allocations.length ? formatSiteCurrency(allocationPhp) : "-"}</strong>
             </div>
             <div className="metric-tile">
               <span className="muted donor-impact-label">Last contribution</span>
@@ -158,12 +158,12 @@ export function DonorPortalPage() {
           <section className="card donor-impact-primary">
             <h2 className="donor-impact-section-title">Where your support went</h2>
             <p className="muted donor-impact-section-copy">
-              These records are posted by staff and shown as aggregate program activity.
+              These updates are posted by staff and shown as broad program activity.
             </p>
             {allocations.length ? (
               <>
                 <div className="donor-impact-chart">
-                  <InlineBarChart data={allocationChartData} valueFormatter={(value) => `PHP ${value.toLocaleString()}`} />
+                  <InlineBarChart data={allocationChartData} valueFormatter={(value) => formatSiteCurrency(value)} />
                 </div>
 
                 <div className="table-wrap donor-impact-table-wrap">
@@ -186,7 +186,7 @@ export function DonorPortalPage() {
                             <span className="badge">{item.category}</span>
                           </td>
                           <td data-label="Total">
-                            {item.totalAmount} {item.currency}
+                            {item.totalAmount} {displayCurrencyCode(item.currency)}
                           </td>
                           <td data-label="Entries" className="muted">
                             {item.count}
@@ -199,8 +199,7 @@ export function DonorPortalPage() {
               </>
             ) : (
               <div className="muted donor-impact-empty">
-                No allocations are available yet. If your account email matches supporter records, this section updates
-                after staff post activity.
+                No updates are available yet. This section fills in after staff post new activity.
               </div>
             )}
           </section>
@@ -208,7 +207,7 @@ export function DonorPortalPage() {
           <section className="card donor-impact-side">
             <h2 className="donor-impact-section-title">Your impact story</h2>
             <p className="muted donor-impact-section-copy">
-              A plain-language estimate based on your latest allocation totals.
+              A simple summary based on the latest posted activity connected to your giving.
             </p>
             {outcomeNarratives.length ? (
               <ul className="trust-list muted donor-impact-story-list">
@@ -246,7 +245,7 @@ export function DonorPortalPage() {
                       <span className="badge">{item.contributionType}</span>
                     </td>
                     <td data-label="Amount">
-                      {item.amount} {item.currency}
+                      {item.amount} {displayCurrencyCode(item.currency)}
                     </td>
                     <td data-label="Campaign" className="muted">
                       {item.campaignName ?? "-"}

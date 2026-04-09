@@ -20,7 +20,7 @@ public sealed class Contribution
     public string? ChannelSource { get; set; }
 
     [MaxLength(10)]
-    public string Currency { get; set; } = "PHP";
+    public string Currency { get; set; } = "KRW";
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal? Amount { get; set; }

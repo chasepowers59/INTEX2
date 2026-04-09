@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { StatCard } from "../../components/ui/StatCard";
 import { apiFetch } from "../../lib/api";
+import { formatSiteCurrency } from "../../lib/currency";
 
 type Snapshot = {
   snapshotId: number;
@@ -70,10 +71,6 @@ function formatSnapshotDate(d: string) {
     : x.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-function formatPhp(value: number) {
-  return `PHP ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-
 function getSnapshotMetrics(snapshot: Snapshot) {
   try {
     const obj = JSON.parse(snapshot.metricPayloadJson) as Record<string, unknown>;
@@ -92,6 +89,7 @@ export function ImpactPage() {
   const [items, setItems] = useState<Snapshot[]>([]);
   const [highlights, setHighlights] = useState<Highlights | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -104,6 +102,8 @@ export function ImpactPage() {
         setHighlights(hi);
       } catch (e) {
         setError((e as Error).message);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -126,8 +126,8 @@ export function ImpactPage() {
             <h1>Your support is creating measurable change.</h1>
           </div>
           <p className="muted">
-            Public impact reporting should show proof quickly. These figures are aggregate, anonymized signals across
-            safe shelter, healing, wellbeing, and outreach, with no resident-identifying case details shown.
+            These numbers show how support is helping across shelter, healing, wellbeing, and follow-up while
+            protecting survivor privacy.
           </p>
         </div>
 
@@ -158,11 +158,13 @@ export function ImpactPage() {
               Figures refresh from live data and were last updated {new Date(highlights.asOfUtc).toLocaleString()}.
             </div>
           </>
-        ) : !error ? (
-          <div className="impact-loading-inline">Impact highlights will appear here once the public API responds.</div>
-        ) : null}
+        ) : (
+          <div className="impact-loading-inline">
+            {loading ? "Retrieving impact highlights..." : "Impact highlights are being refreshed. Please check back shortly."}
+          </div>
+        )}
 
-        {error ? <div className="badge danger impact-error">{error}</div> : null}
+        {error ? <div className="badge warn impact-error">Retrieving impact highlights right now.</div> : null}
 
         <div className="donor-hero-actions">
           <Link className="btn primary donor-primary-cta" to="/donate">
@@ -209,8 +211,7 @@ export function ImpactPage() {
             </div>
           </div>
           <p className="muted">
-            These are public summary signals, not resident-level outcomes. They help donors see activity and momentum
-            while protecting private care records.
+            These are broad signs of progress that help donors understand the work without showing private case details.
           </p>
         </div>
 
@@ -220,8 +221,8 @@ export function ImpactPage() {
             <div className="sub-kicker">Privacy-safe proof</div>
             <h2>No resident-identifying details shown.</h2>
             <p className="muted">
-              Impact is reported through aggregate numbers, permission-based stories, and public snapshots. Staff-only
-              details remain behind authenticated role-based access.
+              We share progress through summary numbers, carefully written stories, and public updates. Private case
+              details stay with authorized staff.
             </p>
           </div>
         </div>
@@ -232,8 +233,8 @@ export function ImpactPage() {
           <div className="sub-kicker">Stories of impact</div>
           <h2 className="section-title">Numbers show reach. Stories show why it matters.</h2>
           <p className="muted">
-            These public-safe examples are written without identifying details. Real organizations would only publish
-            survivor stories with permission and careful review.
+            These examples show the kind of change donor support can make while protecting privacy and avoiding
+            identifying details.
           </p>
         </div>
         <div className="impact-story-grid">
@@ -256,7 +257,7 @@ export function ImpactPage() {
             <div className="sub-kicker">More live signals</div>
             <h2 className="section-title">Support, outreach, and published updates.</h2>
             <p className="muted">
-              These additional indicators help donors understand the wider support network around the care pathway.
+              These numbers show the wider support behind day-to-day care.
             </p>
           </div>
           <div className="kpi-grid">
@@ -267,7 +268,7 @@ export function ImpactPage() {
             />
             <StatCard
               label="Outreach-attributed giving"
-              value={formatPhp(highlights.socialEstimatedDonationValuePhp)}
+              value={formatSiteCurrency(highlights.socialEstimatedDonationValuePhp)}
               hint={`${highlights.socialPostsWithDonationReferrals} public posts linked to referral activity`}
               tone="ok"
             />
@@ -287,8 +288,7 @@ export function ImpactPage() {
             <div className="sub-kicker">Latest care month</div>
             <h2 className="section-title">{formatMonth(lm.monthStart)}</h2>
             <p className="muted">
-              These monthly signals are rolled up from safehouse activity so donors can understand the work without
-              exposing case files.
+              This monthly snapshot helps donors see the pace of care without exposing private records.
             </p>
             <div className="impact-mini-grid">
               <StatCard label="Resident-months" value={lm.activeResidentsTotal} />
@@ -306,7 +306,7 @@ export function ImpactPage() {
             </p>
             <div className="impact-outreach-number">
               <span>Modeled outreach-attributed giving</span>
-              <strong>{highlights ? formatPhp(highlights.socialEstimatedDonationValuePhp) : "-"}</strong>
+              <strong>{highlights ? formatSiteCurrency(highlights.socialEstimatedDonationValuePhp) : "-"}</strong>
             </div>
             <div className="impact-outreach-number">
               <span>Posts linked to donation referral activity</span>
@@ -328,17 +328,17 @@ export function ImpactPage() {
           <div className="sub-kicker">Why this reporting matters</div>
           <h2 className="section-title">Transparent enough for donors. Private enough for survivors.</h2>
           <p className="muted">
-            Donors should be able to see whether support is reaching the care pathway. Public reporting focuses on
-            capacity, services, outreach, and published snapshots while sensitive case details remain restricted.
+            Donors should be able to see that support is reaching real needs. We share progress, capacity, services,
+            and public updates while keeping private case details protected.
           </p>
           <Link className="btn" to="/privacy">
             Read our privacy policy
           </Link>
         </div>
         <div className="program-support-list">
-          <div>Public summaries use aggregate data instead of resident names or case file details.</div>
-          <div>Donation impact is shown through care activity, allocations, outreach, and monthly snapshots.</div>
-          <div>Staff-facing details stay behind authenticated role-based access controls.</div>
+          <div>Public updates focus on progress, not private case files.</div>
+          <div>Gifts are reflected through care activity, public updates, and visible results.</div>
+          <div>Detailed case information stays with authorized staff.</div>
         </div>
       </section>
 
@@ -347,8 +347,7 @@ export function ImpactPage() {
           <div className="sub-kicker">Published impact snapshots</div>
           <h2 className="section-title">Recent updates for donors and partners.</h2>
           <p className="muted">
-            These story cards are curated from Reports and Analytics so supporters can follow progress in a reader-friendly
-            way.
+            These updates help donors and partners follow progress over time in a simple, public-friendly format.
           </p>
         </div>
 
@@ -372,7 +371,7 @@ export function ImpactPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="muted">Additional impact details are being prepared in a reader-friendly format.</div>
+                  <div className="muted">More details will be added to this update soon.</div>
                 )}
               </article>
             );

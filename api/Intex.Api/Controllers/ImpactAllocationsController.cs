@@ -101,7 +101,7 @@ public sealed class ImpactAllocationsController(AppDbContext db) : ControllerBas
             AllocationDate = req.AllocationDate,
             Category = req.Category.Trim(),
             Amount = req.Amount,
-            Currency = string.IsNullOrWhiteSpace(req.Currency) ? "PHP" : req.Currency.Trim(),
+            Currency = string.IsNullOrWhiteSpace(req.Currency) ? "KRW" : req.Currency.Trim(),
             Notes = string.IsNullOrWhiteSpace(req.Notes) ? null : req.Notes.Trim(),
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -126,7 +126,7 @@ public sealed class ImpactAllocationsController(AppDbContext db) : ControllerBas
         entity.AllocationDate = req.AllocationDate;
         entity.Category = req.Category.Trim();
         entity.Amount = req.Amount;
-        entity.Currency = string.IsNullOrWhiteSpace(req.Currency) ? "PHP" : req.Currency.Trim();
+        entity.Currency = string.IsNullOrWhiteSpace(req.Currency) ? "KRW" : req.Currency.Trim();
         entity.Notes = string.IsNullOrWhiteSpace(req.Notes) ? null : req.Notes.Trim();
 
         await db.SaveChangesAsync();

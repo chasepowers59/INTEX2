@@ -3,6 +3,7 @@ import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { InlineBarChart } from "../../../components/ui/InlineBarChart";
 import { InlineLineChart } from "../../../components/ui/InlineLineChart";
+import { formatSiteCurrency } from "../../../lib/currency";
 
 type DonationsByMonth = { year: number; month: number; totalAmount: number; count: number };
 type ResidentStatus = { status: string; count: number };
@@ -47,12 +48,12 @@ export function ReportsPage() {
     setEditingSnapshotId(null);
     setSnapDate(new Date().toISOString().slice(0, 10));
     setSnapHeadline("This month: progress and protection across safehouses");
-    setSnapSummary("This snapshot is aggregated and anonymized to protect residents, staff, and partners.");
+    setSnapSummary("This update shares public progress while protecting survivor privacy.");
     setSnapMetricActiveResidents(0);
     setSnapMetricDonations30d(0);
     setSnapMetricCheckinsDue30d(0);
     setSnapMetricProcess7d(0);
-    setSnapMetricNarrative("Anonymized and aggregate-only metrics.");
+    setSnapMetricNarrative("Public update only. No private case details included.");
     setSnapPublish(true);
     setShowSnapshotForm(false);
   };
@@ -89,13 +90,13 @@ export function ReportsPage() {
   const [snapDate, setSnapDate] = useState(new Date().toISOString().slice(0, 10));
   const [snapHeadline, setSnapHeadline] = useState("This month: progress and protection across safehouses");
   const [snapSummary, setSnapSummary] = useState(
-    "This snapshot is aggregated and anonymized to protect residents, staff, and partners.",
+    "This update shares public progress while protecting survivor privacy.",
   );
   const [snapMetricActiveResidents, setSnapMetricActiveResidents] = useState(0);
   const [snapMetricDonations30d, setSnapMetricDonations30d] = useState(0);
   const [snapMetricCheckinsDue30d, setSnapMetricCheckinsDue30d] = useState(0);
   const [snapMetricProcess7d, setSnapMetricProcess7d] = useState(0);
-  const [snapMetricNarrative, setSnapMetricNarrative] = useState("Anonymized and aggregate-only metrics.");
+  const [snapMetricNarrative, setSnapMetricNarrative] = useState("Public update only. No private case details included.");
   const [snapPublish, setSnapPublish] = useState(true);
   const [snapshotsPage, setSnapshotsPage] = useState(1);
   const [auditPage, setAuditPage] = useState(1);
@@ -166,7 +167,7 @@ export function ReportsPage() {
         <div className="admin-header">
           <div className="admin-header-copy">
             <h1 style={{ marginTop: 0 }}>Reports & Analytics</h1>
-            <p className="muted">Donations, care operations, outcomes, and public reporting.</p>
+            <p className="muted">Giving, care outcomes, public updates, and governance.</p>
           </div>
         </div>
         {error ? (
@@ -185,7 +186,7 @@ export function ReportsPage() {
           <div className="muted">Most recent month gifts</div>
           <div className="admin-kpi-value">{latestDonationMonth?.count ?? 0}</div>
           <div className="muted">
-            PHP {(latestDonationMonth?.totalAmount ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            {formatSiteCurrency(latestDonationMonth?.totalAmount ?? 0)}
           </div>
         </div>
         <div className="card admin-kpi tone-berry">
@@ -214,7 +215,7 @@ export function ReportsPage() {
                   label: `${String(item.month).padStart(2, "0")}/${String(item.year).slice(-2)}`,
                   value: item.totalAmount,
                 }))}
-              valueFormatter={(v) => `PHP ${Math.round(v).toLocaleString()}`}
+              valueFormatter={(v) => formatSiteCurrency(Math.round(v))}
               showLegend={false}
             />
           </div>
@@ -235,7 +236,7 @@ export function ReportsPage() {
                     </td>
                     <td data-label="Gifts">{item.count}</td>
                     <td data-label="Total amount">
-                      PHP {item.totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      {formatSiteCurrency(item.totalAmount)}
                     </td>
                   </tr>
                 ))}
@@ -381,7 +382,7 @@ export function ReportsPage() {
           <div className="admin-header">
             <div className="admin-header-copy">
               <h2 style={{ marginTop: 0 }}>Public impact updates</h2>
-              <p className="muted">Create, edit, and publish the updates shown on the public impact page.</p>
+              <p className="muted">Manage the updates shown on the public impact page.</p>
             </div>
             <button className="btn primary" onClick={() => setShowSnapshotForm((open) => !open)}>
               {showSnapshotForm ? "Close" : "New update"}
@@ -406,7 +407,7 @@ export function ReportsPage() {
           <div className={`process-collapsible ${showSnapshotForm ? "open" : ""}`} aria-hidden={!showSnapshotForm}>
             <div className="card process-form-card">
               <div className="process-header process-inline-header">
-                <strong>{editingSnapshotId ? "Edit update" : "Update details"}</strong>
+                <strong>{editingSnapshotId ? "Edit update" : "New update"}</strong>
               </div>
 
               <div className="reports-snapshot-grid" style={{ marginTop: 10 }}>
@@ -614,7 +615,7 @@ export function ReportsPage() {
         <div className="card">
           <div className="admin-header-copy">
             <h2 style={{ marginTop: 0 }}>Recent audit activity</h2>
-            <p className="muted">Recent administrative changes and sensitive actions.</p>
+            <p className="muted">Recent admin actions and sensitive changes.</p>
           </div>
           <div className="table-wrap">
             <table className="table">

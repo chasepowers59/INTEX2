@@ -3,12 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 
 function validatePassword(password: string): string | null {
-  if (password.length < 12) return "Password must be at least 12 characters.";
-  if (!/[a-z]/.test(password)) return "Password must include a lowercase letter.";
-  if (!/[A-Z]/.test(password)) return "Password must include an uppercase letter.";
-  if (!/\d/.test(password)) return "Password must include a number.";
-  if (!/[^A-Za-z0-9]/.test(password)) return "Password must include a symbol.";
-  if (new Set(password).size < 4) return "Password must include at least 4 unique characters.";
+  if (password.length < 14) return "Password must be at least 14 characters.";
   return null;
 }
 
@@ -21,6 +16,8 @@ export function RegisterDonorPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -32,8 +29,9 @@ export function RegisterDonorPage() {
   useEffect(() => {
     if (!auth.isAuthenticated) return;
     const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
-    nav(staff ? "/app/dashboard" : "/app/donor", { replace: true });
-  }, [auth, nav]);
+    const dest = from && from.startsWith("/") ? from : staff ? "/app/dashboard" : "/app/donor";
+    nav(dest, { replace: true });
+  }, [auth, from, nav]);
 
   async function handleRegister() {
     setError(null);
@@ -57,7 +55,7 @@ export function RegisterDonorPage() {
         phone: phone.trim() || undefined,
         organizationName: organizationName.trim() || undefined,
       });
-      nav("/app/donor", { replace: true });
+      nav(from && from.startsWith("/") ? from : "/app/donor", { replace: true });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -71,21 +69,22 @@ export function RegisterDonorPage() {
         <span className="eyebrow">Donor account</span>
         <h1>Create your Steps of Hope account.</h1>
         <p className="muted">
-          Save your giving history, return to future gifts faster, and see anonymized updates about the work your support helps make possible.
+          Save your giving history, return to future gifts faster, and stay connected to public updates about the work
+          your support makes possible.
         </p>
 
         <div className="register-photo">
           <img src="/photos/community-support.jpg" alt="Community members supporting survivor care." />
           <div>
             <strong>Support with confidence</strong>
-            <span>Your account keeps donor activity separate from private survivor care records.</span>
+            <span>Your account keeps your giving activity separate from private survivor care information.</span>
           </div>
         </div>
 
         <div className="register-benefit-grid">
           <div>
             <strong>Private by design</strong>
-            <span>Public updates stay aggregated and anonymized.</span>
+            <span>Public updates are written to protect survivor privacy.</span>
           </div>
           <div>
             <strong>Impact in one place</strong>
@@ -131,31 +130,76 @@ export function RegisterDonorPage() {
         <div className="register-two-column">
           <label className="field-stack">
             <span className="field-label">Password</span>
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              placeholder="12+ chars with upper, lower, number, symbol"
-            />
+            <span className="password-input-wrap">
+              <input
+                className="input password-input"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="At least 14 characters"
+              />
+              <button
+                className="password-toggle"
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((value) => !value)}
+              >
+                {showPassword ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 4 20 21" />
+                    <path d="M10.6 10.7a3 3 0 0 0 4 4" />
+                    <path d="M9.9 5.3A10.7 10.7 0 0 1 12 5c5 0 8.9 3.1 10 7-0.4 1.5-1.3 2.9-2.6 4.1" />
+                    <path d="M6.2 6.3C4.1 7.6 2.6 9.6 2 12c1.1 3.9 5 7 10 7 1.5 0 2.9-0.3 4.1-0.8" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2 12c1.1-3.9 5-7 10-7s8.9 3.1 10 7c-1.1 3.9-5 7-10 7S3.1 15.9 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </span>
           </label>
           <label className="field-stack">
             <span className="field-label">Confirm password</span>
-            <input
-              className="input"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              autoComplete="new-password"
-              placeholder="Re-enter password"
-            />
+            <span className="password-input-wrap">
+              <input
+                className="input password-input"
+                type={showConfirm ? "text" : "password"}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Re-enter password"
+              />
+              <button
+                className="password-toggle"
+                type="button"
+                aria-label={showConfirm ? "Hide confirmed password" : "Show confirmed password"}
+                aria-pressed={showConfirm}
+                onClick={() => setShowConfirm((value) => !value)}
+              >
+                {showConfirm ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 4 20 21" />
+                    <path d="M10.6 10.7a3 3 0 0 0 4 4" />
+                    <path d="M9.9 5.3A10.7 10.7 0 0 1 12 5c5 0 8.9 3.1 10 7-0.4 1.5-1.3 2.9-2.6 4.1" />
+                    <path d="M6.2 6.3C4.1 7.6 2.6 9.6 2 12c1.1 3.9 5 7 10 7 1.5 0 2.9-0.3 4.1-0.8" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2 12c1.1-3.9 5-7 10-7s8.9 3.1 10 7c-1.1 3.9-5 7-10 7S3.1 15.9 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </span>
           </label>
         </div>
 
         <p className="password-hint">
-          Passwords must be at least <strong>12 characters</strong> and include an uppercase letter, lowercase letter,
-          number, symbol, and at least 4 unique characters.
+          Passwords must be at least <strong>14 characters</strong>.
         </p>
 
         <details className="optional-block register-optional-block">

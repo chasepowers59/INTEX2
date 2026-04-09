@@ -11,7 +11,7 @@ const contactCards = [
   {
     title: "Donor relations",
     detail: "donors@stepsofhope.org",
-    description: "For giving questions, donor accounts, and allocation transparency.",
+    description: "For giving questions, donor accounts, and how gifts are used.",
   },
   {
     title: "Program partnerships",
@@ -19,9 +19,9 @@ const contactCards = [
     description: "For safehouse, social service, and community partnership conversations.",
   },
   {
-    title: "Support line",
-    detail: "+82 02-555-0147",
-    description: "For public routing and non-emergency support inquiries in South Korea.",
+    title: "South Korea support hotline",
+    detail: "1366",
+    description: "24/7 support line for women and violence victims in South Korea.",
   },
 ];
 
@@ -79,7 +79,7 @@ export function ContactPage() {
           </p>
           <div className="donor-hero-actions">
             <a className="btn primary" href="mailto:support@stepsofhope.org">
-              Contact us
+              Email us
             </a>
             <Link className="btn" to="/impact">
               See impact
@@ -89,8 +89,8 @@ export function ContactPage() {
         <div className="contact-hero-card">
           <div className="sub-kicker">Response promise</div>
           <p>
-            We route donor, volunteer, and partner inquiries to the right team while keeping sensitive case information
-            out of public channels.
+            We will connect your message to the right team while keeping sensitive case information out of public
+            channels.
           </p>
         </div>
       </section>
@@ -110,9 +110,8 @@ export function ContactPage() {
           <div className="sub-kicker">Send a message</div>
           <h2 className="section-title">Tell us how we can help.</h2>
           <p className="muted">
-            Use this form for donor, volunteer, partner, media, or general questions. Please do not include identifying
-            survivor, medical, legal, or family details unless you are already working with an authorized staff member
-            through a secure channel.
+            Use this form for donor, volunteer, partner, media, or general questions. Please do not include private
+            survivor, medical, legal, or family details in this form.
           </p>
         </div>
         <form className="contact-form" onSubmit={handleSubmit}>
@@ -159,14 +158,14 @@ export function ContactPage() {
         </article>
         <article className="way-card">
           <h3>Want to stay connected?</h3>
-          <p>Create a donor account to give again and view anonymized impact summaries over time.</p>
+          <p>Create a donor account to give again and stay connected to public updates about the work.</p>
           <Link className="btn" to="/register">
             Create donor account
           </Link>
         </article>
         <article className="way-card">
           <h3>Need to understand the work first?</h3>
-          <p>See how donor support connects to public, aggregate impact across care programs.</p>
+          <p>See how donor support is helping across shelter, care, and reintegration support.</p>
           <Link className="btn" to="/impact">
             View impact dashboard
           </Link>

@@ -4,6 +4,7 @@ import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { InlineBarChart } from "../../../components/ui/InlineBarChart";
 import { StatCard } from "../../../components/ui/StatCard";
+import { formatSiteCurrency } from "../../../lib/currency";
 
 type Overview = {
   asOfUtc: string;
@@ -63,12 +64,7 @@ type SafehouseForecast = {
 };
 
 function formatPhp(value: number | null | undefined) {
-  if (value == null) return "-";
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "PHP",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatSiteCurrency(value);
 }
 
 function formatStamp(value: string | null | undefined) {
@@ -299,6 +295,14 @@ export function AppDashboardPage() {
                             {reason}
                           </span>
                         ))}
+                      </div>
+                      <div className="row admin-compact-actions" style={{ marginTop: 10 }}>
+                        <Link className="btn admin-table-action" to={`/app/residents/${row.residentId}/process-recordings`}>
+                          Open recordings
+                        </Link>
+                        <Link className="btn admin-table-action" to={`/app/residents/${row.residentId}/home-visits`}>
+                          Open visits
+                        </Link>
                       </div>
                     </article>
                   ))}

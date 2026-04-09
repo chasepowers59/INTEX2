@@ -17,8 +17,9 @@ export function LoginPage() {
   useEffect(() => {
     if (!auth.isAuthenticated) return;
     const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
-    nav(staff ? "/app/dashboard" : "/app/donor", { replace: true });
-  }, [auth, nav]);
+    const dest = from && from.startsWith("/") ? from : staff ? "/app/dashboard" : "/app/donor";
+    nav(dest, { replace: true });
+  }, [auth, from, nav]);
 
   useEffect(() => {
     const params = new URLSearchParams(loc.search);
@@ -43,8 +44,6 @@ export function LoginPage() {
       }
     })();
   }, [auth, loc.search, nav]);
-
-  const githubLoginUrl = `${(import.meta.env.VITE_API_BASE_URL as string).replace(/\/+$/, "")}/api/auth/github/start?returnUrl=${encodeURIComponent(window.location.origin + "/login")}`;
 
   return (
     <div style={{ maxWidth: 540, margin: "0 auto" }}>
@@ -76,23 +75,6 @@ export function LoginPage() {
             autoComplete="current-password"
           />
         </label>
-
-        <div className="auth-inline-row" style={{ marginTop: 10 }}>
-          <label className="muted" style={{ fontSize: 12 }}>
-            <input type="checkbox" style={{ marginRight: 6 }} /> Remember me
-          </label>
-        </div>
-
-        <button
-          className="btn"
-          style={{ marginTop: 12, width: "100%" }}
-          disabled={loading || externalLoading}
-          onClick={() => {
-            window.location.href = githubLoginUrl;
-          }}
-        >
-          Continue with GitHub
-        </button>
 
         {error ? (
           <div className="badge danger" style={{ marginTop: 14 }}>
@@ -131,7 +113,6 @@ export function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
           <span style={{ display: "grid", gap: 8, justifyItems: "end" }}>
-            <span className="auth-link-subtle">Forgot password?</span>
             <span className="muted" style={{ fontSize: 12 }}>
               New donor?{" "}
               <Link className="auth-link-subtle" to="/register" state={from ? { from } : undefined}>

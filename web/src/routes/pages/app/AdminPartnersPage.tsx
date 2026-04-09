@@ -169,7 +169,7 @@ export function AdminPartnersPage() {
           <div className="admin-header">
             <div className="admin-header-copy">
               <h1 style={{ marginTop: 0 }}>Partners</h1>
-              <p className="muted">Organizations, contacts, and partner coverage.</p>
+              <p className="muted">Organizations, contacts, and current support.</p>
             </div>
             <button
               className="btn primary"
@@ -419,7 +419,7 @@ export function AdminPartnersPage() {
                 <div className="card" style={{ boxShadow: "none" }}>
                   <div className="admin-header-copy">
                     <h3 style={{ marginTop: 0 }}>Partner details</h3>
-                    <p className="muted">Contact and coverage information.</p>
+                    <p className="muted">Contact information and notes.</p>
                   </div>
                   <div className="admin-inline-grid" style={{ marginTop: 10 }}>
                     <label className="admin-form-label span-4">
@@ -504,7 +504,7 @@ export function AdminPartnersPage() {
                 <div className="card" style={{ boxShadow: "none" }}>
                   <div className="admin-header-copy">
                     <h3 style={{ marginTop: 0 }}>Assignments</h3>
-                    <p className="muted">Current partner coverage and next step.</p>
+                    <p className="muted">Current assignments and actions.</p>
                   </div>
                   <div className="admin-mini-list" style={{ marginTop: 10 }}>
                     <div className="admin-mini-list-item">
@@ -588,7 +588,7 @@ export function AdminPartnersPage() {
           <div className="admin-table-head">
             <div className="admin-header-copy">
               <h2 style={{ marginTop: 0 }}>Partner directory</h2>
-              <p className="muted">Contacts, coverage, and current status.</p>
+              <p className="muted">Contact details, role, and current status.</p>
             </div>
           </div>
 

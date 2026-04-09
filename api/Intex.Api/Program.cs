@@ -4,6 +4,7 @@ using Intex.Api.Auth;
 using Intex.Api.Data;
 using Intex.Api.Diagnostics;
 using Intex.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -41,13 +42,13 @@ builder.Services
     .AddIdentityCore<AppUser>(options =>
     {
         var pwd = builder.Configuration.GetSection("Identity:Password");
-        options.Password.RequiredLength = pwd.GetValue("RequiredLength", 12);
+        options.Password.RequiredLength = pwd.GetValue("RequiredLength", 14);
         // Mirror the configured password policy instead of silently weakening it at runtime.
-        options.Password.RequireDigit = pwd.GetValue("RequireDigit", true);
-        options.Password.RequireLowercase = pwd.GetValue("RequireLowercase", true);
-        options.Password.RequireUppercase = pwd.GetValue("RequireUppercase", true);
-        options.Password.RequireNonAlphanumeric = pwd.GetValue("RequireNonAlphanumeric", true);
-        options.Password.RequiredUniqueChars = pwd.GetValue("RequiredUniqueChars", 4);
+        options.Password.RequireDigit = pwd.GetValue("RequireDigit", false);
+        options.Password.RequireLowercase = pwd.GetValue("RequireLowercase", false);
+        options.Password.RequireUppercase = pwd.GetValue("RequireUppercase", false);
+        options.Password.RequireNonAlphanumeric = pwd.GetValue("RequireNonAlphanumeric", false);
+        options.Password.RequiredUniqueChars = pwd.GetValue("RequiredUniqueChars", 1);
 
         options.Lockout.MaxFailedAccessAttempts = 8;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
@@ -242,12 +243,12 @@ app.MapGet("/health/info", async (IConfiguration config, IServiceProvider sp) =>
         seedDonorCredentialsConfigured = SeedPair(config, "DonorEmail", "DonorPassword"),
         aspNetUserCount,
         seedAdminConfiguredButNoUsers = seedAdminOk && aspNetUserCount == 0,
-        identityPasswordRequiredLength = config.GetValue("Identity:Password:RequiredLength", 12),
-        identityPasswordRequireDigit = config.GetValue("Identity:Password:RequireDigit", true),
-        identityPasswordRequireLowercase = config.GetValue("Identity:Password:RequireLowercase", true),
-        identityPasswordRequireUppercase = config.GetValue("Identity:Password:RequireUppercase", true),
-        identityPasswordRequireNonAlphanumeric = config.GetValue("Identity:Password:RequireNonAlphanumeric", true),
-        identityPasswordRequiredUniqueChars = config.GetValue("Identity:Password:RequiredUniqueChars", 4),
+        identityPasswordRequiredLength = config.GetValue("Identity:Password:RequiredLength", 14),
+        identityPasswordRequireDigit = config.GetValue("Identity:Password:RequireDigit", false),
+        identityPasswordRequireLowercase = config.GetValue("Identity:Password:RequireLowercase", false),
+        identityPasswordRequireUppercase = config.GetValue("Identity:Password:RequireUppercase", false),
+        identityPasswordRequireNonAlphanumeric = config.GetValue("Identity:Password:RequireNonAlphanumeric", false),
+        identityPasswordRequiredUniqueChars = config.GetValue("Identity:Password:RequiredUniqueChars", 1),
         lighthouseAutoImportIfEmpty = config.GetValue("LighthouseImport:AutoImportIfEmpty", true),
         lighthouseSyncBeforeSeed = config.GetValue("LighthouseImport:SyncBeforeSeed", true),
         supporterRowCount,
@@ -255,7 +256,7 @@ app.MapGet("/health/info", async (IConfiguration config, IServiceProvider sp) =>
         safehouseRowCount,
         nowUtc = DateTime.UtcNow
     });
-});
+}).RequireAuthorization(new AuthorizeAttribute { Roles = AppRoles.Admin });
 app.MapGet("/health/db", async (IServiceProvider services) =>
 {
     try
@@ -289,7 +290,7 @@ app.MapGet("/health/db", async (IServiceProvider services) =>
             extensions: new Dictionary<string, object?> { ["traceId"] = traceId }
         );
     }
-});
+}).RequireAuthorization(new AuthorizeAttribute { Roles = AppRoles.Admin });
 
 app.MapGet("/health/migrations", async (IServiceProvider sp) =>
 {
@@ -313,7 +314,7 @@ app.MapGet("/health/migrations", async (IServiceProvider sp) =>
             error = StartupMigrationDiagnostics.ErrorMessage
         }
     });
-});
+}).RequireAuthorization(new AuthorizeAttribute { Roles = AppRoles.Admin });
 
 app.MapGet("/health/schema", async (IServiceProvider sp) =>
 {
@@ -361,7 +362,7 @@ app.MapGet("/health/schema", async (IServiceProvider sp) =>
     {
         await conn.CloseAsync();
     }
-});
+}).RequireAuthorization(new AuthorizeAttribute { Roles = AppRoles.Admin });
 
 app.MapControllers();
 
