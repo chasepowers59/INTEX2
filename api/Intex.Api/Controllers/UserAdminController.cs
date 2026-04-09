@@ -154,7 +154,7 @@ public sealed class UserAdminController(
 
         if (await userManager.IsInRoleAsync(user, AppRoles.Admin))
         {
-            return BadRequest(new { message = "Do not attach SupporterId to Admin accounts; create or use a Donor login for grading." });
+            return BadRequest(new { message = "Do not attach SupporterId to Admin accounts; create or use a donor account for supporter-linked access." });
         }
 
         var exists = await db.Supporters.AsNoTracking().AnyAsync(x => x.SupporterId == req.SupporterId);

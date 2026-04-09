@@ -97,4 +97,5 @@ The case packet requires:
 
 Implementation note:
 - This repo scaffolds username/password auth + roles via ASP.NET Identity.
-- MFA and donor linking will be completed as part of Member 4’s work.
+- Donor linking is implemented for the donor portal flow.
+- MFA is still a grading/compliance item unless your deployed Azure environment already enforces it separately.

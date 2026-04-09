@@ -113,27 +113,16 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
                 .Select(g => new { ResidentId = g.Key, LastSessionDate = (DateOnly?)g.Max(v => v.SessionDate) })
                 .ToDictionaryAsync(x => x.ResidentId, x => x.LastSessionDate);
 
-            var latestRiskCreatedAt = await db.MlPredictions.AsNoTracking()
-                .Where(x => x.PredictionType == "resident_incident_30d" && x.EntityType == "Resident")
-                .MaxAsync(x => (DateTime?)x.CreatedAtUtc);
-
             var riskByResident = new Dictionary<int, (decimal score, string? label)>();
-            if (latestRiskCreatedAt is not null)
-            {
-                riskByResident = await db.MlPredictions.AsNoTracking()
-                    .Where(x =>
-                        x.PredictionType == "resident_incident_30d"
-                        && x.EntityType == "Resident"
-                        && x.CreatedAtUtc == latestRiskCreatedAt)
-                    .GroupBy(x => x.EntityId)
-                    .Select(g => new
-                    {
-                        ResidentId = g.Key,
-                        Score = g.Select(v => v.Score).FirstOrDefault(),
-                        Label = g.Select(v => v.Label).FirstOrDefault()
-                    })
-                    .ToDictionaryAsync(x => x.ResidentId, x => (x.Score, x.Label));
-            }
+            riskByResident = await GetCurrentPredictionRows("resident_incident_30d", "Resident")
+                .GroupBy(x => x.EntityId)
+                .Select(g => new
+                {
+                    ResidentId = g.Key,
+                    Score = g.Select(v => v.Score).FirstOrDefault(),
+                    Label = g.Select(v => v.Label).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.ResidentId, x => (x.Score, x.Label));
 
             var alerts = residents
                 .Select(x =>
@@ -179,20 +168,41 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
 
     private async Task<object> GetCurrentBandCountsAsync(string predictionType, string entityType)
     {
-        var latestCreatedAt = await db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == predictionType && x.EntityType == entityType)
+        var currentRows = GetCurrentPredictionRows(predictionType, entityType);
+
+        var latestCreatedAt = await currentRows
             .MaxAsync(x => (DateTime?)x.CreatedAtUtc);
 
         if (latestCreatedAt == null) return new { predictionType, entityType, asOfUtc = (DateTime?)null, byBand = Array.Empty<object>() };
 
-        var byBand = await db.MlPredictions.AsNoTracking()
-            .Where(x => x.PredictionType == predictionType && x.EntityType == entityType && x.CreatedAtUtc == latestCreatedAt)
+        var byBand = await currentRows
             .GroupBy(x => x.Label ?? "Unlabeled")
             .Select(g => new { band = g.Key, count = g.Count() })
             .OrderByDescending(x => x.count)
             .ToListAsync();
 
         return new { predictionType, entityType, asOfUtc = latestCreatedAt, byBand };
+    }
+
+    private IQueryable<Intex.Api.Models.MlPrediction> GetCurrentPredictionRows(string predictionType, string entityType)
+    {
+        var scoped = db.MlPredictions.AsNoTracking()
+            .Where(x => x.PredictionType == predictionType && x.EntityType == entityType);
+
+        var latestByEntity = scoped
+            .GroupBy(x => x.EntityId)
+            .Select(g => new
+            {
+                EntityId = g.Key,
+                CreatedAtUtc = g.Max(v => v.CreatedAtUtc)
+            });
+
+        return scoped.Join(
+            latestByEntity,
+            row => new { row.EntityId, row.CreatedAtUtc },
+            latest => new { latest.EntityId, latest.CreatedAtUtc },
+            (row, _) => row
+        );
     }
 
     /// <summary>
@@ -368,7 +378,7 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
 
                 var ladderPrompt =
                     ladderTier == "Mid-tier"
-                        ? "Invite this donor to fund a named project such as a new safehouse bed or school-year package."
+                        ? "Invite this donor to fund a named program need such as a new safehouse bed or school-year package."
                         : ladderTier == "Emerging"
                             ? "Encourage recurring monthly giving with a clear first milestone."
                             : "Offer stewardship updates and major-gift partnership pathways.";
