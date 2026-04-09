@@ -13,6 +13,14 @@ namespace Intex.Api.Controllers;
 [Authorize(Roles = AppRoles.Donor)]
 public sealed class DonorController(AppDbContext db, Microsoft.AspNetCore.Identity.UserManager<AppUser> userManager) : ControllerBase
 {
+    private static readonly Dictionary<string, string> AllocationCategoryMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Safe Shelter"] = "Safe Shelter",
+        ["Counseling and Wellbeing"] = "Counseling and Wellbeing",
+        ["Education Support"] = "Education Support",
+        ["Reintegration Planning"] = "Reintegration Planning"
+    };
+
     public sealed record DonateRequest(
         string ContributionType,
         decimal? Amount,
@@ -73,6 +81,26 @@ public sealed class DonorController(AppDbContext db, Microsoft.AspNetCore.Identi
 
         db.Contributions.Add(entity);
         await db.SaveChangesAsync();
+
+        if (isMonetary
+            && entity.Amount.HasValue
+            && entity.Amount.Value > 0
+            && !string.IsNullOrWhiteSpace(entity.CampaignName)
+            && AllocationCategoryMap.TryGetValue(entity.CampaignName.Trim(), out var allocationCategory))
+        {
+            db.ImpactAllocations.Add(new ImpactAllocation
+            {
+                SupporterId = entity.SupporterId,
+                ContributionId = entity.ContributionId,
+                SnapshotId = null,
+                AllocationDate = entity.ContributionDate,
+                Category = allocationCategory,
+                Amount = entity.Amount.Value,
+                Currency = entity.Currency,
+                Notes = "Automatic allocation"
+            });
+            await db.SaveChangesAsync();
+        }
 
         if (req.InKindItems is { Count: > 0 })
         {

@@ -290,8 +290,8 @@ export function SocialMediaStrategyPage() {
 
         <div className="card">
           <div className="admin-header-copy">
-            <h2 style={{ marginTop: 0 }}>Predicted opportunities</h2>
-            <p className="muted">Posts most likely to create donation value next.</p>
+            <h2 style={{ marginTop: 0 }}>High-value content options</h2>
+            <p className="muted">Strong content directions to consider for the next campaign cycle.</p>
           </div>
           {topPredicted ? (
             <div className="card tone-aqua" style={{ boxShadow: "none", marginTop: 10 }}>
@@ -305,7 +305,7 @@ export function SocialMediaStrategyPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Post</th>
+                  <th>Content option</th>
                   <th>Platform</th>
                   <th>Predicted value</th>
                   <th>Topic</th>
@@ -315,8 +315,8 @@ export function SocialMediaStrategyPage() {
               <tbody>
                 {predictedTopRows.map((post) => (
                   <tr key={post.postId}>
-                    <td data-label="Post">
-                      #{post.postId} {post.postType}
+                    <td data-label="Content option">
+                      {post.postType}
                       {post.campaignName ? <span className="muted"> · {post.campaignName}</span> : null}
                     </td>
                     <td data-label="Platform" className="muted">{post.platform}</td>
@@ -329,7 +329,7 @@ export function SocialMediaStrategyPage() {
                 ))}
                 {predictedTopRows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="muted">No predicted content suggestions available yet.</td>
+                    <td colSpan={5} className="muted">No content options available yet.</td>
                   </tr>
                 ) : null}
               </tbody>

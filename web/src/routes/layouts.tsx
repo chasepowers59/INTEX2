@@ -141,46 +141,6 @@ export function AppLayout() {
                 Dashboard
               </NavLink>
 
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/cases">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Caseload
-              </NavLink>
-
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donors">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 21s7-4.35 7-10a4 4 0 0 0-7-2.4A4 4 0 0 0 5 11c0 5.65 7 10 7 10Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                </svg>
-                Donors
-              </NavLink>
-
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/reports">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Analytics
-              </NavLink>
-            </nav>
-
-            <div className="sidebar-section-label">Strategy</div>
-            <nav className="nav">
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/social-media">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 12h16M12 4v16" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Social strategy
-              </NavLink>
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/action-center">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
                   <path
@@ -192,13 +152,82 @@ export function AppLayout() {
                 </svg>
                 Action Center
               </NavLink>
+
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/cases">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Caseload
+              </NavLink>
+            </nav>
+
+            <div className="sidebar-section-label">Fundraising</div>
+            <nav className="nav">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donors">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 21s7-4.35 7-10a4 4 0 0 0-7-2.4A4 4 0 0 0 5 11c0 5.65 7 10 7 10Z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>
+                Donors
+              </NavLink>
+              {auth.hasRole("Admin") ? (
+                <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/allocations">
+                  <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                    <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
+                  </svg>
+                  Allocations
+                </NavLink>
+              ) : null}
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/social-media">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 12h16M12 4v16" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Social strategy
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/reports">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Analytics
+              </NavLink>
             </nav>
           </>
         ) : null}
 
         {auth.hasRole("Admin") ? (
           <>
-            <div className="sidebar-section-label">Admin</div>
+            <div className="sidebar-section-label">Partners</div>
+            <nav className="nav">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/partners">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 18h16M6 18V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M9 11h6M9 14h6" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Partners
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/partner-assignments">
+                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Assignments
+              </NavLink>
+            </nav>
+
+            <div className="sidebar-section-label">Settings</div>
             <nav className="nav">
               <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/users">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
@@ -216,29 +245,13 @@ export function AppLayout() {
                 </svg>
                 Users
               </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/allocations">
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/security">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path d="M8 9h8M8 13h8M8 17h6" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M12 3 5 6v6c0 4.8 2.9 8.4 7 9.9 4.1-1.5 7-5.1 7-9.9V6l-7-3Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M9.5 11.5a2.5 2.5 0 1 1 5 0V14h-5v-2.5Z" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M10.5 14v2h3v-2" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
-                Allocations
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/partners">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 18h16M6 18V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M9 11h6M9 14h6" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Partners
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/admin/partner-assignments">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Assignments
+                Security & MFA
               </NavLink>
             </nav>
           </>
@@ -280,18 +293,6 @@ export function AppLayout() {
             </nav>
           </>
         ) : null}
-
-        <div className="sidebar-section-label">Security</div>
-        <nav className="nav">
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/security">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3 5 6v6c0 4.8 2.9 8.4 7 9.9 4.1-1.5 7-5.1 7-9.9V6l-7-3Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M9.5 11.5a2.5 2.5 0 1 1 5 0V14h-5v-2.5Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M10.5 14v2h3v-2" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            Security & MFA
-          </NavLink>
-        </nav>
 
         <div style={{ marginTop: 14 }} className="row">
           <button className="btn" onClick={toggleTheme}>
