@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { StatCard } from "../../components/ui/StatCard";
 import { apiFetch } from "../../lib/api";
 import { formatSiteCurrency } from "../../lib/currency";
@@ -86,6 +86,9 @@ function getSnapshotMetrics(snapshot: Snapshot) {
 }
 
 export function ImpactPage() {
+  const loc = useLocation();
+  const inAppShell = loc.pathname.startsWith("/app/");
+  const donateRoute = inAppShell ? "/app/donate" : "/donate";
   const [items, setItems] = useState<Snapshot[]>([]);
   const [highlights, setHighlights] = useState<Highlights | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +170,7 @@ export function ImpactPage() {
         {error ? <div className="badge warn impact-error">Retrieving impact highlights right now.</div> : null}
 
         <div className="donor-hero-actions">
-          <Link className="btn primary donor-primary-cta" to="/donate">
+          <Link className="btn primary donor-primary-cta" to={donateRoute}>
             Donate now
           </Link>
           <Link className="btn" to="/programs">
@@ -382,7 +385,7 @@ export function ImpactPage() {
       <section className="cta-ribbon donor-final-cta">
         <div className="sub-kicker">Help the care pathway continue</div>
         <h2>Support safe shelter, healing, education, and reintegration work today.</h2>
-        <Link className="btn primary donor-primary-cta" to="/donate">
+        <Link className="btn primary donor-primary-cta" to={donateRoute}>
           Donate now
         </Link>
       </section>

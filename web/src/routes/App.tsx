@@ -70,6 +70,9 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route element={<AppLayout />}>
               <Route path="/app/donor" element={<DonorPortalPage />} />
+              <Route path="/app/impact" element={<ImpactPage />} />
+              <Route path="/app/donate" element={<GivePage />} />
+              <Route path="/app/give" element={<GivePage />} />
               <Route element={<RequireStaff />}>
                 <Route path="/app/dashboard" element={<AppDashboardPage />} />
                 <Route path="/app/donors" element={<DonorsPage />} />

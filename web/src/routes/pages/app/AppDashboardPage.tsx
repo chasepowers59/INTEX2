@@ -229,7 +229,7 @@ export function AppDashboardPage() {
       </section>
 
       <div className="admin-dashboard-main">
-          <div className="kpi-grid">
+          <div className="kpi-grid dashboard-kpi-grid">
             <StatCard label="Residents currently in care" value={data?.activeResidents ?? "-"} />
             <StatCard
               label="Gifts recorded in the last 30 days"
@@ -469,7 +469,7 @@ export function AppDashboardPage() {
                   <strong>{topProgramArea?.programArea ?? "-"}</strong>
                 </div>
                 <div className="admin-mini-metric">
-                  <span>Approx. ROI multiple</span>
+                  <span>Return on ad spend</span>
                   <strong>{socialRoiMultiple == null ? "-" : `${socialRoiMultiple.toFixed(1)}x`}</strong>
                 </div>
               </div>
