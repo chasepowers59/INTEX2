@@ -281,18 +281,6 @@ export function AppLayout() {
           </>
         ) : null}
 
-        <div className="sidebar-section-label">Security</div>
-        <nav className="nav">
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/security">
-            <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3 5 6v6c0 4.8 2.9 8.4 7 9.9 4.1-1.5 7-5.1 7-9.9V6l-7-3Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M9.5 11.5a2.5 2.5 0 1 1 5 0V14h-5v-2.5Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M10.5 14v2h3v-2" stroke="currentColor" strokeWidth="1.6" />
-            </svg>
-            Security & MFA
-          </NavLink>
-        </nav>
-
         <div style={{ marginTop: 14 }} className="row">
           <button className="btn" onClick={toggleTheme}>
             Toggle theme

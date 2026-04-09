@@ -1,5 +1,8 @@
 using System.Data.Common;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Intex.Api.Auth;
 using Intex.Api.Data;
 using Intex.Api.Dtos;
@@ -18,10 +21,15 @@ public sealed class AuthController(
     SignInManager<AppUser> signInManager,
     TokenService tokenService,
     AppDbContext db,
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration,
     ILogger<AuthController> logger
 ) : ControllerBase
 {
     private const string TwoFactorIssuer = "Steps of Hope";
+    private const string GitHubProvider = "GitHub";
+    private const string GitHubStateCookie = "gh_oauth_state";
+    private const string GitHubReturnCookie = "gh_oauth_return";
 
     [HttpPost("login")]
     [AllowAnonymous]
@@ -72,33 +80,6 @@ public sealed class AuthController(
                 return Unauthorized(new { message = "Invalid username or password." });
             }
 
-            if (user.TwoFactorEnabled)
-            {
-                var code = NormalizeTwoFactorCode(request.TwoFactorCode);
-                if (code is null)
-                {
-                    return Unauthorized(new
-                    {
-                        message = "Two-factor authentication code required.",
-                        requiresTwoFactor = true
-                    });
-                }
-
-                var valid = await userManager.VerifyTwoFactorTokenAsync(
-                    user,
-                    TokenOptions.DefaultAuthenticatorProvider,
-                    code);
-
-                if (!valid)
-                {
-                    return Unauthorized(new
-                    {
-                        message = "Invalid two-factor authentication code.",
-                        requiresTwoFactor = true
-                    });
-                }
-            }
-
             var roles = await userManager.GetRolesAsync(user);
             return TryIssueToken(user, roles);
         }
@@ -132,6 +113,195 @@ public sealed class AuthController(
             enabled = user.TwoFactorEnabled,
             hasSharedKey = !string.IsNullOrWhiteSpace(key)
         });
+    }
+
+    [HttpGet("github/start")]
+    [AllowAnonymous]
+    public ActionResult StartGitHub([FromQuery] string? returnUrl = null)
+    {
+        var clientId = configuration["ExternalAuth:GitHub:ClientId"];
+        if (string.IsNullOrWhiteSpace(clientId))
+        {
+            return BadRequest(new { message = "GitHub OAuth is not configured (missing ExternalAuth:GitHub:ClientId)." });
+        }
+
+        var callbackUrl = configuration["ExternalAuth:GitHub:CallbackUrl"];
+        if (string.IsNullOrWhiteSpace(callbackUrl))
+        {
+            callbackUrl = $"{Request.Scheme}://{Request.Host}/api/auth/github/callback";
+        }
+
+        var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .TrimEnd('=');
+
+        Response.Cookies.Append(GitHubStateCookie, state, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(10),
+            Path = "/"
+        });
+
+        if (!string.IsNullOrWhiteSpace(returnUrl))
+        {
+            Response.Cookies.Append(GitHubReturnCookie, returnUrl, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(10),
+                Path = "/"
+            });
+        }
+
+        var authUrl =
+            $"https://github.com/login/oauth/authorize?client_id={Uri.EscapeDataString(clientId)}&redirect_uri={Uri.EscapeDataString(callbackUrl)}&scope={Uri.EscapeDataString("read:user user:email")}&state={Uri.EscapeDataString(state)}";
+        return Redirect(authUrl);
+    }
+
+    [HttpGet("github/callback")]
+    [AllowAnonymous]
+    public async Task<ActionResult> GitHubCallback([FromQuery] string? code, [FromQuery] string? state)
+    {
+        var expectedState = Request.Cookies[GitHubStateCookie];
+        var returnUrl = Request.Cookies[GitHubReturnCookie];
+        Response.Cookies.Delete(GitHubStateCookie);
+        Response.Cookies.Delete(GitHubReturnCookie);
+
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state) || expectedState != state)
+        {
+            return Redirect(BuildExternalRedirect(returnUrl, null, "GitHub sign-in failed: invalid OAuth state."));
+        }
+
+        var clientId = configuration["ExternalAuth:GitHub:ClientId"];
+        var clientSecret = configuration["ExternalAuth:GitHub:ClientSecret"];
+        if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+        {
+            return Redirect(BuildExternalRedirect(returnUrl, null, "GitHub sign-in is not configured on the server."));
+        }
+
+        var callbackUrl = configuration["ExternalAuth:GitHub:CallbackUrl"];
+        if (string.IsNullOrWhiteSpace(callbackUrl))
+        {
+            callbackUrl = $"{Request.Scheme}://{Request.Host}/api/auth/github/callback";
+        }
+
+        var tokenClient = httpClientFactory.CreateClient();
+        tokenClient.DefaultRequestHeaders.Accept.Clear();
+        tokenClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        tokenClient.DefaultRequestHeaders.UserAgent.ParseAdd("StepsOfHope-OAuth");
+
+        var tokenResp = await tokenClient.PostAsync(
+            "https://github.com/login/oauth/access_token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
+                ["code"] = code,
+                ["redirect_uri"] = callbackUrl
+            }));
+        if (!tokenResp.IsSuccessStatusCode)
+        {
+            return Redirect(BuildExternalRedirect(returnUrl, null, "GitHub sign-in failed while exchanging token."));
+        }
+
+        var tokenJson = await tokenResp.Content.ReadAsStringAsync();
+        var tokenData = JsonSerializer.Deserialize<GitHubTokenResponse>(tokenJson);
+        if (tokenData is null || string.IsNullOrWhiteSpace(tokenData.access_token))
+        {
+            return Redirect(BuildExternalRedirect(returnUrl, null, "GitHub sign-in failed: missing access token."));
+        }
+
+        var githubClient = httpClientFactory.CreateClient();
+        githubClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenData.access_token);
+        githubClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        githubClient.DefaultRequestHeaders.UserAgent.ParseAdd("StepsOfHope-OAuth");
+
+        var userResp = await githubClient.GetAsync("https://api.github.com/user");
+        if (!userResp.IsSuccessStatusCode)
+        {
+            return Redirect(BuildExternalRedirect(returnUrl, null, "GitHub sign-in failed while loading user profile."));
+        }
+
+        var userJson = await userResp.Content.ReadAsStringAsync();
+        var ghUser = JsonSerializer.Deserialize<GitHubUserResponse>(userJson);
+        if (ghUser is null || string.IsNullOrWhiteSpace(ghUser.id))
+        {
+            return Redirect(BuildExternalRedirect(returnUrl, null, "GitHub sign-in failed: invalid profile payload."));
+        }
+
+        string? email = ghUser.email;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            var emailResp = await githubClient.GetAsync("https://api.github.com/user/emails");
+            if (emailResp.IsSuccessStatusCode)
+            {
+                var emailJson = await emailResp.Content.ReadAsStringAsync();
+                var emails = JsonSerializer.Deserialize<List<GitHubEmailResponse>>(emailJson) ?? [];
+                email = emails.FirstOrDefault(x => x.primary && x.verified)?.email
+                        ?? emails.FirstOrDefault(x => x.verified)?.email
+                        ?? emails.FirstOrDefault()?.email;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return Redirect(BuildExternalRedirect(returnUrl, null, "GitHub account does not expose a usable email."));
+        }
+
+        var user = await userManager.FindByLoginAsync(GitHubProvider, ghUser.id);
+        if (user is null)
+        {
+            user = await userManager.FindByEmailAsync(email);
+            if (user is null)
+            {
+                user = new AppUser
+                {
+                    UserName = email,
+                    Email = email,
+                    EmailConfirmed = true,
+                    DisplayName = string.IsNullOrWhiteSpace(ghUser.name) ? (ghUser.login ?? email) : ghUser.name
+                };
+                var create = await userManager.CreateAsync(user);
+                if (!create.Succeeded)
+                {
+                    return Redirect(BuildExternalRedirect(returnUrl, null, JoinIdentityErrors(create)));
+                }
+            }
+
+            var addLogin = await userManager.AddLoginAsync(user, new UserLoginInfo(GitHubProvider, ghUser.id, GitHubProvider));
+            if (!addLogin.Succeeded && addLogin.Errors.All(e => e.Code != "LoginAlreadyAssociated"))
+            {
+                return Redirect(BuildExternalRedirect(returnUrl, null, JoinIdentityErrors(addLogin)));
+            }
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+        if (roles.Count == 0)
+        {
+            var addRole = await userManager.AddToRoleAsync(user, AppRoles.Donor);
+            if (!addRole.Succeeded)
+            {
+                return Redirect(BuildExternalRedirect(returnUrl, null, JoinIdentityErrors(addRole)));
+            }
+            roles = await userManager.GetRolesAsync(user);
+        }
+
+        string token;
+        try
+        {
+            token = tokenService.CreateToken(user, roles);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "JWT issuance failed after GitHub callback.");
+            return Redirect(BuildExternalRedirect(returnUrl, null, "Sign-in failed while issuing app token."));
+        }
+
+        return Redirect(BuildExternalRedirect(returnUrl, token, null));
     }
 
     [HttpPost("mfa/setup")]
@@ -468,8 +638,39 @@ public sealed class AuthController(
         return $"otpauth://totp/{account}?secret={sharedKey}&issuer={issuer}&digits=6";
     }
 
+    private string BuildExternalRedirect(string? returnUrl, string? externalToken, string? externalError)
+    {
+        var fallback = configuration["ExternalAuth:FrontendBaseUrl"];
+        if (string.IsNullOrWhiteSpace(fallback))
+        {
+            fallback = "http://localhost:5173";
+        }
+
+        var baseUrl = string.IsNullOrWhiteSpace(returnUrl) ? fallback : returnUrl;
+        var uri = new Uri(baseUrl, UriKind.Absolute);
+        var loginUrl = $"{uri.Scheme}://{uri.Authority}/login";
+
+        var query = new List<string>();
+        if (!string.IsNullOrWhiteSpace(externalToken))
+        {
+            query.Add($"externalToken={Uri.EscapeDataString(externalToken)}");
+        }
+        if (!string.IsNullOrWhiteSpace(externalError))
+        {
+            query.Add($"externalError={Uri.EscapeDataString(externalError)}");
+        }
+
+        return query.Count == 0 ? loginUrl : $"{loginUrl}?{string.Join("&", query)}";
+    }
+
     private static string JoinIdentityErrors(IdentityResult result) =>
         string.Join("; ", result.Errors.Select(e => $"{e.Code}: {e.Description}"));
+
+    private sealed record GitHubTokenResponse(string? access_token, string? token_type, string? scope);
+
+    private sealed record GitHubUserResponse(string id, string? login, string? name, string? email);
+
+    private sealed record GitHubEmailResponse(string email, bool primary, bool verified);
 
     private static string? BuildDisplayName(DonorRegisterRequest req)
     {

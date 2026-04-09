@@ -10,16 +10,41 @@ export function LoginPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [twoFactorCode, setTwoFactorCode] = useState("");
-  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [externalLoading, setExternalLoading] = useState(false);
 
   useEffect(() => {
     if (!auth.isAuthenticated) return;
     const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
     nav(staff ? "/app/dashboard" : "/app/donor", { replace: true });
   }, [auth, nav]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(loc.search);
+    const externalToken = params.get("externalToken");
+    const externalError = params.get("externalError");
+    if (externalError) {
+      setError(externalError);
+      return;
+    }
+    if (!externalToken) return;
+    setExternalLoading(true);
+    setError(null);
+    void (async () => {
+      try {
+        const roles = await auth.acceptExternalToken(externalToken);
+        const isStaff = roles.includes("Admin") || roles.includes("Employee");
+        nav(isStaff ? "/app/dashboard" : "/app/donor", { replace: true });
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setExternalLoading(false);
+      }
+    })();
+  }, [auth, loc.search, nav]);
+
+  const githubLoginUrl = `${(import.meta.env.VITE_API_BASE_URL as string).replace(/\/+$/, "")}/api/auth/github/start?returnUrl=${encodeURIComponent(window.location.origin + "/login")}`;
 
   return (
     <div style={{ maxWidth: 540, margin: "0 auto" }}>
@@ -47,38 +72,27 @@ export function LoginPage() {
             className="input"
             type="password"
             value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (!needsTwoFactor) return;
-              setNeedsTwoFactor(false);
-              setTwoFactorCode("");
-            }}
+            onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
           />
         </label>
-
-        {needsTwoFactor ? (
-          <label className="field-stack" style={{ marginTop: 14 }}>
-            <span className="field-label">Authenticator code</span>
-            <input
-              className="input"
-              value={twoFactorCode}
-              onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              placeholder="123456"
-            />
-            <span className="muted" style={{ fontSize: 12 }}>
-              Enter the current 6-digit code from your authenticator app.
-            </span>
-          </label>
-        ) : null}
 
         <div className="auth-inline-row" style={{ marginTop: 10 }}>
           <label className="muted" style={{ fontSize: 12 }}>
             <input type="checkbox" style={{ marginRight: 6 }} /> Remember me
           </label>
         </div>
+
+        <button
+          className="btn"
+          style={{ marginTop: 12, width: "100%" }}
+          disabled={loading || externalLoading}
+          onClick={() => {
+            window.location.href = githubLoginUrl;
+          }}
+        >
+          Continue with GitHub
+        </button>
 
         {error ? (
           <div className="badge danger" style={{ marginTop: 14 }}>
@@ -97,7 +111,7 @@ export function LoginPage() {
               setError(null);
               setLoading(true);
               try {
-                const roles = await auth.login(username.trim(), password, needsTwoFactor ? twoFactorCode : undefined);
+                const roles = await auth.login(username.trim(), password);
                 const isStaff = roles.includes("Admin") || roles.includes("Employee");
                 const donorOnly = roles.includes("Donor") && !isStaff;
                 const dest =
@@ -108,17 +122,13 @@ export function LoginPage() {
                       : "/app/dashboard";
                 nav(dest, { replace: true });
               } catch (e) {
-                const err = e as Error & { requiresTwoFactor?: boolean };
-                if (err.requiresTwoFactor) {
-                  setNeedsTwoFactor(true);
-                }
-                setError(err.message);
+                setError((e as Error).message);
               } finally {
                 setLoading(false);
               }
             }}
           >
-            {loading ? "Signing in..." : needsTwoFactor ? "Verify and sign in" : "Sign in"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
           <span style={{ display: "grid", gap: 8, justifyItems: "end" }}>
             <span className="auth-link-subtle">Forgot password?</span>
