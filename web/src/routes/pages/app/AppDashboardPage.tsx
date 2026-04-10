@@ -115,6 +115,39 @@ function summarizeReadinessMix(items: { label: string; value: number }[]) {
   return ordered.join(" | ");
 }
 
+function mapResidentFollowUpLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+  if (normalized.includes("high")) return "Needs closer follow-up";
+  if (normalized.includes("medium")) return "Watch";
+  if (normalized.includes("low")) return "Stable";
+  return label;
+}
+
+function mapReadinessLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+  if (normalized.includes("high")) return "May be ready soon";
+  if (normalized.includes("medium")) return "In progress";
+  if (normalized.includes("low")) return "Needs more support";
+  return label;
+}
+
+function mapDonorRetentionLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+  if (normalized.includes("high")) return "Closer follow-up needed";
+  if (normalized.includes("medium")) return "Some follow-up needed";
+  if (normalized.includes("low")) return "Mostly stable";
+  return label;
+}
+
+function combineBands(items: { band: string; count: number }[] | undefined, mapper: (label: string) => string) {
+  const combined = new Map<string, number>();
+  for (const item of items ?? []) {
+    const label = mapper(item.band);
+    combined.set(label, (combined.get(label) ?? 0) + item.count);
+  }
+  return [...combined.entries()].map(([label, count]) => ({ label, value: count }));
+}
+
 export function AppDashboardPage() {
   const auth = useAuth();
   const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
@@ -202,6 +235,12 @@ export function AppDashboardPage() {
       ? insights.socialRoi.totalEstimatedDonationValuePhp / insights.socialRoi.totalBoostSpendPhp
       : null;
   const topDonorLapseBand = data?.donorLapse.byBand?.[0];
+  const residentRiskChart = combineBands(data?.residentRisk.byBand, mapResidentFollowUpLabel);
+  const donorLapseChart = combineBands(data?.donorLapse.byBand, mapDonorRetentionLabel);
+  const readinessDisplayChart = combineBands(
+    readinessChart.map((row) => ({ band: row.label, count: row.value })),
+    mapReadinessLabel,
+  );
 
   const workloadItems = [
     { label: "Check-ins due", value: data?.checkInsDue30d ?? 0 },
@@ -380,8 +419,8 @@ export function AppDashboardPage() {
           <section className="card admin-panel">
             <div className="admin-panel-header">
               <div>
-                <h2>Care signals</h2>
-                <p className="muted">Risk, readiness, and donor lapse distribution.</p>
+                <h2>Current outlook</h2>
+                <p className="muted">Resident follow-up needs, reintegration progress, and donor retention.</p>
               </div>
               <Link className="btn" to="/app/ml">
                 Open ML insights
@@ -390,27 +429,27 @@ export function AppDashboardPage() {
 
             <div className="admin-signal-grid">
               <div className="admin-signal-card">
-                <h3>Residents needing closer follow-up</h3>
-                {data?.residentRisk.byBand?.length ? (
-                  <InlineBarChart data={data.residentRisk.byBand.map((row) => ({ label: row.band, value: row.count }))} />
+                <h3>Residents by follow-up need</h3>
+                {residentRiskChart.length ? (
+                  <InlineBarChart data={residentRiskChart} />
                 ) : (
                   <div className="admin-empty-state">Import `resident_incident_30d` predictions to populate this chart.</div>
                 )}
               </div>
 
               <div className="admin-signal-card">
-                <h3>Reintegration readiness</h3>
-                {readinessChart.length ? (
-                  <InlineBarChart data={readinessChart} />
+                <h3>Residents by reintegration stage</h3>
+                {readinessDisplayChart.length ? (
+                  <InlineBarChart data={readinessDisplayChart} />
                 ) : (
                   <div className="admin-empty-state">Import `resident_reintegration_readiness` predictions to populate this chart.</div>
                 )}
               </div>
 
               <div className="admin-signal-card">
-                <h3>Donor lapse outlook</h3>
-                {data?.donorLapse.byBand?.length ? (
-                  <InlineBarChart data={data.donorLapse.byBand.map((row) => ({ label: row.band, value: row.count }))} />
+                <h3>Donors by retention outlook</h3>
+                {donorLapseChart.length ? (
+                  <InlineBarChart data={donorLapseChart} />
                 ) : (
                   <div className="admin-empty-state">Import `donor_lapse_90d` predictions to populate this chart.</div>
                 )}

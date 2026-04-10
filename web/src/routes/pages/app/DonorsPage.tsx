@@ -50,10 +50,19 @@ type DonorStewardship = {
 
 const PAGE_SIZE = 10;
 
+function summarizeStewardshipText(text: string, maxLength = 96) {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  const shortened = trimmed.slice(0, maxLength).trimEnd();
+  const lastSpace = shortened.lastIndexOf(" ");
+  return `${(lastSpace > 36 ? shortened.slice(0, lastSpace) : shortened).trimEnd()}...`;
+}
+
 export function DonorsPage() {
   const auth = useAuth();
   const location = useLocation();
   const closeTimerRef = useRef<number | null>(null);
+  const supporterResultsRef = useRef<HTMLDivElement | null>(null);
   const [q, setQ] = useState("");
   const [appliedQ, setAppliedQ] = useState("");
   const [supporterPage, setSupporterPage] = useState(1);
@@ -149,6 +158,14 @@ export function DonorsPage() {
     }
   };
 
+  const applySupporterSearch = () => {
+    setSelectedSupporter(null);
+    setContribs(null);
+    setSupporterPage(1);
+    setAppliedQ(q.trim());
+    supporterResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
     void load(supporterPage, appliedQ).catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -215,26 +232,6 @@ export function DonorsPage() {
 
         {error ? <div className="badge danger">{error}</div> : null}
         {notice ? <div className="badge ok" style={{ marginTop: 8 }}>{notice}</div> : null}
-
-        <div className="admin-inline-grid" style={{ marginTop: 10 }}>
-          <input
-            className="input span-8"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search supporters..."
-          />
-          <button
-            className="btn"
-            onClick={() => {
-              setSelectedSupporter(null);
-              setContribs(null);
-              setSupporterPage(1);
-              setAppliedQ(q.trim());
-            }}
-          >
-            Search
-          </button>
-        </div>
 
         <div className={`process-collapsible ${showSupporterForm ? "open" : ""}`} aria-hidden={!showSupporterForm}>
           <div className="card process-form-card">
@@ -311,7 +308,7 @@ export function DonorsPage() {
       </div>
 
       {stewardship ? (
-        <div className="admin-split-grid">
+        <div className="donor-stewardship-grid">
           <div className="card tone-peach">
             <div className="admin-table-head">
               <div className="admin-header-copy">
@@ -320,7 +317,7 @@ export function DonorsPage() {
               </div>
             </div>
             <div className="table-wrap">
-              <table className="table">
+              <table className="table donor-stewardship-table">
                 <thead>
                   <tr>
                     <th>Donor</th>
@@ -333,12 +330,14 @@ export function DonorsPage() {
                   {stewardship.watchlist.slice(0, 6).map((item) => (
                     <tr key={item.supporterId}>
                       <td>{item.displayName}</td>
-                      <td className="muted">
+                      <td className="muted donor-stewardship-stat">
                         {item.recencyDays}d since last gift
                         <br />
-                        Expected {item.expectedWindowDays}d
+                        Around {item.expectedWindowDays}d is typical
                       </td>
-                      <td className="muted">{item.outcomeNarrative}</td>
+                      <td className="muted donor-stewardship-summary">
+                        {summarizeStewardshipText(item.outcomeNarrative)}
+                      </td>
                       <td>
                         <button className="btn admin-table-action" onClick={() => void openSupporter(item.supporterId)}>
                           Open donor
@@ -364,7 +363,7 @@ export function DonorsPage() {
               </div>
             </div>
             <div className="table-wrap">
-              <table className="table">
+              <table className="table donor-stewardship-table">
                 <thead>
                   <tr>
                     <th>Donor</th>
@@ -377,12 +376,14 @@ export function DonorsPage() {
                   {stewardship.donorLadderMidTier.slice(0, 6).map((item) => (
                     <tr key={item.supporterId}>
                       <td>{item.displayName}</td>
-                      <td className="muted">
+                      <td className="muted donor-stewardship-stat">
                         {formatSiteCurrency(item.totalPhp)}
                         <br />
                         {item.giftCount} gifts
                       </td>
-                      <td className="muted">{item.ladderPrompt}</td>
+                      <td className="muted donor-stewardship-summary">
+                        {summarizeStewardshipText(item.ladderPrompt)}
+                      </td>
                       <td>
                         <button className="btn admin-table-action" onClick={() => void openSupporter(item.supporterId)}>
                           Open donor
@@ -402,9 +403,35 @@ export function DonorsPage() {
         </div>
       ) : null}
 
-      <div className="card">
+      <div className="card" ref={supporterResultsRef}>
+        <div className="admin-table-head">
+          <div className="admin-header-copy">
+            <h2 style={{ marginTop: 0 }}>Supporter records</h2>
+            <p className="muted">Search, open, and review donor history.</p>
+          </div>
+        </div>
+        <div className="admin-inline-grid donor-search-grid" style={{ marginBottom: 12 }}>
+          <label className="admin-form-label span-8">
+            <span className="muted">Search supporters</span>
+            <input
+              className="input"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  applySupporterSearch();
+                }
+              }}
+              placeholder="Search by supporter name or email..."
+            />
+          </label>
+          <button className="btn" onClick={applySupporterSearch}>
+            Search
+          </button>
+        </div>
         <div className="table-wrap">
-          <table className="table">
+          <table className="table donor-list-table">
             <thead>
               <tr>
                 <th>Name</th>

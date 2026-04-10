@@ -14,6 +14,11 @@ type AdminUser = {
   roles: string[];
 };
 
+function validatePasswordLength(password: string): string | null {
+  if (password.length < 14) return "Password must be at least 14 characters.";
+  return null;
+}
+
 export function AdminUsersPage() {
   const auth = useAuth();
   const PAGE_SIZE = 10;
@@ -170,6 +175,12 @@ export function AdminUsersPage() {
                   className="btn primary"
                   disabled={!canAdmin || busy}
                   onClick={async () => {
+                    const passwordError = validatePasswordLength(createPassword);
+                    if (passwordError) {
+                      setError(passwordError);
+                      setNotice(null);
+                      return;
+                    }
                     setBusy(true);
                     setError(null);
                     setNotice(null);
@@ -362,6 +373,12 @@ export function AdminUsersPage() {
                       disabled={!resetPasswordValue || busy}
                       onClick={async () => {
                         if (!selectedUser) return;
+                        const passwordError = validatePasswordLength(resetPasswordValue);
+                        if (passwordError) {
+                          setError(passwordError);
+                          setNotice(null);
+                          return;
+                        }
                         setBusy(true);
                         setError(null);
                         setNotice(null);
@@ -383,6 +400,7 @@ export function AdminUsersPage() {
                       Apply reset
                     </button>
                   </div>
+                  <div className="muted admin-note" style={{ marginTop: 10 }}>Minimum 14 characters.</div>
                 </div>
 
                 <div className="card" style={{ boxShadow: "none" }}>
