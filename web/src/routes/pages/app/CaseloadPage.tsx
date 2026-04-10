@@ -393,7 +393,7 @@ export function CaseloadPage() {
 
       <div className="card">
         <div className="table-wrap">
-          <table className="table">
+          <table className="table caseload-table">
             <thead>
               <tr>
                 <th>Select</th>

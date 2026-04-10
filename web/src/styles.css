@@ -713,6 +713,17 @@ html[data-theme="dark"] .dashboard-kpi-grid .stat.tone-danger::after {
   scrollbar-gutter: stable both-edges;
 }
 
+.content .table-wrap > .table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.content .table th,
+.content .table td {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
 .process-page {
   display: grid;
   gap: 12px;
@@ -1043,6 +1054,15 @@ html[data-theme="dark"] .process-flag-strip {
   gap: 12px;
 }
 
+.donor-stewardship-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.donor-search-grid {
+  align-items: end;
+}
+
 .admin-mini-list {
   display: grid;
   gap: 8px;
@@ -1087,6 +1107,54 @@ html[data-theme="dark"] .admin-mini-list-item {
 .donor-stewardship-note {
   font-size: 13px;
   line-height: 1.45;
+}
+
+.donor-stewardship-table {
+  min-width: 760px;
+}
+
+.donor-stewardship-table th:nth-child(1),
+.donor-stewardship-table td:nth-child(1) {
+  min-width: 180px;
+}
+
+.donor-stewardship-table th:nth-child(2),
+.donor-stewardship-table td:nth-child(2) {
+  min-width: 148px;
+}
+
+.donor-stewardship-table th:nth-child(3),
+.donor-stewardship-table td:nth-child(3) {
+  min-width: 280px;
+}
+
+.donor-stewardship-table th:nth-child(4),
+.donor-stewardship-table td:nth-child(4) {
+  min-width: 130px;
+}
+
+.donor-stewardship-summary {
+  max-width: 38ch;
+  line-height: 1.45;
+}
+
+.donor-stewardship-stat {
+  white-space: nowrap;
+}
+
+.donor-list-table th:nth-child(1),
+.donor-list-table td:nth-child(1) {
+  min-width: 220px;
+}
+
+.donor-list-table th:nth-child(4),
+.donor-list-table td:nth-child(4) {
+  min-width: 170px;
+}
+
+.donor-list-table th:nth-child(5),
+.donor-list-table td:nth-child(5) {
+  min-width: 150px;
 }
 .donor-inline-panel {
   overflow: hidden;
@@ -1314,6 +1382,35 @@ html[data-theme="dark"] .caseload-summary-chip {
   min-height: 36px;
   padding: 8px 10px;
   font-size: 12px;
+}
+
+.caseload-table {
+  min-width: 1260px;
+}
+
+.caseload-table th:nth-child(2),
+.caseload-table td:nth-child(2) {
+  min-width: 180px;
+}
+
+.caseload-table th:nth-child(5),
+.caseload-table td:nth-child(5) {
+  min-width: 320px;
+}
+
+.caseload-table th:nth-child(6),
+.caseload-table td:nth-child(6) {
+  min-width: 150px;
+}
+
+.caseload-table th:nth-child(7),
+.caseload-table td:nth-child(7) {
+  min-width: 170px;
+}
+
+.caseload-table th:nth-child(8),
+.caseload-table td:nth-child(8) {
+  min-width: 220px;
 }
 
 @media (max-width: 600px) {
