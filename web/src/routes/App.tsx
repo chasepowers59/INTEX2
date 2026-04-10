@@ -55,6 +55,7 @@ export function App() {
         <Routes>
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/home" element={<HomePage />} />
             <Route path="/app" element={<Navigate to="/" replace />} />
             <Route path="/impact" element={<ImpactPage />} />
             <Route path="/donate" element={<GivePage />} />

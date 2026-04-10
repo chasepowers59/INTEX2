@@ -264,4 +264,31 @@ public sealed class UserAdminController(
 
         return Ok(new { email = user.Email, supporterId = user.SupporterId, role = AppRoles.Donor });
     }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> Delete([FromRoute] string id, [FromQuery] bool confirm = false)
+    {
+        if (!confirm)
+        {
+            return BadRequest(new { message = "Deletion requires confirm=true." });
+        }
+
+        var currentUserId = userManager.GetUserId(User);
+        if (string.Equals(currentUserId, id, StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "You cannot delete your own account." });
+        }
+
+        var user = await userManager.FindByIdAsync(id);
+        if (user is null) return NotFound(new { message = "User not found." });
+
+        var result = await userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            var msg = string.Join("; ", result.Errors.Select(e => $"{e.Code}:{e.Description}"));
+            return BadRequest(new { message = msg });
+        }
+
+        return Ok(new { id, email = user.Email });
+    }
 }

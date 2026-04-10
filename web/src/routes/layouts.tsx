@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { CookieConsentBanner } from "../components/CookieConsentBanner";
@@ -52,11 +52,7 @@ export function PublicLayout() {
 
   useEffect(() => {
     if (!menuOpen) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = original;
-    };
+    return;
   }, [menuOpen]);
 
   const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
@@ -75,7 +71,7 @@ export function PublicLayout() {
     <div className="public-shell">
       <header className="public-header">
         <div className="container public-header-inner">
-          <Link to="/" className="public-brand">
+          <Link to="/home" className="public-brand">
             <span className="public-brand-mark" aria-hidden>
               <img className="public-brand-logo" src="/logo-icon.png" alt="" />
             </span>
@@ -97,29 +93,29 @@ export function PublicLayout() {
 
           <div className={`public-nav-shell ${menuOpen ? "open" : ""}`}>
             <nav className="nav-pills" aria-label="Primary">
-              <Link className="nav-pill" to="/">
+              <NavLink className={({ isActive }) => `nav-pill ${isActive ? "active" : ""}`} to="/home" end>
                 Home
-              </Link>
-              <Link className="nav-pill" to="/programs">
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-pill ${isActive ? "active" : ""}`} to="/programs">
                 How We Help
-              </Link>
-              <Link className="nav-pill" to="/impact">
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-pill ${isActive ? "active" : ""}`} to="/impact">
                 Impact
-              </Link>
-              <Link className="nav-pill" to="/about">
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-pill ${isActive ? "active" : ""}`} to="/about">
                 About
-              </Link>
-              <Link className="nav-pill" to="/contact">
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-pill ${isActive ? "active" : ""}`} to="/contact">
                 Contact
-              </Link>
+              </NavLink>
             </nav>
 
             <div className="nav-pill-actions" aria-label="Donation and account actions">
               {auth.isAuthenticated ? (
                 <>
-                  <Link className="nav-pill nav-pill-primary" to={portalTo}>
+                  <NavLink className={({ isActive }) => `nav-pill nav-pill-primary ${isActive ? "active" : ""}`} to={portalTo}>
                     My portal
-                  </Link>
+                  </NavLink>
                   <button
                     className="nav-pill nav-pill-outline-accent"
                     type="button"
@@ -130,12 +126,12 @@ export function PublicLayout() {
                 </>
               ) : (
                 <>
-                  <Link className="nav-pill nav-pill-glow" to="/donate">
+                  <NavLink className={({ isActive }) => `nav-pill nav-pill-glow ${isActive ? "active" : ""}`} to="/donate">
                     Donate
-                  </Link>
-                  <Link className="nav-pill nav-pill-outline-accent" to="/login">
+                  </NavLink>
+                  <NavLink className={({ isActive }) => `nav-pill nav-pill-outline-accent ${isActive ? "active" : ""}`} to="/login">
                     Sign in
-                  </Link>
+                  </NavLink>
                 </>
               )}
             </div>
@@ -159,6 +155,8 @@ export function AppLayout() {
   const location = useLocation();
   const donorOnly = auth.hasRole("Donor") && !auth.hasRole("Admin") && !auth.hasRole("Employee");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showMobileQuickNav, setShowMobileQuickNav] = useState(false);
+  const quickNavHideTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     applyThemeFromCookie();
@@ -178,6 +176,67 @@ export function AppLayout() {
       document.body.style.overflow = original;
     };
   }, [sidebarOpen]);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+
+    const updateQuickNav = () => {
+      const currentY = window.scrollY;
+      const isMobile = window.innerWidth <= 900;
+      const nearTop = currentY < 140;
+      const movedUp = currentY < lastY - 8;
+      const movedDown = currentY > lastY + 8;
+
+      if (!isMobile || sidebarOpen || nearTop) {
+        setShowMobileQuickNav(false);
+      } else if (movedUp) {
+        setShowMobileQuickNav(true);
+      } else if (movedDown) {
+        setShowMobileQuickNav(false);
+      }
+
+      lastY = currentY;
+    };
+
+    const handleResize = () => {
+      if (window.innerWidth > 900) {
+        setShowMobileQuickNav(false);
+      } else {
+        updateQuickNav();
+      }
+    };
+
+    updateQuickNav();
+    window.addEventListener("scroll", updateQuickNav, { passive: true });
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("scroll", updateQuickNav);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    if (quickNavHideTimeout.current !== null) {
+      window.clearTimeout(quickNavHideTimeout.current);
+      quickNavHideTimeout.current = null;
+    }
+
+    if (!showMobileQuickNav || sidebarOpen) {
+      return;
+    }
+
+    quickNavHideTimeout.current = window.setTimeout(() => {
+      setShowMobileQuickNav(false);
+      quickNavHideTimeout.current = null;
+    }, 5000);
+
+    return () => {
+      if (quickNavHideTimeout.current !== null) {
+        window.clearTimeout(quickNavHideTimeout.current);
+        quickNavHideTimeout.current = null;
+      }
+    };
+  }, [showMobileQuickNav, sidebarOpen, location.pathname, location.search, location.hash]);
 
   const toggleTheme = () => {
     const current = getActiveTheme();
@@ -328,20 +387,24 @@ export function AppLayout() {
           <>
             <div className="sidebar-section-label">Website</div>
             <nav className="nav">
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donate">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Donate
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/impact">
-                <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-                Impact
-              </NavLink>
-              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/">
+              {auth.hasRole("Donor") ? (
+                <>
+                  <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/donate">
+                    <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 3v18M5 8h10a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h10" stroke="currentColor" strokeWidth="1.6" />
+                    </svg>
+                    Donate
+                  </NavLink>
+                  <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/app/impact">
+                    <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
+                      <path d="M4 19V5a1 1 0 0 1 1-1h14v16H5a1 1 0 0 1-1-1Z" stroke="currentColor" strokeWidth="1.6" />
+                      <path d="M8 16v-5M12 16V8M16 16v-3" stroke="currentColor" strokeWidth="1.6" />
+                    </svg>
+                    Impact
+                  </NavLink>
+                </>
+              ) : null}
+              <NavLink className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} to="/home">
                 <svg className="nav-icon" viewBox="0 0 24 24" fill="none">
                   <path d="M4 12h16M12 4l8 8-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -381,6 +444,18 @@ export function AppLayout() {
       {sidebarOpen ? <button className="mobile-drawer-backdrop app-drawer-backdrop" aria-label="Close app menu" onClick={() => setSidebarOpen(false)} /> : null}
 
       <main className="content">
+        <div className={`app-mobile-bar app-mobile-bar--floating ${showMobileQuickNav ? "visible" : ""}`}>
+          <button
+            className="mobile-menu-toggle"
+            type="button"
+            aria-label={sidebarOpen ? "Close app menu" : "Open app menu"}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            <MenuIcon />
+          </button>
+          <div className="app-mobile-title">Steps of Hope</div>
+        </div>
         <div className="app-mobile-bar">
           <button
             className="mobile-menu-toggle"
