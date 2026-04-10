@@ -71,10 +71,10 @@ const PIPELINE_GUIDE: Record<string, {
     operationalUse: "Use for staffing and capacity planning, not as a replacement for case judgment."
   },
   resident_incident_30d: {
-    title: "Resident incident risk",
-    prediction: "Predicts which residents are at higher near-term incident risk.",
-    explanation: "Helps explain what patterns in recent activity and case context are associated with elevated risk.",
-    operationalUse: "Use to escalate follow-up and safety planning earlier."
+    title: "Residents needing closer follow-up",
+    prediction: "Predicts which residents may need closer near-term follow-up.",
+    explanation: "Helps explain what patterns in recent activity and case context are associated with a need for extra support.",
+    operationalUse: "Use to prioritize follow-up and safety planning earlier."
   },
   resident_reintegration_readiness: {
     title: "Resident reintegration readiness",
