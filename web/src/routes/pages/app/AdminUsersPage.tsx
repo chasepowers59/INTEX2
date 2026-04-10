@@ -509,13 +509,43 @@ export function AdminUsersPage() {
                       </td>
                       <td data-label="Supporter ID" className="muted">{user.supporterId ?? "-"}</td>
                       <td data-label="Actions">
-                        <button
-                          className={`btn admin-table-action ${isSelected ? "donor-row-selected-action" : ""}`}
-                          disabled={busy}
-                          onClick={() => handleSelectUser(user)}
-                        >
-                          {isSelected ? "Editing" : "Edit"}
-                        </button>
+                        <div className="row admin-compact-actions">
+                          <button
+                            className={`btn admin-table-action ${isSelected ? "donor-row-selected-action" : ""}`}
+                            disabled={busy}
+                            onClick={() => handleSelectUser(user)}
+                          >
+                            {isSelected ? "Editing" : "Edit"}
+                          </button>
+                          <button
+                            className="btn danger admin-table-action"
+                            disabled={busy || user.email === auth.username}
+                            onClick={async () => {
+                              if (!window.confirm(`Delete ${user.email}? This cannot be undone.`)) return;
+                              setBusy(true);
+                              setError(null);
+                              setNotice(null);
+                              try {
+                                await apiFetch(`/api/admin/users/${user.id}?confirm=true`, {
+                                  method: "DELETE",
+                                  token: auth.token ?? undefined,
+                                });
+                                if (selectedUser?.id === user.id) {
+                                  setSelectedUser(null);
+                                  setSelectedUserClosing(false);
+                                }
+                                setNotice(`Deleted ${user.email}.`);
+                                await load();
+                              } catch (e) {
+                                setError((e as Error).message);
+                              } finally {
+                                setBusy(false);
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

@@ -200,7 +200,7 @@ export function MlActionCenterPage() {
           <p className="muted">Residents who may need a case review, follow-up, or reintegration check.</p>
         </div>
         <div className="table-wrap" style={{ marginTop: 10 }}>
-          <table className="table">
+          <table className="table table-preserve-mobile">
             <thead>
                 <tr>
                   <th>Resident</th>
@@ -270,7 +270,7 @@ export function MlActionCenterPage() {
             <p className="muted">Supporters who may need retention-focused outreach.</p>
           </div>
           <div className="table-wrap" style={{ marginTop: 10 }}>
-            <table className="table">
+            <table className="table table-preserve-mobile">
               <thead>
                 <tr>
                   <th>Supporter</th>
@@ -342,7 +342,7 @@ export function MlActionCenterPage() {
             <p className="muted">Suggested asks and the best next channel to use.</p>
           </div>
           <div className="table-wrap" style={{ marginTop: 10 }}>
-            <table className="table">
+            <table className="table table-preserve-mobile">
               <thead>
                 <tr>
                   <th>Supporter</th>
@@ -418,7 +418,7 @@ export function MlActionCenterPage() {
           <p className="muted">Safehouses that may need closer operational review next month.</p>
         </div>
         <div className="table-wrap" style={{ marginTop: 10 }}>
-          <table className="table">
+          <table className="table table-preserve-mobile">
             <thead>
                 <tr>
                   <th>Safehouse</th>

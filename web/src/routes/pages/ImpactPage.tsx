@@ -2,15 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { StatCard } from "../../components/ui/StatCard";
 import { apiFetch } from "../../lib/api";
-import { formatSiteCurrency } from "../../lib/currency";
-
-type Snapshot = {
-  snapshotId: number;
-  snapshotDate: string;
-  headline: string;
-  summaryText: string;
-  metricPayloadJson: string;
-};
 
 type Highlights = {
   asOfUtc: string;
@@ -64,32 +55,10 @@ function formatMonth(d: string) {
   return x.toLocaleString(undefined, { month: "long", year: "numeric" });
 }
 
-function formatSnapshotDate(d: string) {
-  const x = new Date(d + "T12:00:00");
-  return Number.isNaN(x.valueOf())
-    ? d
-    : x.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-function getSnapshotMetrics(snapshot: Snapshot) {
-  try {
-    const obj = JSON.parse(snapshot.metricPayloadJson) as Record<string, unknown>;
-    return Object.entries(obj)
-      .slice(0, 6)
-      .map(([key, value]) => ({
-        key: key.replaceAll("_", " ").replace(/\b\w/g, (m) => m.toUpperCase()),
-        value: typeof value === "number" ? value.toLocaleString() : String(value),
-      }));
-  } catch {
-    return [];
-  }
-}
-
 export function ImpactPage() {
   const loc = useLocation();
   const inAppShell = loc.pathname.startsWith("/app/");
   const donateRoute = inAppShell ? "/app/donate" : "/donate";
-  const [items, setItems] = useState<Snapshot[]>([]);
   const [highlights, setHighlights] = useState<Highlights | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,11 +66,7 @@ export function ImpactPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [snapshots, hi] = await Promise.all([
-          apiFetch<Snapshot[]>("/api/public/impact-snapshots"),
-          apiFetch<Highlights>("/api/public/impact-highlights"),
-        ]);
-        setItems(snapshots);
+        const hi = await apiFetch<Highlights>("/api/public/impact-highlights");
         setHighlights(hi);
       } catch (e) {
         setError((e as Error).message);
@@ -116,8 +81,12 @@ export function ImpactPage() {
     highlights && highlights.totalBedsCapacity > 0
       ? Math.round((highlights.totalCurrentOccupancy / highlights.totalBedsCapacity) * 100)
       : null;
-  const educationProgress = lm?.avgEducationProgress ?? null;
-  const wellbeingScore = lm?.avgHealthScore ?? null;
+  const availableBeds =
+    highlights ? Math.max(0, highlights.totalBedsCapacity - highlights.totalCurrentOccupancy) : null;
+  const availableBedsRate =
+    highlights && highlights.totalBedsCapacity > 0 && availableBeds != null
+      ? Math.round((availableBeds / highlights.totalBedsCapacity) * 100)
+      : null;
   const serviceTotal = lm ? lm.counselingSessionsMonth + lm.homeVisitsMonth : 0;
 
   return (
@@ -126,11 +95,11 @@ export function ImpactPage() {
         <div className="impact-proof-header">
           <div>
             <div className="sub-kicker">Impact at a glance</div>
-            <h1>Your support is creating measurable change.</h1>
+            <h1>Your support helps provide safety, care, and steady follow-up.</h1>
           </div>
           <p className="muted">
-            These numbers show how support is helping across shelter, healing, wellbeing, and follow-up while
-            protecting survivor privacy.
+            This page shows the kind of support donors help make possible across shelter, counseling, wellbeing,
+            education, and follow-up while protecting survivor privacy.
           </p>
         </div>
 
@@ -140,22 +109,22 @@ export function ImpactPage() {
               <StatCard
                 label="Active safehouses"
                 value={highlights.activeSafehouses}
-                hint={`${highlights.totalCurrentOccupancy} residents housed across ${highlights.totalBedsCapacity} beds`}
+                hint={`${highlights.totalCurrentOccupancy} residents are currently being housed across ${highlights.totalBedsCapacity} beds`}
                 tone="brand"
               />
               <StatCard
-                label="Occupancy"
-                value={occupancyRate != null ? `${occupancyRate}%` : "-"}
-                hint="Current occupancy across safehouse capacity"
+                label="Residents in care"
+                value={highlights.totalCurrentOccupancy}
+                hint={availableBeds != null ? `${availableBeds} beds currently available` : "Current safehouse occupancy"}
                 tone="ok"
               />
               <StatCard
                 label="Counseling sessions"
                 value={lm ? lm.counselingSessionsMonth : "-"}
-                hint={lm ? `Latest reporting month: ${formatMonth(lm.monthStart)}` : "Latest month pending"}
+                hint={lm ? `Recorded in ${formatMonth(lm.monthStart)}` : "Latest month pending"}
                 tone="ok"
               />
-              <StatCard label="Home and field visits" value={lm ? lm.homeVisitsMonth : "-"} hint="Follow-up care activity" />
+              <StatCard label="Home and field visits" value={lm ? lm.homeVisitsMonth : "-"} hint="Follow-up with survivors and families" />
             </div>
             <div className="impact-proof-note">
               Figures refresh from live data and were last updated {new Date(highlights.asOfUtc).toLocaleString()}.
@@ -181,22 +150,22 @@ export function ImpactPage() {
 
       <section className="impact-evidence-section" aria-label="Impact evidence and reporting safety">
         <div className="card impact-chart-card impact-evidence-card">
-          <div className="sub-kicker">Care progress indicators</div>
-          <h2>Evidence from the latest reporting month</h2>
+          <div className="sub-kicker">Recent care activity</div>
+          <h2>What recent care has looked like</h2>
           <div className="impact-bar-list">
             <div className="impact-bar-row">
-              <span>Education progress</span>
+              <span>Counseling sessions</span>
               <div>
-                <i style={{ width: `${Math.max(0, Math.min(100, educationProgress ?? 0))}%` }} />
+                <i style={{ width: `${Math.max(8, Math.min(100, (lm?.counselingSessionsMonth ?? 0) * 8))}%` }} />
               </div>
-              <strong>{educationProgress != null ? `${educationProgress}%` : "-"}</strong>
+              <strong>{lm ? lm.counselingSessionsMonth : "-"}</strong>
             </div>
             <div className="impact-bar-row">
-              <span>Wellbeing score</span>
+              <span>Home and field visits</span>
               <div>
-                <i style={{ width: `${Math.max(0, Math.min(100, (wellbeingScore ?? 0) * 20))}%` }} />
+                <i style={{ width: `${Math.max(8, Math.min(100, (lm?.homeVisitsMonth ?? 0) * 10))}%` }} />
               </div>
-              <strong>{wellbeingScore != null ? `${wellbeingScore.toFixed(2)} / 5` : "-"}</strong>
+              <strong>{lm ? lm.homeVisitsMonth : "-"}</strong>
             </div>
             <div className="impact-bar-row">
               <span>Safehouse occupancy</span>
@@ -206,15 +175,15 @@ export function ImpactPage() {
               <strong>{occupancyRate != null ? `${occupancyRate}%` : "-"}</strong>
             </div>
             <div className="impact-bar-row">
-              <span>Documented services</span>
+              <span>Available beds</span>
               <div>
-                <i style={{ width: `${Math.max(8, Math.min(100, serviceTotal * 8))}%` }} />
+                <i style={{ width: `${Math.max(0, Math.min(100, availableBedsRate ?? 0))}%` }} />
               </div>
-              <strong>{serviceTotal || "-"}</strong>
+              <strong>{availableBeds != null ? availableBeds : "-"}</strong>
             </div>
           </div>
           <p className="muted">
-            These are broad signs of progress that help donors understand the work without showing private case details.
+            These broad indicators help donors understand the work without exposing private case details.
           </p>
         </div>
 
@@ -257,28 +226,28 @@ export function ImpactPage() {
       {highlights ? (
         <section className="impact-kpi-panel card">
           <div className="section-intro">
-            <div className="sub-kicker">More live signals</div>
-            <h2 className="section-title">Support, outreach, and published updates.</h2>
+            <div className="sub-kicker">What support makes possible</div>
+            <h2 className="section-title">Care is more than a safe bed for one night.</h2>
             <p className="muted">
-              These numbers show the wider support behind day-to-day care.
+              Survivors need consistent shelter, trusted adults, and ongoing support to keep moving forward.
             </p>
           </div>
           <div className="kpi-grid">
             <StatCard
-              label="Supporter community"
-              value={highlights.activeSupporters}
-              hint="Active donors, advocates, and supporters on record"
+              label="Total bed capacity"
+              value={highlights.totalBedsCapacity}
+              hint="Available space across active safehouses"
             />
             <StatCard
-              label="Outreach-attributed giving"
-              value={formatSiteCurrency(highlights.socialEstimatedDonationValuePhp)}
-              hint={`${highlights.socialPostsWithDonationReferrals} public posts linked to referral activity`}
+              label="Documented services"
+              value={serviceTotal || "-"}
+              hint="Counseling sessions and home visits in the latest month"
               tone="ok"
             />
             <StatCard
-              label="Published updates"
-              value={highlights.publishedImpactSnapshots}
-              hint="Public snapshot cards available below"
+              label="Supporter community"
+              value={highlights.activeSupporters}
+              hint="People helping keep care moving"
               tone="brand"
             />
           </div>
@@ -291,29 +260,31 @@ export function ImpactPage() {
             <div className="sub-kicker">Latest care month</div>
             <h2 className="section-title">{formatMonth(lm.monthStart)}</h2>
             <p className="muted">
-              This monthly snapshot helps donors see the pace of care without exposing private records.
+              This monthly snapshot gives a simple view of recent care activity without exposing private records.
             </p>
             <div className="impact-mini-grid">
               <StatCard label="Resident-months" value={lm.activeResidentsTotal} />
               <StatCard label="Counseling sessions" value={lm.counselingSessionsMonth} tone="ok" />
               <StatCard label="Home and field visits" value={lm.homeVisitsMonth} />
-              <StatCard label="Incidents documented" value={lm.incidentsMonth} tone="warn" />
+              <StatCard
+                label="Beds available"
+                value={availableBeds != null ? availableBeds : "-"}
+                tone="brand"
+              />
             </div>
           </div>
 
           <div className="card impact-chart-card">
-            <div className="sub-kicker">Outreach signal</div>
-            <h2>How public engagement supports care</h2>
+            <div className="sub-kicker">Why steady support matters</div>
+            <h2>Recovery takes more than one moment of help.</h2>
             <p className="muted">
-              Outreach does not replace direct care, but it can help the mission reach more donors and partners.
+              Safe shelter is only the beginning. Survivors may also need counseling, health support, education help,
+              family follow-up, and reintegration planning over time.
             </p>
-            <div className="impact-outreach-number">
-              <span>Modeled outreach-attributed giving</span>
-              <strong>{highlights ? formatSiteCurrency(highlights.socialEstimatedDonationValuePhp) : "-"}</strong>
-            </div>
-            <div className="impact-outreach-number">
-              <span>Posts linked to donation referral activity</span>
-              <strong>{highlights?.socialPostsWithDonationReferrals ?? "-"}</strong>
+            <div className="program-support-list">
+              <div>Safe shelter creates space for recovery to begin.</div>
+              <div>Counseling and home visits help staff follow up with care.</div>
+              <div>Education and wellbeing support help survivors rebuild stability.</div>
             </div>
           </div>
         </section>
@@ -331,8 +302,8 @@ export function ImpactPage() {
           <div className="sub-kicker">Why this reporting matters</div>
           <h2 className="section-title">Transparent enough for donors. Private enough for survivors.</h2>
           <p className="muted">
-            Donors should be able to see that support is reaching real needs. We share progress, capacity, services,
-            and public updates while keeping private case details protected.
+            Donors should be able to see that support is reaching real needs. We share progress, services, and
+            broad outcomes while keeping private case details protected.
           </p>
           <Link className="btn" to="/privacy">
             Read our privacy policy
@@ -342,43 +313,6 @@ export function ImpactPage() {
           <div>Public updates focus on progress, not private case files.</div>
           <div>Gifts are reflected through care activity, public updates, and visible results.</div>
           <div>Detailed case information stays with authorized staff.</div>
-        </div>
-      </section>
-
-      <section className="card donor-section">
-        <div className="section-intro">
-          <div className="sub-kicker">Published impact snapshots</div>
-          <h2 className="section-title">Recent updates for donors and partners.</h2>
-          <p className="muted">
-            These updates help donors and partners follow progress over time in a simple, public-friendly format.
-          </p>
-        </div>
-
-        {items.length === 0 && !error ? <div className="muted">No published snapshots yet.</div> : null}
-
-        <div className="impact-snapshot-grid">
-          {items.map((snapshot) => {
-            const metrics = getSnapshotMetrics(snapshot);
-            return (
-              <article className="impact-snapshot-card" key={snapshot.snapshotId}>
-                <div className="impact-snapshot-date">{formatSnapshotDate(snapshot.snapshotDate)}</div>
-                <h3>{snapshot.headline}</h3>
-                <p>{snapshot.summaryText}</p>
-                {metrics.length ? (
-                  <div className="impact-snapshot-metrics">
-                    {metrics.map((metric) => (
-                      <span key={metric.key}>
-                        <strong>{metric.value}</strong>
-                        {metric.key}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="muted">More details will be added to this update soon.</div>
-                )}
-              </article>
-            );
-          })}
         </div>
       </section>
 

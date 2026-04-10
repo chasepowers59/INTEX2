@@ -1,25 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const values = [
-  {
-    title: "Safety first",
-    description: "Survivor protection, privacy, and dignity guide every decision we make.",
-  },
-  {
-    title: "Transparent stewardship",
-    description: "Donors deserve to see how support moves into shelter, counseling, wellbeing, and reintegration care.",
-  },
-  {
-    title: "Local partnership",
-    description: "Sustainable recovery depends on coordinated safehouses, social workers, family follow-up, and partners.",
-  },
-  {
-    title: "Human judgment",
-    description: "Data can help staff prioritize needs, but sensitive care decisions remain with trained people.",
-  },
-];
-
 const workSteps = [
   "Provide immediate safehouse and emergency support.",
   "Document counseling, wellbeing, education, and follow-up needs.",
@@ -88,38 +69,26 @@ export function AboutPage() {
 
       <section className="card donor-section">
         <div className="section-intro">
-          <div className="sub-kicker">Mission, vision, and values</div>
-          <h2 className="section-title">The purpose behind the work and the principles guiding it.</h2>
+          <div className="sub-kicker">Mission and vision</div>
+          <h2 className="section-title">The purpose behind the work and the future we are working toward.</h2>
         </div>
-        <div className="about-foundation-grid">
-          <div className="about-mission-grid">
-            <article className="card about-mission-card">
-              <div className="sub-kicker">Our mission</div>
-              <h2>Fund practical care while protecting survivor dignity.</h2>
-              <p className="muted">
-                We connect donor generosity to safehouse support, counseling documentation, health and education progress,
-                home visitation, and reintegration planning. We share progress carefully so transparency never comes at the
-                expense of safety.
-              </p>
-            </article>
-            <article className="card about-mission-card">
-              <div className="sub-kicker">Our vision</div>
-              <h2>A future where survivors are seen, protected, and supported.</h2>
-              <p className="muted">
-                We imagine a network of care where every survivor can access the next right step: protection, healing,
-                trusted adults, education support, and a safer path forward.
-              </p>
-            </article>
-          </div>
-
-          <div className="values-grid">
-            {values.map((value) => (
-              <article className="value-card" key={value.title}>
-                <h3>{value.title}</h3>
-                <p>{value.description}</p>
-              </article>
-            ))}
-          </div>
+        <div className="about-mission-grid">
+          <article className="card about-mission-card">
+            <div className="sub-kicker">Our mission</div>
+            <h2>Help survivors find safety, care, and a path forward.</h2>
+            <p className="muted">
+              Donor support helps provide safe shelter, counseling, health and education support, home visits, and
+              reintegration planning. We share progress in ways that keep survivors safe and private.
+            </p>
+          </article>
+          <article className="card about-mission-card">
+            <div className="sub-kicker">Our vision</div>
+            <h2>A future where survivors are seen, protected, and supported.</h2>
+            <p className="muted">
+              We imagine a network of care where every survivor can access the next right step: protection, healing,
+              trusted adults, education support, and a safer path forward.
+            </p>
+          </article>
         </div>
       </section>
 
@@ -163,30 +132,6 @@ export function AboutPage() {
           <Link className="btn" to="/privacy">
             Read our privacy policy
           </Link>
-        </div>
-      </section>
-
-      <section className="card donor-section">
-        <div className="section-intro">
-          <div className="sub-kicker">Leadership and stewardship</div>
-          <h2 className="section-title">Meet the people guiding the mission.</h2>
-          <p className="muted">
-            Donor trust grows when the people guiding the mission feel accountable, steady, and human.
-          </p>
-        </div>
-        <div className="leadership-grid">
-          {leadership.map((person) => (
-            <article className="leader-card" key={person.name}>
-              <div className="leader-photo">
-                <img src={person.photo} alt={`${person.name}, ${person.role}`} />
-              </div>
-              <div className="leader-body">
-                <h3>{person.name}</h3>
-                <div>{person.role}</div>
-                <p>{person.description}</p>
-              </div>
-            </article>
-          ))}
         </div>
       </section>
 
