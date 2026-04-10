@@ -41,6 +41,18 @@ type AarSummary = {
   pillars: { pillar: string; metric: string; value: number }[];
 };
 
+function describeSafehouseAttention(value: number) {
+  if (value >= 1.5) return "Needs review";
+  if (value >= 0.5) return "Watch";
+  return "Okay";
+}
+
+function explainSafehouseAttention(value: number) {
+  if (value >= 1.5) return "Plan for closer staff review next month.";
+  if (value >= 0.5) return "Keep an eye on this safehouse next month.";
+  return "No unusual staff pressure expected right now.";
+}
+
 export function ReportsPage() {
   const auth = useAuth();
   const PAGE_SIZE = 8;
@@ -201,7 +213,7 @@ export function ReportsPage() {
         </div>
       </div>
 
-      <div className="admin-two-column">
+      <div className="admin-two-column reports-equal-grid">
         <div className="card">
           <div className="admin-header-copy">
             <h2 style={{ marginTop: 0 }}>Donation trends</h2>
@@ -255,7 +267,7 @@ export function ReportsPage() {
         <div className="card">
           <div className="admin-header-copy">
             <h2 style={{ marginTop: 0 }}>Safehouse attention outlook</h2>
-            <p className="muted">Which safehouses may need the most staff attention next month.</p>
+            <p className="muted">A simple planning view of which safehouses may need more staff attention next month.</p>
           </div>
           <div style={{ marginTop: 10 }}>
             <InlineBarChart
@@ -263,19 +275,20 @@ export function ReportsPage() {
                 label: item.name,
                 value: item.predictedIncidentsNextMonth,
               }))}
-              valueFormatter={(v) => v.toFixed(1)}
+              valueFormatter={(v) => describeSafehouseAttention(v)}
             />
           </div>
           <p className="muted" style={{ marginTop: 10 }}>
-            Higher bars mean the system expects more staff attention may be needed at that safehouse next month.
+            Higher bars mean that safehouse may need more staff attention next month. This is a planning signal, not a count of new residents.
           </p>
           <div className="table-wrap">
             <table className="table">
               <thead>
                 <tr>
                   <th>Safehouse</th>
-                  <th>Occupancy</th>
-                  <th>Capacity</th>
+                  <th>Status</th>
+                  <th>Why it matters</th>
+                  <th>Current load</th>
                   <th>Available space</th>
                 </tr>
               </thead>
@@ -285,8 +298,15 @@ export function ReportsPage() {
                     <td data-label="Safehouse" className="muted">
                       {item.name}
                     </td>
-                    <td data-label="Occupancy">{item.currentOccupancy ?? "-"}</td>
-                    <td data-label="Capacity">{item.capacityGirls ?? "-"}</td>
+                    <td data-label="Status">{describeSafehouseAttention(item.predictedIncidentsNextMonth)}</td>
+                    <td data-label="Why it matters" className="muted">
+                      {explainSafehouseAttention(item.predictedIncidentsNextMonth)}
+                    </td>
+                    <td data-label="Current load">
+                      {item.currentOccupancy !== null && item.capacityGirls !== null
+                        ? `${item.currentOccupancy}/${item.capacityGirls}`
+                        : "-"}
+                    </td>
                     <td data-label="Available space">
                       {item.currentOccupancy !== null && item.capacityGirls !== null
                         ? Math.max(item.capacityGirls - item.currentOccupancy, 0)
@@ -296,7 +316,7 @@ export function ReportsPage() {
                 ))}
                 {safehouseForecast.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="muted">
+                    <td colSpan={5} className="muted">
                       No safehouse forecast data yet.
                     </td>
                   </tr>
