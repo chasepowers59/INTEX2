@@ -101,6 +101,7 @@ a {
   box-shadow: var(--shadow);
   border-radius: 14px;
   padding: 16px;
+  min-width: 0;
   backdrop-filter: blur(8px);
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
@@ -704,13 +705,23 @@ html[data-theme="dark"] .dashboard-kpi-grid .stat.tone-danger::after {
 }
 
 .table-wrap {
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scrollbar-gutter: stable both-edges;
+}
+
+.admin-page > .card,
+.caseload-page > .card,
+.admin-two-column > *,
+.admin-split-grid > *,
+.donor-stewardship-grid > * {
+  min-width: 0;
 }
 
 .content .table-wrap > .table {
@@ -4741,6 +4752,10 @@ html[data-theme="dark"] .admin-command-status {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
   gap: 18px;
+}
+
+.reports-equal-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .admin-panel {
