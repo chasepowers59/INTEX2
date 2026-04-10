@@ -197,7 +197,7 @@ export function CaseloadPage() {
           </div>
           {isAdmin ? (
             <button className="btn primary" onClick={() => setShowNewResidentForm((open) => !open)}>
-              {showNewResidentForm ? "Close" : "Add resident"}
+              {showNewResidentForm ? "Cancel" : "Add resident"}
             </button>
           ) : null}
         </div>
@@ -217,7 +217,7 @@ export function CaseloadPage() {
           <div style={{ fontWeight: 800 }}>Resident filters</div>
           <p className="muted" style={{ marginTop: 6, marginBottom: 0 }}>Status, search, safehouse, and category.</p>
         <div className="caseload-filter-grid">
-          <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+          <label style={{ display: "grid", gap: 6 }}>
             <span className="muted">Case status</span>
             <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="Active">Active</option>
@@ -225,11 +225,11 @@ export function CaseloadPage() {
               <option value="OnHold">OnHold</option>
             </select>
           </label>
-          <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+          <label style={{ display: "grid", gap: 6 }}>
             <span className="muted">Search</span>
             <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Resident name or social worker..." />
           </label>
-          <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+          <label style={{ display: "grid", gap: 6 }}>
             <span className="muted">Safehouse</span>
             <select className="input" value={safehouseId} onChange={(e) => setSafehouseId(e.target.value)}>
               <option value="">All safehouses</option>
@@ -240,7 +240,7 @@ export function CaseloadPage() {
               ))}
             </select>
           </label>
-          <label style={{ display: "grid", gap: 6, minWidth: 220 }}>
+          <label style={{ display: "grid", gap: 6 }}>
             <span className="muted">Case category</span>
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">All categories</option>
@@ -309,7 +309,7 @@ export function CaseloadPage() {
                 <strong id="caseload-intake-title">Resident details</strong>
               </div>
               <button className="btn" onClick={() => setShowNewResidentForm(false)}>
-                Close
+                Cancel
               </button>
             </div>
             <div className="caseload-intake-grid">
@@ -345,7 +345,10 @@ export function CaseloadPage() {
               <label className="row"><input type="checkbox" checked={newResident.familyIndigenous} onChange={(e) => setNewResident((p) => ({ ...p, familyIndigenous: e.target.checked }))} /> Indigenous</label>
               <label className="row"><input type="checkbox" checked={newResident.familyInformalSettler} onChange={(e) => setNewResident((p) => ({ ...p, familyInformalSettler: e.target.checked }))} /> Informal settler</label>
             </div>
-            <div className="caseload-intake-actions">
+            <div className="caseload-intake-actions" style={{ justifyContent: "space-between" }}>
+              <button className="btn" onClick={() => setShowNewResidentForm(false)}>
+                Cancel
+              </button>
               <button
                 className="btn primary"
                 onClick={async () => {

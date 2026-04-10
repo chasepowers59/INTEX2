@@ -88,7 +88,10 @@ export function ResidentHomeVisitsPage() {
     const confRes = await apiFetch<Paged<Conference>>(`/api/case-conferences?residentId=${residentId}&upcomingOnly=false`, {
       token: auth.token ?? undefined,
     });
-    setConfs(confRes);
+    setConfs({
+      ...confRes,
+      items: [...(confRes.items ?? [])].sort((a, b) => b.scheduledAtUtc.localeCompare(a.scheduledAtUtc)),
+    });
   };
 
   useEffect(() => {
@@ -113,7 +116,7 @@ export function ResidentHomeVisitsPage() {
           <div className="row process-form-actions">
             {error ? <div className="badge danger">{error}</div> : null}
             <button className="btn primary" onClick={() => setShowVisitForm((open) => !open)}>
-              {showVisitForm ? "Close" : "Add visit"}
+              {showVisitForm ? "Cancel" : "Add visit"}
             </button>
           </div>
         </div>
@@ -252,7 +255,10 @@ export function ResidentHomeVisitsPage() {
               </div>
             </div>
 
-            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "space-between" }}>
+              <button className="btn" onClick={() => setShowVisitForm(false)}>
+                Cancel
+              </button>
               <button
                 className="btn primary"
                 onClick={async () => {
@@ -377,7 +383,7 @@ export function ResidentHomeVisitsPage() {
           <div className="row process-form-actions">
             {error ? <div className="badge danger">{error}</div> : null}
             <button className="btn" onClick={() => setShowConferenceForm((open) => !open)}>
-              {showConferenceForm ? "Close" : "Schedule conference"}
+              {showConferenceForm ? "Cancel" : "Schedule conference"}
             </button>
           </div>
         </div>
@@ -426,7 +432,10 @@ export function ResidentHomeVisitsPage() {
               </label>
             </div>
 
-            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "space-between" }}>
+              <button className="btn" onClick={() => setShowConferenceForm(false)}>
+                Cancel
+              </button>
               <button
                 className="btn primary"
                 onClick={async () => {

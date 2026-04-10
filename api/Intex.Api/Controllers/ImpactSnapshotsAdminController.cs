@@ -105,5 +105,18 @@ public sealed class ImpactSnapshotsAdminController(AppDbContext db) : Controller
 
         return Ok(new { snap.SnapshotId, snap.IsPublished, snap.PublishedAt });
     }
+
+    [HttpDelete("{snapshotId:int}")]
+    public async Task<ActionResult> Delete([FromRoute] int snapshotId, [FromQuery] bool confirm = false)
+    {
+        if (!confirm) return BadRequest(new { message = "Delete requires confirm=true" });
+
+        var snap = await db.PublicImpactSnapshots.FirstOrDefaultAsync(x => x.SnapshotId == snapshotId);
+        if (snap == null) return NotFound(new { message = "Snapshot not found." });
+
+        db.PublicImpactSnapshots.Remove(snap);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
 }
 

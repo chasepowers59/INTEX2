@@ -147,6 +147,11 @@ export function AdminPartnersPage() {
   const rows = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const selectPartner = (partner: Partner) => {
+    if (selectedPartner?.partnerId === partner.partnerId) {
+      setSelectedPartner(null);
+      setNotice(null);
+      return;
+    }
     setSelectedPartner(partner);
     setEditForm({
       partnerName: partner.partnerName,
@@ -178,7 +183,7 @@ export function AdminPartnersPage() {
                 setCreateForm(emptyPartnerForm);
               }}
             >
-              {showCreate ? "Close" : "Add partner"}
+              {showCreate ? "Cancel" : "Add partner"}
             </button>
           </div>
           {error ? <div className="badge danger" style={{ marginTop: 10 }}>{error}</div> : null}
@@ -224,9 +229,6 @@ export function AdminPartnersPage() {
                 ))}
               </select>
             </label>
-            <button className="btn span-2" onClick={() => void load()}>
-              Search
-            </button>
             <button
               className="btn span-1"
               onClick={() => {
@@ -392,7 +394,7 @@ export function AdminPartnersPage() {
                     setNotice(null);
                   }}
                 >
-                  Clear selection
+                  Cancel
                 </button>
               </div>
 

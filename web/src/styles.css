@@ -968,6 +968,59 @@ html[data-theme="dark"] .process-flag-strip {
   font-weight: 900;
 }
 
+.action-center-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.action-center-kpi {
+  grid-template-rows: auto auto 1fr;
+  align-content: start;
+}
+
+.action-center-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 40px;
+  margin-top: auto;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(36, 114, 125, 0.06);
+  color: var(--brand);
+  text-align: center;
+  cursor: pointer;
+}
+
+.action-center-toggle:hover {
+  border-color: rgba(36, 114, 125, 0.34);
+  background: rgba(36, 114, 125, 0.1);
+}
+
+html[data-theme="dark"] .action-center-toggle {
+  border-color: rgba(123, 156, 160, 0.22);
+  background: rgba(107, 170, 178, 0.08);
+  color: var(--brand);
+}
+
+html[data-theme="dark"] .action-center-toggle:hover {
+  border-color: rgba(107, 170, 178, 0.38);
+  background: rgba(107, 170, 178, 0.12);
+}
+
+@media (max-width: 1100px) {
+  .action-center-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .action-center-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .admin-inline-form {
   display: grid;
   gap: 12px;
@@ -1286,7 +1339,7 @@ html[data-theme="dark"] .admin-mini-list-item {
 .caseload-filter-grid,
 .caseload-intake-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-top: 12px;
   align-items: end;
@@ -1396,7 +1449,7 @@ html[data-theme="dark"] .caseload-summary-chip {
 }
 
 .caseload-table {
-  min-width: 1260px;
+  min-width: 1080px;
 }
 
 .caseload-table th:nth-child(2),
@@ -1406,7 +1459,7 @@ html[data-theme="dark"] .caseload-summary-chip {
 
 .caseload-table th:nth-child(5),
 .caseload-table td:nth-child(5) {
-  min-width: 320px;
+  min-width: 270px;
 }
 
 .caseload-table th:nth-child(6),
@@ -1421,7 +1474,7 @@ html[data-theme="dark"] .caseload-summary-chip {
 
 .caseload-table th:nth-child(8),
 .caseload-table td:nth-child(8) {
-  min-width: 220px;
+  min-width: 180px;
 }
 
 @media (max-width: 600px) {
@@ -2153,6 +2206,7 @@ html[data-theme="dark"] .footer-theme-btn:hover {
   text-decoration: underline;
   color: var(--brand);
 }
+
 
 .auth-aside {
   background:

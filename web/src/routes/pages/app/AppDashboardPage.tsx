@@ -260,23 +260,23 @@ export function AppDashboardPage() {
     <div className="admin-dashboard-page">
       <section className="card admin-command-hero">
         <div className="admin-command-copy">
-          <h1>Operations at a glance</h1>
+          <h1>Operations at a Glance</h1>
           <div className="admin-command-meta">
             <span className="badge brand">Updated {formatStamp(data?.asOfUtc ?? alerts?.asOfUtc ?? insights?.asOfUtc)}</span>
           </div>
           {error ? <div className="badge danger">{error}</div> : null}
           <div className="admin-quick-action-grid">
-            <Link className="btn primary" to="/app/cases">
-              Open caseload
+            <Link className="btn primary" to="/app/action-center">
+              Action Center
+            </Link>
+            <Link className="btn" to="/app/cases">
+              Caseload
             </Link>
             <Link className="btn" to="/app/donors">
-              Review donors
-            </Link>
-            <Link className="btn" to="/app/action-center">
-              Action center
+              Review Donors
             </Link>
             <Link className="btn" to="/app/reports">
-              Run reports
+              Analytics
             </Link>
           </div>
         </div>
