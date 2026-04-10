@@ -153,6 +153,7 @@ export function DonorsPage() {
       setContribs(null);
       setContribPage(1);
       await loadContribs(supporterId, 1);
+      supporterResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       setError((e as Error).message);
     }
@@ -163,6 +164,15 @@ export function DonorsPage() {
     setContribs(null);
     setSupporterPage(1);
     setAppliedQ(q.trim());
+    supporterResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const clearSupporterSearch = () => {
+    setQ("");
+    setAppliedQ("");
+    setSupporterPage(1);
+    setSelectedSupporter(null);
+    setContribs(null);
     supporterResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -225,7 +235,7 @@ export function DonorsPage() {
           </div>
           {auth.hasRole("Admin") ? (
             <button className="btn primary" onClick={() => setShowSupporterForm((open) => !open)}>
-              {showSupporterForm ? "Close" : "Add supporter"}
+              {showSupporterForm ? "Cancel" : "Add supporter"}
             </button>
           ) : null}
         </div>
@@ -270,7 +280,10 @@ export function DonorsPage() {
                 </select>
               </label>
             </div>
-            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+            <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "space-between" }}>
+              <button className="btn" onClick={() => setShowSupporterForm(false)}>
+                Cancel
+              </button>
               <button
                 className="btn primary"
                 onClick={async () => {
@@ -429,6 +442,9 @@ export function DonorsPage() {
           <button className="btn" onClick={applySupporterSearch}>
             Search
           </button>
+          <button className="btn" onClick={clearSupporterSearch}>
+            Clear
+          </button>
         </div>
         <div className="table-wrap">
           <table className="table donor-list-table">
@@ -535,7 +551,7 @@ export function DonorsPage() {
                             {auth.hasRole("Admin") && isOpen ? (
                               <div>
                                 <button className="btn primary" onClick={() => setShowContributionForm((open) => !open)}>
-                                  {showContributionForm ? "Close" : "Add contribution"}
+                                  {showContributionForm ? "Cancel" : "Add contribution"}
                                 </button>
                                 <div
                                   className={`process-collapsible ${showContributionForm ? "open" : ""}`}
@@ -594,6 +610,9 @@ export function DonorsPage() {
                                       </label>
                                     </div>
                                     <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
+                                      <button className="btn ghost" onClick={() => setShowContributionForm(false)}>
+                                        Cancel
+                                      </button>
                                       <button
                                         className="btn primary"
                                         onClick={async () => {

@@ -79,7 +79,7 @@ export function ResidentProcessRecordingsPage() {
             <p className="muted">Session notes, interventions, and follow-up actions.</p>
           </div>
           <button className="btn primary" onClick={() => setShowRecordingForm((open) => !open)}>
-            {showRecordingForm ? "Close" : "Add recording"}
+            {showRecordingForm ? "Cancel" : "Add recording"}
           </button>
         </div>
 
@@ -232,6 +232,9 @@ export function ResidentProcessRecordingsPage() {
 
             <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
               {error ? <div className="badge danger">{error}</div> : null}
+              <button className="btn ghost" onClick={() => setShowRecordingForm(false)}>
+                Cancel
+              </button>
               <button
                 className="btn primary"
                 onClick={async () => {

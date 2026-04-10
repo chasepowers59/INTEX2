@@ -62,6 +62,14 @@ export function AdminUsersPage() {
   }, [auth.token]);
 
   useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void load().catch((e) => setError((e as Error).message));
+    }, 180);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  useEffect(() => {
     if (!selectedUser) return;
     selectedPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedUser]);
@@ -122,7 +130,7 @@ export function AdminUsersPage() {
               <p className="muted">Accounts, access, password resets, and donor links.</p>
             </div>
             <button className="btn primary" onClick={() => setShowCreate((open) => !open)}>
-              {showCreate ? "Close" : "Create user"}
+              {showCreate ? "Cancel" : "Create user"}
             </button>
           </div>
           {error ? <div className="badge danger" style={{ marginTop: 10 }}>{error}</div> : null}
@@ -133,9 +141,6 @@ export function AdminUsersPage() {
               <span className="muted">Search</span>
               <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email, username, or name" />
             </label>
-            <button className="btn" onClick={() => void load()} disabled={busy}>
-              Search
-            </button>
           </div>
 
           <div className={`process-collapsible ${showCreate ? "open" : ""}`} aria-hidden={!showCreate}>
@@ -170,6 +175,9 @@ export function AdminUsersPage() {
                 </label>
               </div>
               <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "space-between" }}>
+                <button className="btn" onClick={() => setShowCreate(false)}>
+                  Cancel
+                </button>
                 <span className="muted admin-note">Minimum 14 characters.</span>
                 <button
                   className="btn primary"
@@ -223,7 +231,7 @@ export function AdminUsersPage() {
           className={`process-collapsible user-selected-wrap ${selectedUser ? "open" : ""} ${selectedUserClosing ? "closing" : ""}`}
           aria-hidden={!selectedUser}
         >
-          {selectedUser ? (
+              {selectedUser ? (
             <div
               key={selectedUser.id}
               className={`card process-form-card user-selected-panel ${selectedUserClosing ? "closing" : ""}`}
@@ -233,12 +241,6 @@ export function AdminUsersPage() {
                   <h2 style={{ marginTop: 0 }}>Edit user</h2>
                   <p className="muted">Update account details, access, and donor link for {selectedUser.email}.</p>
                 </div>
-                <button
-                  className="btn"
-                  onClick={handleClearSelection}
-                >
-                  Clear selection
-                </button>
               </div>
 
               <div className="admin-kpi-grid" style={{ marginTop: 8 }}>
@@ -294,61 +296,6 @@ export function AdminUsersPage() {
                       disabled={editRole === "Admin"}
                     />
                   </label>
-                </div>
-                <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "flex-end" }}>
-                  <button
-                    className="btn primary"
-                    disabled={busy}
-                    onClick={async () => {
-                      if (!selectedUser) return;
-                      const supporterId = editSupporterId.trim() ? Number(editSupporterId.trim()) : null;
-                      if (editSupporterId.trim() && !Number.isFinite(supporterId)) {
-                        setError("Supporter ID must be a number.");
-                        return;
-                      }
-                      setBusy(true);
-                      setError(null);
-                      setNotice(null);
-                      try {
-                        const updated = await apiFetch<AdminUser>(`/api/admin/users/${selectedUser.id}`, {
-                          method: "PUT",
-                          token: auth.token ?? undefined,
-                          body: JSON.stringify({
-                            id: selectedUser.id,
-                            email: editEmail.trim(),
-                            displayName: editDisplayName.trim() || null,
-                            role: editRole,
-                            supporterId: editRole === "Admin" ? null : supporterId,
-                          }),
-                        });
-                        setSelectedUser((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                email: updated.email,
-                                userName: updated.userName,
-                                displayName: updated.displayName,
-                                supporterId: updated.supporterId,
-                                roles: updated.roles,
-                              }
-                            : prev,
-                        );
-                        setLinkSupporterIdValue(updated.supporterId?.toString() ?? "");
-                        setEditEmail(updated.email);
-                        setEditDisplayName(updated.displayName ?? "");
-                        setEditRole((updated.roles[0] as "Admin" | "Employee" | "Donor") ?? "Employee");
-                        setEditSupporterId(updated.supporterId?.toString() ?? "");
-                        setNotice(`Updated ${updated.email}.`);
-                        await load();
-                      } catch (e) {
-                        setError((e as Error).message);
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    Save changes
-                  </button>
                 </div>
               </div>
 
@@ -481,6 +428,65 @@ export function AdminUsersPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "space-between" }}>
+                <button className="btn" onClick={handleClearSelection}>
+                  Cancel
+                </button>
+                <button
+                  className="btn primary"
+                  disabled={busy}
+                  onClick={async () => {
+                    if (!selectedUser) return;
+                    const supporterId = editSupporterId.trim() ? Number(editSupporterId.trim()) : null;
+                    if (editSupporterId.trim() && !Number.isFinite(supporterId)) {
+                      setError("Supporter ID must be a number.");
+                      return;
+                    }
+                    setBusy(true);
+                    setError(null);
+                    setNotice(null);
+                    try {
+                      const updated = await apiFetch<AdminUser>(`/api/admin/users/${selectedUser.id}`, {
+                        method: "PUT",
+                        token: auth.token ?? undefined,
+                        body: JSON.stringify({
+                          id: selectedUser.id,
+                          email: editEmail.trim(),
+                          displayName: editDisplayName.trim() || null,
+                          role: editRole,
+                          supporterId: editRole === "Admin" ? null : supporterId,
+                        }),
+                      });
+                      setSelectedUser((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              email: updated.email,
+                              userName: updated.userName,
+                              displayName: updated.displayName,
+                              supporterId: updated.supporterId,
+                              roles: updated.roles,
+                            }
+                          : prev,
+                      );
+                      setLinkSupporterIdValue(updated.supporterId?.toString() ?? "");
+                      setEditEmail(updated.email);
+                      setEditDisplayName(updated.displayName ?? "");
+                      setEditRole((updated.roles[0] as "Admin" | "Employee" | "Donor") ?? "Employee");
+                      setEditSupporterId(updated.supporterId?.toString() ?? "");
+                      setNotice(`Updated ${updated.email}.`);
+                      await load();
+                    } catch (e) {
+                      setError((e as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Save changes
+                </button>
               </div>
             </div>
           ) : null}

@@ -106,7 +106,7 @@ export function AdminPartnerAssignmentsPage() {
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter((assignment) => {
-      if (partnerFilter && String(assignment.partnerId) !== partnerFilter) return false;
+      if (partnerFilter && !assignment.partnerName.toLowerCase().includes(partnerFilter.toLowerCase())) return false;
       if (programAreaFilter && assignment.programArea !== programAreaFilter) return false;
       if (statusFilter && assignment.status !== statusFilter) return false;
       return true;
@@ -124,6 +124,11 @@ export function AdminPartnerAssignmentsPage() {
   );
 
   const selectAssignment = (assignment: Assignment) => {
+    if (selectedAssignment?.assignmentId === assignment.assignmentId) {
+      setSelectedAssignment(null);
+      setNotice(null);
+      return;
+    }
     setSelectedAssignment(assignment);
     setEditForm({
       partnerId: String(assignment.partnerId),
@@ -155,7 +160,7 @@ export function AdminPartnerAssignmentsPage() {
               <p className="muted">Where partners are currently helping.</p>
             </div>
             <button className="btn primary" onClick={() => { setShowCreate((open) => !open); setCreateForm(emptyForm); }}>
-              {showCreate ? "Close" : "Add assignment"}
+              {showCreate ? "Cancel" : "Add assignment"}
             </button>
           </div>
           {error ? <div className="badge danger" style={{ marginTop: 10 }}>{error}</div> : null}
@@ -168,7 +173,7 @@ export function AdminPartnerAssignmentsPage() {
           </div>
 
           <div className="admin-inline-grid" style={{ marginTop: 12 }}>
-            <label className="admin-form-label span-3"><span className="muted">Partner</span><select className="input" value={partnerFilter} onChange={(e) => setPartnerFilter(e.target.value)}><option value="">All</option>{partners.map((partner) => <option key={partner.partnerId} value={partner.partnerId}>{partner.partnerName}</option>)}</select></label>
+            <label className="admin-form-label span-4"><span className="muted">Partner</span><input className="input" value={partnerFilter} onChange={(e) => setPartnerFilter(e.target.value)} placeholder="Search partner name..." /></label>
             <label className="admin-form-label span-3"><span className="muted">Program area</span><select className="input" value={programAreaFilter} onChange={(e) => setProgramAreaFilter(e.target.value)}><option value="">All</option>{programAreaOptions.map((value) => <option key={value} value={value}>{labelProgramArea(value)}</option>)}</select></label>
             <label className="admin-form-label span-2"><span className="muted">Status</span><select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="">All</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select></label>
             <button className="btn span-2" onClick={clearFilters}>Clear</button>
@@ -219,7 +224,7 @@ export function AdminPartnerAssignmentsPage() {
                   <h2 style={{ marginTop: 0 }}>Selected assignment</h2>
                   <p className="muted">{selectedAssignment.partnerName}</p>
                 </div>
-                <button className="btn" onClick={() => { setSelectedAssignment(null); setNotice(null); }}>Clear selection</button>
+                <button className="btn" onClick={() => { setSelectedAssignment(null); setNotice(null); }}>Cancel</button>
               </div>
               <div className="admin-kpi-grid" style={{ marginTop: 8 }}>
                 <div className="card admin-kpi tone-cream"><div className="muted">Program area</div><div className="admin-kpi-value" style={{ fontSize: 20 }}>{labelProgramArea(selectedAssignment.programArea)}</div></div>

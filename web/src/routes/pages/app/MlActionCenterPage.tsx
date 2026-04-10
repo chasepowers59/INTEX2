@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
@@ -103,6 +103,10 @@ export function MlActionCenterPage() {
   const auth = useAuth();
   const token = auth.token ?? undefined;
   const DEFAULT_VISIBLE = 5;
+  const residentSectionRef = useRef<HTMLDivElement | null>(null);
+  const donorSectionRef = useRef<HTMLDivElement | null>(null);
+  const outreachSectionRef = useRef<HTMLDivElement | null>(null);
+  const safehouseSectionRef = useRef<HTMLDivElement | null>(null);
   const [donorRisk, setDonorRisk] = useState<DonorRiskRow[]>([]);
   const [donorUpgrade, setDonorUpgrade] = useState<DonorUpgradeRow[]>([]);
   const [nextChannel, setNextChannel] = useState<NextChannelRow[]>([]);
@@ -114,6 +118,10 @@ export function MlActionCenterPage() {
   const [showAllDonors, setShowAllDonors] = useState(false);
   const [showAllOutreach, setShowAllOutreach] = useState(false);
   const [showAllSafehouses, setShowAllSafehouses] = useState(false);
+  const [showResidentsSection, setShowResidentsSection] = useState(true);
+  const [showDonorsSection, setShowDonorsSection] = useState(true);
+  const [showOutreachSection, setShowOutreachSection] = useState(true);
+  const [showSafehousesSection, setShowSafehousesSection] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -157,6 +165,19 @@ export function MlActionCenterPage() {
   const visibleOutreach = showAllOutreach ? donorUpgrade : donorUpgrade.slice(0, DEFAULT_VISIBLE);
   const visibleSafehouses = showAllSafehouses ? safehouseForecast : safehouseForecast.slice(0, DEFAULT_VISIBLE);
 
+  const toggleSection = (
+    show: boolean,
+    setShow: React.Dispatch<React.SetStateAction<boolean>>,
+    ref: React.RefObject<HTMLDivElement | null>,
+  ) => {
+    if (show) {
+      setShow(false);
+      return;
+    }
+    setShow(true);
+    window.setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  };
+
   return (
     <div className="admin-page">
       <div className="card">
@@ -171,30 +192,39 @@ export function MlActionCenterPage() {
         ) : null}
       </div>
 
-      <div className="admin-kpi-grid">
-        <div className="card admin-kpi tone-cream">
+      <div className="admin-kpi-grid action-center-kpi-grid">
+        <div className="card admin-kpi action-center-kpi tone-cream">
           <div className="muted">Residents needing review</div>
           <div className="admin-kpi-value">{residentRisk.length}</div>
-          <a className="auth-link-subtle" href="#action-center-residents">See names</a>
+          <button className="action-center-toggle" onClick={() => toggleSection(showResidentsSection, setShowResidentsSection, residentSectionRef)}>
+            {showResidentsSection ? "Hide residents" : "See residents"}
+          </button>
         </div>
-        <div className="card admin-kpi tone-cream">
+        <div className="card admin-kpi action-center-kpi tone-cream">
           <div className="muted">Donors needing follow-up</div>
           <div className="admin-kpi-value">{donorRisk.length}</div>
-          <a className="auth-link-subtle" href="#action-center-followup">See names</a>
+          <button className="action-center-toggle" onClick={() => toggleSection(showDonorsSection, setShowDonorsSection, donorSectionRef)}>
+            {showDonorsSection ? "Hide donors" : "See donors"}
+          </button>
         </div>
-        <div className="card admin-kpi tone-cream">
+        <div className="card admin-kpi action-center-kpi tone-cream">
           <div className="muted">Outreach opportunities</div>
           <div className="admin-kpi-value">{donorUpgrade.length}</div>
-          <a className="auth-link-subtle" href="#action-center-outreach">See names</a>
+          <button className="action-center-toggle" onClick={() => toggleSection(showOutreachSection, setShowOutreachSection, outreachSectionRef)}>
+            {showOutreachSection ? "Hide opportunities" : "See opportunities"}
+          </button>
         </div>
-        <div className="card admin-kpi tone-cream">
+        <div className="card admin-kpi action-center-kpi tone-cream">
           <div className="muted">Safehouses needing attention</div>
           <div className="admin-kpi-value">{safehouseForecast.length}</div>
-          <a className="auth-link-subtle" href="#action-center-safehouses">See names</a>
+          <button className="action-center-toggle" onClick={() => toggleSection(showSafehousesSection, setShowSafehousesSection, safehouseSectionRef)}>
+            {showSafehousesSection ? "Hide safehouses" : "See safehouses"}
+          </button>
         </div>
       </div>
 
-      <div className="card" id="action-center-residents">
+      {showResidentsSection ? (
+      <div className="card" id="action-center-residents" ref={residentSectionRef}>
         <div className="admin-header-copy">
           <h2 style={{ marginTop: 0 }}>Residents needing review</h2>
           <p className="muted">Residents who may need a case review, follow-up, or reintegration check.</p>
@@ -262,9 +292,12 @@ export function MlActionCenterPage() {
           </div>
         ) : null}
       </div>
+      ) : null}
 
+      {showDonorsSection || showOutreachSection ? (
       <div className="admin-two-column">
-        <div className="card" id="action-center-followup">
+        {showDonorsSection ? (
+        <div className="card" id="action-center-followup" ref={donorSectionRef}>
           <div className="admin-header-copy">
             <h2 style={{ marginTop: 0 }}>Donors needing follow-up</h2>
             <p className="muted">Supporters who may need retention-focused outreach.</p>
@@ -335,8 +368,10 @@ export function MlActionCenterPage() {
             </div>
           ) : null}
         </div>
+        ) : null}
 
-        <div className="card" id="action-center-outreach">
+        {showOutreachSection ? (
+        <div className="card" id="action-center-outreach" ref={outreachSectionRef}>
           <div className="admin-header-copy">
             <h2 style={{ marginTop: 0 }}>Donor outreach opportunities</h2>
             <p className="muted">Suggested asks and the best next channel to use.</p>
@@ -410,9 +445,12 @@ export function MlActionCenterPage() {
             </div>
           ) : null}
         </div>
+        ) : null}
       </div>
+      ) : null}
 
-      <div className="card" id="action-center-safehouses">
+      {showSafehousesSection ? (
+      <div className="card" id="action-center-safehouses" ref={safehouseSectionRef}>
         <div className="admin-header-copy">
           <h2 style={{ marginTop: 0 }}>Safehouses needing attention</h2>
           <p className="muted">Safehouses that may need closer operational review next month.</p>
@@ -458,6 +496,7 @@ export function MlActionCenterPage() {
           </div>
         ) : null}
       </div>
+      ) : null}
     </div>
   );
 }

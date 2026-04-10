@@ -29,9 +29,11 @@ type RecentContribution = {
   contributionDate: string;
   campaignName: string | null;
 };
+
 type ContributionListResponse = {
   items: RecentContribution[];
 };
+
 type AllocationListResponse = {
   items: AllocationRow[];
 };
@@ -51,46 +53,56 @@ const FUNDING_AREAS = [
   "Emergency Essentials",
 ] as const;
 
+function renderContributionSummary(contribution: ContributionWorkItem) {
+  return (
+    <>
+      <strong>{contribution.supporterName}</strong> | Donation #{contribution.contributionId}
+      <br />
+      {contribution.contributionDate} | {contribution.amount ?? "-"} {displayCurrencyCode(contribution.currency)}
+      {contribution.campaignName ? ` | ${contribution.campaignName}` : ""}
+      <br />
+      Allocated so far: {contribution.allocated.toFixed(2)} {displayCurrencyCode(contribution.currency)}
+      {contribution.remaining != null
+        ? ` | Remaining: ${contribution.remaining.toFixed(2)} ${displayCurrencyCode(contribution.currency)}`
+        : ""}
+    </>
+  );
+}
+
 export function AdminAllocationsPage() {
   const auth = useAuth();
   const PAGE_SIZE = 10;
   const allocationFormRef = useRef<HTMLDivElement | null>(null);
-  const [qSupporterId, setQSupporterId] = useState<string>("");
-  const [qCategory, setQCategory] = useState<string>("");
-  const [items, setItems] = useState<AllocationRow[]>([]);
+
+  const [qDonorId, setQDonorId] = useState("");
+  const [qDonorName, setQDonorName] = useState("");
+  const [qCategory, setQCategory] = useState("");
+  const [appliedHistoryFilters, setAppliedHistoryFilters] = useState({
+    donorId: "",
+    donorName: "",
+    category: "",
+  });
+
   const [allAllocations, setAllAllocations] = useState<AllocationRow[]>([]);
+  const [recentContributions, setRecentContributions] = useState<RecentContribution[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-
-  const [supporterId, setSupporterId] = useState<string>("");
-  const [contributionId, setContributionId] = useState<string>("");
-  const [allocationDate, setAllocationDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [category, setCategory] = useState<string>("Safe Shelter");
-  const [amount, setAmount] = useState<string>("");
-  const [currency, setCurrency] = useState<string>(SITE_CURRENCY);
-  const [notes, setNotes] = useState<string>("");
   const [page, setPage] = useState(1);
-  const [recentContributions, setRecentContributions] = useState<RecentContribution[]>([]);
-  const [selectedContribution, setSelectedContribution] = useState<RecentContribution | null>(null);
+
+  const [supporterId, setSupporterId] = useState("");
+  const [contributionId, setContributionId] = useState("");
+  const [allocationDate, setAllocationDate] = useState(new Date().toISOString().slice(0, 10));
+  const [category, setCategory] = useState<string>("Safe Shelter");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState(SITE_CURRENCY);
+  const [notes, setNotes] = useState("");
+  const [selectedContribution, setSelectedContribution] = useState<ContributionWorkItem | null>(null);
   const [confirmation, setConfirmation] = useState<{
     allocationId: number;
     supporterId: number;
     category: string;
     amount: string;
   } | null>(null);
-
-  const load = async () => {
-    setError(null);
-    const p = new URLSearchParams();
-    if (qSupporterId.trim()) p.set("supporterId", qSupporterId.trim());
-    if (qCategory.trim()) p.set("category", qCategory.trim());
-    p.set("page", "1");
-    p.set("pageSize", "50");
-    const res = await apiFetch<AllocationListResponse>(`/api/impact-allocations?${p.toString()}`, {
-      token: auth.token ?? undefined,
-    });
-    setItems(res.items);
-  };
 
   const loadAllAllocations = async () => {
     const res = await apiFetch<AllocationListResponse>("/api/impact-allocations?page=1&pageSize=500", {
@@ -99,19 +111,23 @@ export function AdminAllocationsPage() {
     setAllAllocations(res.items);
   };
 
+  const loadRecentContributions = async () => {
+    const res = await apiFetch<ContributionListResponse>("/api/contributions?page=1&pageSize=80", {
+      token: auth.token ?? undefined,
+    });
+    setRecentContributions(res.items ?? []);
+  };
+
   useEffect(() => {
-    void load().catch((e) => setError((e as Error).message));
-    void loadAllAllocations().catch(() => {});
-    void apiFetch<ContributionListResponse>("/api/contributions?page=1&pageSize=80", { token: auth.token ?? undefined })
-      .then((res) => setRecentContributions(res.items ?? []))
-      .catch(() => {});
+    void loadAllAllocations().catch((e) => setError((e as Error).message));
+    void loadRecentContributions().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.token]);
 
   useEffect(() => {
     if (!showCreate) return;
     allocationFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [showCreate, selectedContribution]);
+  }, [showCreate]);
 
   const allocationsByContribution = useMemo(() => {
     const totals = new Map<number, number>();
@@ -152,34 +168,27 @@ export function AdminAllocationsPage() {
   }, [allocationsByContribution, recentContributions]);
 
   const needsAllocation = contributionWorklist.filter(
-    (contribution) => contribution.status === "Not yet allocated" || contribution.status === "Partially allocated" || contribution.status === "Amount needed"
-  );
-  const selectedWorkItem = useMemo(
-    () => (selectedContribution ? contributionWorklist.find((item) => item.contributionId === selectedContribution.contributionId) ?? null : null),
-    [contributionWorklist, selectedContribution]
+    (contribution) =>
+      contribution.status === "Not yet allocated" ||
+      contribution.status === "Partially allocated" ||
+      contribution.status === "Amount needed",
   );
 
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
-  const rows = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filteredAllocationHistory = useMemo(() => {
+    const donorId = appliedHistoryFilters.donorId.trim();
+    const donorName = appliedHistoryFilters.donorName.trim().toLowerCase();
+    const categoryTerm = appliedHistoryFilters.category.trim().toLowerCase();
 
-  const openAllocationForm = (contribution?: ContributionWorkItem | null) => {
-    const picked = contribution ?? null;
-    setSelectedContribution(picked);
-    setShowCreate(true);
-    setContributionId(picked ? String(picked.contributionId) : "");
-    setSupporterId(picked ? String(picked.supporterId) : "");
-    setAmount(
-      picked
-        ? picked.remaining != null
-          ? String(picked.remaining)
-          : picked.amount != null
-            ? String(picked.amount)
-            : ""
-        : ""
-    );
-    setCurrency(picked?.currency ?? SITE_CURRENCY);
-    setNotes("");
-  };
+    return allAllocations.filter((item) => {
+      if (donorId && String(item.supporterId) !== donorId) return false;
+      if (donorName && !item.supporterName.toLowerCase().includes(donorName)) return false;
+      if (categoryTerm && !item.category.toLowerCase().includes(categoryTerm)) return false;
+      return true;
+    });
+  }, [allAllocations, appliedHistoryFilters]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAllocationHistory.length / PAGE_SIZE));
+  const rows = filteredAllocationHistory.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const clearAllocationForm = () => {
     setSelectedContribution(null);
@@ -193,6 +202,99 @@ export function AdminAllocationsPage() {
     setShowCreate(false);
   };
 
+  const prepareContributionAllocation = (contribution: ContributionWorkItem) => {
+    setSelectedContribution(contribution);
+    setShowCreate(false);
+    setContributionId(String(contribution.contributionId));
+    setSupporterId(String(contribution.supporterId));
+    setAmount(
+      contribution.remaining != null
+        ? String(contribution.remaining)
+        : contribution.amount != null
+          ? String(contribution.amount)
+          : "",
+    );
+    setCurrency(contribution.currency || SITE_CURRENCY);
+    setNotes("");
+  };
+
+  const openAllocationForm = (contribution?: ContributionWorkItem | null) => {
+    const picked = contribution ?? null;
+    if (picked) {
+      if (selectedContribution?.contributionId === picked.contributionId) {
+        clearAllocationForm();
+        return;
+      }
+      prepareContributionAllocation(picked);
+      return;
+    }
+    clearAllocationForm();
+    setShowCreate(true);
+  };
+
+  const saveAllocation = async () => {
+    setError(null);
+    const sid = Number(supporterId.trim());
+    const amt = Number(amount.trim());
+    if (!Number.isFinite(sid)) {
+      setError("Donor ID must be a number.");
+      return;
+    }
+    if (!Number.isFinite(amt)) {
+      setError("Amount must be a number.");
+      return;
+    }
+    try {
+      const res = await apiFetch<{ impactAllocationId: number }>("/api/impact-allocations", {
+        method: "POST",
+        token: auth.token ?? undefined,
+        body: JSON.stringify({
+          supporterId: sid,
+          contributionId: contributionId.trim() ? Number(contributionId) : null,
+          snapshotId: null,
+          allocationDate,
+          category: category.trim(),
+          amount: amt,
+          currency: currency.trim() || SITE_CURRENCY,
+          notes: notes.trim() || null,
+        }),
+      });
+      setConfirmation({
+        allocationId: res.impactAllocationId,
+        supporterId: sid,
+        category: category.trim(),
+        amount: `${amt} ${currency.trim() || SITE_CURRENCY}`,
+      });
+      clearAllocationForm();
+      await loadAllAllocations();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const applyHistoryFilters = () => {
+    setAppliedHistoryFilters({
+      donorId: qDonorId.trim(),
+      donorName: qDonorName.trim(),
+      category: qCategory.trim(),
+    });
+    setPage(1);
+  };
+
+  const clearHistoryFilters = () => {
+    setQDonorId("");
+    setQDonorName("");
+    setQCategory("");
+    setAppliedHistoryFilters({ donorId: "", donorName: "", category: "" });
+    setPage(1);
+  };
+
+  const handleHistoryEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    applyHistoryFilters();
+  };
+
   return (
     <RequireRole role="Admin">
       <div className="admin-page">
@@ -203,7 +305,7 @@ export function AdminAllocationsPage() {
               <p className="muted">Assign recorded donations to the work they support.</p>
             </div>
             <button className="btn primary" onClick={() => (showCreate ? clearAllocationForm() : openAllocationForm(null))}>
-              {showCreate ? "Close" : "Add allocation"}
+              {showCreate ? "Cancel" : "Add allocation"}
             </button>
           </div>
           {error ? <div className="badge danger" style={{ marginTop: 10 }}>{error}</div> : null}
@@ -219,7 +321,7 @@ export function AdminAllocationsPage() {
             </div>
             <div className="card admin-kpi tone-cream">
               <div className="muted">Saved allocations</div>
-              <div className="admin-kpi-value">{items.length}</div>
+              <div className="admin-kpi-value">{allAllocations.length}</div>
             </div>
           </div>
 
@@ -232,150 +334,74 @@ export function AdminAllocationsPage() {
               <div className="process-header process-inline-header">
                 <strong>New allocation</strong>
               </div>
-              {selectedContribution ? (
-                <div className="admin-inline-summary">
-                  <strong>{selectedContribution.supporterName}</strong> · Donation #{selectedContribution.contributionId}
-                  <br />
-                  {selectedContribution.contributionDate} · {selectedContribution.amount ?? "-"} {displayCurrencyCode(selectedContribution.currency)}
-                  {selectedContribution.campaignName ? ` · ${selectedContribution.campaignName}` : ""}
-                  {selectedWorkItem ? (
-                    <>
-                      <br />
-                      Allocated so far: {selectedWorkItem.allocated.toFixed(2)} {displayCurrencyCode(selectedWorkItem.currency)}
-                      {selectedWorkItem.remaining != null ? ` · Remaining: ${selectedWorkItem.remaining.toFixed(2)} ${displayCurrencyCode(selectedWorkItem.currency)}` : ""}
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
-              {selectedContribution ? (
-                <div className="admin-inline-grid">
-                  <label className="admin-form-label span-4">
-                    <span className="muted">Funding area</span>
-                    <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                      {FUNDING_AREAS.map((area) => (
-                        <option key={area} value={area}>
-                          {area}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="admin-form-label span-2">
-                    <span className="muted">Amount</span>
-                    <input className="input" value={amount} onChange={(e) => setAmount(e.target.value)} />
-                  </label>
-                  <label className="admin-form-label span-6">
-                    <span className="muted">Notes</span>
-                    <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
-                  </label>
-                </div>
-              ) : (
-                <div className="admin-inline-grid">
-                  <label className="admin-form-label span-6">
-                    <span className="muted">Recent donation</span>
-                    <select
-                      className="input"
-                      value={contributionId}
-                      onChange={(e) => {
-                        const nextId = e.target.value;
-                        setContributionId(nextId);
-                        const picked = contributionWorklist.find((c) => c.contributionId === Number(nextId));
-                        if (picked) {
-                          setSelectedContribution(picked);
-                          setSupporterId(String(picked.supporterId));
-                          setAmount(picked.remaining != null ? String(picked.remaining) : picked.amount != null ? String(picked.amount) : "");
-                          setCurrency(picked.currency || SITE_CURRENCY);
-                        } else {
-                          setSelectedContribution(null);
-                        }
-                      }}
-                    >
-                      <option value="">Select recent donation</option>
-                      {recentContributions.map((c) => (
-                        <option key={c.contributionId} value={c.contributionId}>
-                          #{c.contributionId} | {c.supporterName} | {c.contributionDate} | {c.amount ?? "-"} {displayCurrencyCode(c.currency)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="admin-form-label span-2">
-                    <span className="muted">Supporter ID</span>
-                    <input className="input" value={supporterId} onChange={(e) => setSupporterId(e.target.value)} />
-                  </label>
-                  <label className="admin-form-label span-2">
-                    <span className="muted">Date</span>
-                    <input className="input" type="date" value={allocationDate} onChange={(e) => setAllocationDate(e.target.value)} />
-                  </label>
-                  <label className="admin-form-label span-2">
-                    <span className="muted">Currency</span>
-                    <input className="input" value={currency} onChange={(e) => setCurrency(e.target.value)} />
-                  </label>
-                  <label className="admin-form-label span-4">
-                    <span className="muted">Funding area</span>
-                    <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                      {FUNDING_AREAS.map((area) => (
-                        <option key={area} value={area}>
-                          {area}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="admin-form-label span-2">
-                    <span className="muted">Amount</span>
-                    <input className="input" value={amount} onChange={(e) => setAmount(e.target.value)} />
-                  </label>
-                  <label className="admin-form-label span-6">
-                    <span className="muted">Notes</span>
-                    <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
-                  </label>
-                </div>
-              )}
+              <div className="admin-inline-grid">
+                <label className="admin-form-label span-6">
+                  <span className="muted">Recent donation</span>
+                  <select
+                    className="input"
+                    value={contributionId}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      setContributionId(nextId);
+                      const picked = contributionWorklist.find((c) => c.contributionId === Number(nextId));
+                      if (picked) {
+                        setSupporterId(String(picked.supporterId));
+                        setAmount(
+                          picked.remaining != null
+                            ? String(picked.remaining)
+                            : picked.amount != null
+                              ? String(picked.amount)
+                              : "",
+                        );
+                        setCurrency(picked.currency || SITE_CURRENCY);
+                      }
+                    }}
+                  >
+                    <option value="">Select recent donation</option>
+                    {recentContributions.map((contribution) => (
+                      <option key={contribution.contributionId} value={contribution.contributionId}>
+                        #{contribution.contributionId} | {contribution.supporterName} | {contribution.contributionDate} |{" "}
+                        {contribution.amount ?? "-"} {displayCurrencyCode(contribution.currency)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-form-label span-2">
+                  <span className="muted">Donor ID</span>
+                  <input className="input" value={supporterId} onChange={(e) => setSupporterId(e.target.value)} />
+                </label>
+                <label className="admin-form-label span-2">
+                  <span className="muted">Date</span>
+                  <input className="input" type="date" value={allocationDate} onChange={(e) => setAllocationDate(e.target.value)} />
+                </label>
+                <label className="admin-form-label span-2">
+                  <span className="muted">Currency</span>
+                  <input className="input" value={currency} onChange={(e) => setCurrency(e.target.value)} />
+                </label>
+                <label className="admin-form-label span-4">
+                  <span className="muted">Funding area</span>
+                  <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                    {FUNDING_AREAS.map((area) => (
+                      <option key={area} value={area}>
+                        {area}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="admin-form-label span-2">
+                  <span className="muted">Amount</span>
+                  <input className="input" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                </label>
+                <label className="admin-form-label span-6">
+                  <span className="muted">Notes</span>
+                  <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
+                </label>
+              </div>
               <div className="row process-form-actions" style={{ marginTop: 12, justifyContent: "space-between" }}>
                 <button className="btn" onClick={clearAllocationForm}>
                   Cancel
                 </button>
-                <button
-                  className="btn primary"
-                  onClick={async () => {
-                    setError(null);
-                    const sid = Number(supporterId.trim());
-                    const amt = Number(amount.trim());
-                    if (!Number.isFinite(sid)) {
-                      setError("SupporterId must be a number.");
-                      return;
-                    }
-                    if (!Number.isFinite(amt)) {
-                      setError("Amount must be a number.");
-                      return;
-                    }
-                    try {
-                      const res = await apiFetch<{ impactAllocationId: number }>("/api/impact-allocations", {
-                        method: "POST",
-                        token: auth.token ?? undefined,
-                        body: JSON.stringify({
-                          supporterId: sid,
-                          contributionId: contributionId.trim() ? Number(contributionId) : null,
-                          snapshotId: null,
-                          allocationDate,
-                          category: category.trim(),
-                          amount: amt,
-                          currency: currency.trim() || SITE_CURRENCY,
-                          notes: notes.trim() || null,
-                        }),
-                      });
-                      setConfirmation({
-                        allocationId: res.impactAllocationId,
-                        supporterId: sid,
-                        category: category.trim(),
-                        amount: `${amt} ${currency.trim() || SITE_CURRENCY}`,
-                      });
-                      clearAllocationForm();
-                      await load();
-                      await loadAllAllocations();
-                    } catch (e) {
-                      setError((e as Error).message);
-                    }
-                  }}
-                >
+                <button className="btn primary" onClick={() => void saveAllocation()}>
                   Save allocation
                 </button>
               </div>
@@ -404,42 +430,98 @@ export function AdminAllocationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {needsAllocation.slice(0, 12).map((contribution) => (
-                  <tr key={contribution.contributionId}>
-                    <td data-label="Donor" style={{ fontWeight: 800 }}>
-                      {contribution.supporterName} <span className="muted">#{contribution.supporterId}</span>
-                    </td>
-                    <td data-label="Date" className="muted">{contribution.contributionDate}</td>
-                    <td data-label="Gift">
-                      {(contribution.amount ?? "-")} {displayCurrencyCode(contribution.currency)}
-                      {contribution.campaignName ? <div className="muted">{contribution.campaignName}</div> : null}
-                    </td>
-                    <td data-label="Allocated">{contribution.allocated.toFixed(2)} {displayCurrencyCode(contribution.currency)}</td>
-                    <td data-label="Remaining">
-                      {contribution.remaining == null ? "-" : `${contribution.remaining.toFixed(2)} ${displayCurrencyCode(contribution.currency)}`}
-                    </td>
-                    <td data-label="Status">
-                      <span className={`badge ${
-                        contribution.status === "Fully allocated"
-                          ? "ok"
-                          : contribution.status === "Partially allocated"
-                            ? "warn"
-                            : ""
-                      }`}
-                      >
-                        {contribution.status}
-                      </span>
-                    </td>
-                    <td data-label="Actions">
-                      <button
-                        className="btn admin-table-action"
-                        onClick={() => openAllocationForm(contribution)}
-                      >
-                        Allocate
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {needsAllocation.slice(0, 12).map((contribution) => {
+                  const isSelected = selectedContribution?.contributionId === contribution.contributionId;
+                  return (
+                    <React.Fragment key={contribution.contributionId}>
+                      <tr className={isSelected ? "donor-row-selected" : undefined}>
+                        <td data-label="Donor" style={{ fontWeight: 800 }}>
+                          <button
+                            className="auth-link-subtle"
+                            style={{ padding: 0, border: 0, background: "transparent", fontWeight: 800 }}
+                            onClick={() => openAllocationForm(contribution)}
+                          >
+                            {contribution.supporterName}
+                          </button>{" "}
+                          <span className="muted">#{contribution.supporterId}</span>
+                        </td>
+                        <td data-label="Date" className="muted">{contribution.contributionDate}</td>
+                        <td data-label="Gift">
+                          {(contribution.amount ?? "-")} {displayCurrencyCode(contribution.currency)}
+                          {contribution.campaignName ? <div className="muted">{contribution.campaignName}</div> : null}
+                        </td>
+                        <td data-label="Allocated">
+                          {contribution.allocated.toFixed(2)} {displayCurrencyCode(contribution.currency)}
+                        </td>
+                        <td data-label="Remaining">
+                          {contribution.remaining == null
+                            ? "-"
+                            : `${contribution.remaining.toFixed(2)} ${displayCurrencyCode(contribution.currency)}`}
+                        </td>
+                        <td data-label="Status">
+                          <span
+                            className={`badge ${
+                              contribution.status === "Fully allocated"
+                                ? "ok"
+                                : contribution.status === "Partially allocated"
+                                  ? "warn"
+                                  : ""
+                            }`}
+                          >
+                            {contribution.status}
+                          </span>
+                        </td>
+                        <td data-label="Actions">
+                          <button
+                            className={`btn admin-table-action ${isSelected ? "donor-row-selected-action" : ""}`}
+                            onClick={() => openAllocationForm(contribution)}
+                          >
+                            {isSelected ? "Cancel" : "Allocate"}
+                          </button>
+                        </td>
+                      </tr>
+                      {isSelected ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: 0 }}>
+                            <div className="donor-inline-panel open">
+                              <div style={{ padding: 16, display: "grid", gap: 14 }}>
+                                <div className="admin-inline-summary">{renderContributionSummary(contribution)}</div>
+                                <div className="admin-inline-grid">
+                                  <label className="admin-form-label span-4">
+                                    <span className="muted">Funding area</span>
+                                    <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                                      {FUNDING_AREAS.map((area) => (
+                                        <option key={area} value={area}>
+                                          {area}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <label className="admin-form-label span-2">
+                                    <span className="muted">Amount</span>
+                                    <input className="input" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                                  </label>
+                                  <label className="admin-form-label span-6">
+                                    <span className="muted">Notes</span>
+                                    <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
+                                  </label>
+                                </div>
+                                <div className="row process-form-actions" style={{ justifyContent: "space-between" }}>
+                                  <button className="btn" onClick={clearAllocationForm}>
+                                    Cancel
+                                  </button>
+                                  <button className="btn primary" onClick={() => void saveAllocation()}>
+                                    Save allocation
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </React.Fragment>
+                  );
+                })}
                 {needsAllocation.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="muted">
@@ -462,15 +544,22 @@ export function AdminAllocationsPage() {
 
           <div className="admin-inline-grid" style={{ marginTop: 10 }}>
             <label className="admin-form-label span-3">
-              <span className="muted">Supporter ID</span>
-              <input className="input" value={qSupporterId} onChange={(e) => setQSupporterId(e.target.value)} />
+              <span className="muted">Donor ID</span>
+              <input className="input" value={qDonorId} onChange={(e) => setQDonorId(e.target.value)} onKeyDown={handleHistoryEnter} />
             </label>
-            <label className="admin-form-label span-5">
+            <label className="admin-form-label span-4">
+              <span className="muted">Donor name</span>
+              <input className="input" value={qDonorName} onChange={(e) => setQDonorName(e.target.value)} onKeyDown={handleHistoryEnter} />
+            </label>
+            <label className="admin-form-label span-3">
               <span className="muted">Funding area</span>
-              <input className="input" value={qCategory} onChange={(e) => setQCategory(e.target.value)} />
+              <input className="input" value={qCategory} onChange={(e) => setQCategory(e.target.value)} onKeyDown={handleHistoryEnter} />
             </label>
-            <button className="btn" onClick={() => void load()}>
+            <button className="btn" onClick={applyHistoryFilters}>
               Apply
+            </button>
+            <button className="btn" onClick={clearHistoryFilters}>
+              Clear
             </button>
           </div>
 
@@ -487,15 +576,15 @@ export function AdminAllocationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((x) => (
-                  <tr key={x.impactAllocationId}>
-                    <td data-label="Date" className="muted">{x.allocationDate}</td>
+                {rows.map((allocation) => (
+                  <tr key={allocation.impactAllocationId}>
+                    <td data-label="Date" className="muted">{allocation.allocationDate}</td>
                     <td data-label="Donor" style={{ fontWeight: 800 }}>
-                      {x.supporterName} <span className="muted">#{x.supporterId}</span>
+                      {allocation.supporterName} <span className="muted">#{allocation.supporterId}</span>
                     </td>
-                    <td data-label="Funding area"><span className="badge">{x.category}</span></td>
-                    <td data-label="Amount">{x.amount} {displayCurrencyCode(x.currency)}</td>
-                    <td data-label="Notes" className="muted">{x.notes ?? "-"}</td>
+                    <td data-label="Funding area"><span className="badge">{allocation.category}</span></td>
+                    <td data-label="Amount">{allocation.amount} {displayCurrencyCode(allocation.currency)}</td>
+                    <td data-label="Notes" className="muted">{allocation.notes ?? "-"}</td>
                     <td data-label="Actions">
                       <button
                         className="btn danger admin-table-action"
@@ -503,11 +592,10 @@ export function AdminAllocationsPage() {
                           if (!confirm("Delete this allocation?")) return;
                           setError(null);
                           try {
-                            await apiFetch(`/api/impact-allocations/${x.impactAllocationId}?confirm=true`, {
+                            await apiFetch(`/api/impact-allocations/${allocation.impactAllocationId}?confirm=true`, {
                               method: "DELETE",
                               token: auth.token ?? undefined,
                             });
-                            await load();
                             await loadAllAllocations();
                           } catch (e) {
                             setError((e as Error).message);
@@ -532,8 +620,8 @@ export function AdminAllocationsPage() {
           <PaginationControls
             page={page}
             totalPages={totalPages}
-            onPrev={() => setPage((p) => Math.max(1, p - 1))}
-            onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onPrev={() => setPage((current) => Math.max(1, current - 1))}
+            onNext={() => setPage((current) => Math.min(totalPages, current + 1))}
           />
         </div>
       </div>
@@ -559,7 +647,7 @@ export function AdminAllocationsPage() {
             </div>
             <div className="row" style={{ marginTop: 14 }}>
               <button className="btn primary" onClick={() => setConfirmation(null)}>
-                Close
+                Done
               </button>
             </div>
           </div>

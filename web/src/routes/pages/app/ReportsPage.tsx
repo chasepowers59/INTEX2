@@ -224,7 +224,7 @@ export function ReportsPage() {
               data={[...donations]
                 .slice(-6)
                 .map((item) => ({
-                  label: `${String(item.month).padStart(2, "0")}/${String(item.year).slice(-2)}`,
+                  label: `${item.year}-${String(item.month).padStart(2, "0")}`,
                   value: item.totalAmount,
                 }))}
               valueFormatter={(v) => formatSiteCurrency(Math.round(v))}
@@ -241,7 +241,9 @@ export function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {donations.map((item) => (
+                {[...donations]
+                  .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month))
+                  .map((item) => (
                   <tr key={`${item.year}-${item.month}`}>
                     <td data-label="Month" className="muted">
                       {item.year}-{String(item.month).padStart(2, "0")}
@@ -405,7 +407,7 @@ export function ReportsPage() {
               <p className="muted">Manage the updates shown on the public impact page.</p>
             </div>
             <button className="btn primary" onClick={() => setShowSnapshotForm((open) => !open)}>
-              {showSnapshotForm ? "Close" : "New update"}
+              {showSnapshotForm ? "Cancel" : "New update"}
             </button>
           </div>
 
@@ -599,6 +601,31 @@ export function ReportsPage() {
                           }}
                         >
                           {item.isPublished ? "Unpublish" : "Publish"}
+                        </button>
+                        <button
+                          className="btn admin-table-action"
+                          onClick={async () => {
+                            if (!confirm("Delete this update?")) return;
+                            setError(null);
+                            try {
+                              await apiFetch(`/api/impact-snapshots/${item.snapshotId}?confirm=true`, {
+                                method: "DELETE",
+                                token: auth.token ?? undefined,
+                              });
+                              const snapshotList = await apiFetch<{ items: ImpactSnapshot[] }>("/api/impact-snapshots", {
+                                token: auth.token ?? undefined,
+                              });
+                              setSnapshots(snapshotList.items);
+                              setSnapshotsPage(1);
+                              if (editingSnapshotId === item.snapshotId) {
+                                resetSnapshotForm();
+                              }
+                            } catch (e) {
+                              setError((e as Error).message);
+                            }
+                          }}
+                        >
+                          Delete
                         </button>
                       </div>
                     </td>
