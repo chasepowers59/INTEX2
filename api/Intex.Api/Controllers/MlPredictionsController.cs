@@ -22,7 +22,7 @@ public sealed class MlPredictionsController(AppDbContext db) : ControllerBase
         ("next_channel_source", "Supporter", "Best outreach channel"),
         ("post_donation_value", "SocialPost", "Social conversion value"),
         ("safehouse_incident_next_month", "Safehouse", "Capacity and incident pressure"),
-        ("resident_incident_30d", "Resident", "Resident incident risk"),
+        ("resident_incident_30d", "Resident", "Residents needing closer follow-up"),
         ("resident_reintegration_readiness", "Resident", "Reintegration readiness")
     ];
 

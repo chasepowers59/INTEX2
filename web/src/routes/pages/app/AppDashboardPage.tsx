@@ -80,6 +80,41 @@ function formatCompact(value: number | null | undefined) {
   }).format(value);
 }
 
+function describeSafehouseAttention(value: number | null | undefined) {
+  if (value == null) return "Awaiting forecast";
+  if (value >= 1.5) return "Needs review";
+  if (value >= 0.5) return "Watch";
+  return "Okay";
+}
+
+function describeDonorLapseBand(band: string | null | undefined, count: number | null | undefined) {
+  const normalized = (band ?? "").trim().toLowerCase();
+  const donorCount = count ?? 0;
+
+  if (!normalized) return "Awaiting import";
+  if (normalized.includes("low")) return `Mostly stable (${donorCount} donors)`;
+  if (normalized.includes("medium")) return `Some follow-up needed (${donorCount} donors)`;
+  if (normalized.includes("high")) return `Closer donor follow-up needed (${donorCount} donors)`;
+  return donorCount > 0 ? `${band} (${donorCount} donors)` : band;
+}
+
+function summarizeReadinessMix(items: { label: string; value: number }[]) {
+  if (!items.length) return "Awaiting import";
+
+  const ordered = [...items]
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3)
+    .map(({ label, value }) => {
+      const normalized = label.trim().toLowerCase();
+      if (normalized.includes("high")) return `${value} may be ready soon`;
+      if (normalized.includes("medium")) return `${value} are still in progress`;
+      if (normalized.includes("low")) return `${value} need more support`;
+      return `${value} ${label.toLowerCase()}`;
+    });
+
+  return ordered.join(" | ");
+}
+
 export function AppDashboardPage() {
   const auth = useAuth();
   const staff = auth.hasRole("Admin") || auth.hasRole("Employee");
@@ -101,7 +136,7 @@ export function AppDashboardPage() {
         apiFetch<OpsAlerts>("/api/analytics/ops-alerts?take=10", { token }),
         apiFetch<ProgramInsights>("/api/analytics/program-insights", { token }),
         apiFetch<MlPredictionRow[]>("/api/ml/predictions?type=resident_reintegration_readiness&take=200", { token }),
-        apiFetch<SafehouseForecast[]>("/api/ml/safehouse-forecast/top?take=5", { token }),
+        apiFetch<SafehouseForecast[]>("/api/ml/safehouse-forecast/top?take=6", { token }),
       ]);
 
       const errs: string[] = [];
@@ -166,6 +201,7 @@ export function AppDashboardPage() {
     insights && insights.socialRoi.totalBoostSpendPhp > 0
       ? insights.socialRoi.totalEstimatedDonationValuePhp / insights.socialRoi.totalBoostSpendPhp
       : null;
+  const topDonorLapseBand = data?.donorLapse.byBand?.[0];
 
   const workloadItems = [
     { label: "Check-ins due", value: data?.checkInsDue30d ?? 0 },
@@ -238,20 +274,6 @@ export function AppDashboardPage() {
               tone="brand"
             />
             <StatCard
-              label="Resident check-ins due in 30 days"
-              value={data?.checkInsDue30d ?? "-"}
-              tone="warn"
-            />
-            <StatCard
-              label="Case notes entered in the last 7 days"
-              value={data?.processRecordings7d ?? "-"}
-              tone="ok"
-            />
-            <StatCard
-              label="Case conferences scheduled in 14 days"
-              value={data?.upcomingConferences14d ?? "-"}
-            />
-            <StatCard
               label="Residents currently flagged for review"
               value={alerts?.items.length ?? "-"}
               tone={(alerts?.items.length ?? 0) > 0 ? "danger" : "ok"}
@@ -283,14 +305,21 @@ export function AppDashboardPage() {
                           </span>
                         </div>
                         <span className={`badge ${row.riskBand?.toLowerCase().includes("high") ? "danger" : "warn"}`}>
-                          {row.riskBand ?? "Review"}
+                          {row.riskBand?.toLowerCase().includes("high") ? "Needs closer follow-up" : row.riskBand ?? "Review"}
                         </span>
                       </div>
                       <div className="admin-alert-reasons">
-                        {row.reasons.map((reason) => (
+                        {row.reasons
+                          .filter(
+                            (reason) =>
+                              reason !== "Needs closer follow-up" &&
+                              reason !== "High incident risk (30d)" &&
+                              !reason.includes("High incident risk"),
+                          )
+                          .map((reason) => (
                           <span
                             key={reason}
-                            className={`badge ${reason.includes("High incident risk") ? "danger" : reason.includes("due") ? "warn" : "ok"}`}
+                            className={`badge ${reason.includes("Needs closer follow-up") ? "danger" : reason.includes("due") ? "warn" : "ok"}`}
                           >
                             {reason}
                           </span>
@@ -317,37 +346,34 @@ export function AppDashboardPage() {
             <section className="card admin-panel">
               <div className="admin-panel-header">
                 <div>
-                  <h2>Workload and care pulse</h2>
-                  <p className="muted">Check-ins, notes, conferences, and readiness.</p>
+                  <h2>Safehouse attention outlook</h2>
+                  <p className="muted">Which safehouses may need closer staff attention next month.</p>
                 </div>
               </div>
 
-              <InlineBarChart data={workloadItems} />
-
-              <div className="admin-mini-metrics">
-                <div className="admin-mini-metric">
-                  <span>Coverage</span>
-                  <strong>{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</strong>
+              {safehouseForecast.length ? (
+                <div className="admin-forecast-list">
+                  {safehouseForecast.map((row) => (
+                    <div key={row.safehouseId} className="admin-forecast-item">
+                      <div>
+                        <strong>{row.name}</strong>
+                        <span className="muted">
+                          {row.city ?? "Location not set"}
+                          {row.capacityGirls != null ? ` - ${row.currentOccupancy ?? "-"} / ${row.capacityGirls} occupied` : ""}
+                        </span>
+                      </div>
+                      <div className="admin-forecast-metric">
+                        <span>Status</span>
+                        <strong>{describeSafehouseAttention(row.predictedIncidentsNextMonth)}</strong>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="admin-mini-metric">
-                  <span>Readiness mix</span>
-                  <strong>{readinessBands}</strong>
+              ) : (
+                <div className="admin-empty-state">
+                  No safehouse attention forecast imported yet.
                 </div>
-                <div className="admin-mini-metric">
-                  <span>Top donor lapse band</span>
-                  <strong>{data?.donorLapse.byBand?.[0]?.band ?? "Awaiting import"}</strong>
-                </div>
-                <div className="admin-mini-metric">
-                  <span>Programs with service notes</span>
-                  <strong>{insights?.servicesPillarMentions.plansWithServicesText ?? "-"}</strong>
-                </div>
-              </div>
-
-              <div className="admin-inline-summary">
-                {followUpCoveragePct == null
-                  ? "Follow-up coverage will appear here once resident follow-up timing is available."
-                  : `Current follow-up coverage is ${followUpCoveragePct.toFixed(0)}%. ${alerts?.items.length ?? 0} residents are currently surfaced for review, and ${data?.upcomingConferences14d ?? 0} case conferences are scheduled soon.`}
-              </div>
+              )}
             </section>
           </div>
 
@@ -364,7 +390,7 @@ export function AppDashboardPage() {
 
             <div className="admin-signal-grid">
               <div className="admin-signal-card">
-                <h3>Resident incident risk</h3>
+                <h3>Residents needing closer follow-up</h3>
                 {data?.residentRisk.byBand?.length ? (
                   <InlineBarChart data={data.residentRisk.byBand.map((row) => ({ label: row.band, value: row.count }))} />
                 ) : (
@@ -396,34 +422,37 @@ export function AppDashboardPage() {
             <section className="card admin-panel">
               <div className="admin-panel-header">
                 <div>
-                  <h2>Safehouse forecast</h2>
-                  <p className="muted">Next-month incident pressure by safehouse.</p>
+                  <h2>Workload and care pulse</h2>
+                  <p className="muted">Check-ins, notes, conferences, and readiness.</p>
                 </div>
               </div>
 
-              {safehouseForecast.length ? (
-                <div className="admin-forecast-list">
-                  {safehouseForecast.map((row) => (
-                    <div key={row.safehouseId} className="admin-forecast-item">
-                      <div>
-                        <strong>{row.name}</strong>
-                        <span className="muted">
-                          {row.city ?? "Location not set"}
-                          {row.capacityGirls != null ? ` - ${row.currentOccupancy ?? "-"} / ${row.capacityGirls} occupied` : ""}
-                        </span>
-                      </div>
-                      <div className="admin-forecast-metric">
-                        {row.predictedIncidentsNextMonth.toFixed(2)}
-                        <span>predicted incidents</span>
-                      </div>
-                    </div>
-                  ))}
+              <InlineBarChart data={workloadItems} />
+
+              <div className="admin-mini-metrics">
+                <div className="admin-mini-metric">
+                  <span>Follow-up coverage</span>
+                  <strong>{followUpCoveragePct == null ? "-" : `${followUpCoveragePct.toFixed(0)}%`}</strong>
                 </div>
-              ) : (
-                <div className="admin-empty-state">
-                  No safehouse forecast imported yet. Import `safehouse_incident_next_month` to show capacity pressure here.
+                <div className="admin-mini-metric">
+                  <span>Reintegration planning outlook</span>
+                  <strong>{summarizeReadinessMix(readinessChart)}</strong>
                 </div>
-              )}
+                <div className="admin-mini-metric">
+                  <span>Donor retention outlook</span>
+                  <strong>{describeDonorLapseBand(topDonorLapseBand?.band, topDonorLapseBand?.count)}</strong>
+                </div>
+                <div className="admin-mini-metric">
+                  <span>Care plans with service notes</span>
+                  <strong>{insights?.servicesPillarMentions.plansWithServicesText ?? "-"}</strong>
+                </div>
+              </div>
+
+              <div className="admin-inline-summary">
+                {followUpCoveragePct == null
+                  ? "Follow-up coverage will appear here once resident follow-up timing is available."
+                  : `Current follow-up coverage is ${followUpCoveragePct.toFixed(0)}%. ${alerts?.items.length ?? 0} residents are currently surfaced for review, and ${data?.upcomingConferences14d ?? 0} case conferences are scheduled soon.`}
+              </div>
             </section>
 
             <section className="card admin-panel">

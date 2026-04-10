@@ -134,7 +134,7 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
                     var reasons = new List<string>();
                     if (lastVisit == null || lastVisit < checkinCutoff) reasons.Add("Home/field check-in due");
                     if (lastSession == null || lastSession < counselingCutoff) reasons.Add("Counseling session note overdue");
-                    if (string.Equals(risk.label, "High", StringComparison.OrdinalIgnoreCase)) reasons.Add("High incident risk (30d)");
+                    if (string.Equals(risk.label, "High", StringComparison.OrdinalIgnoreCase)) reasons.Add("Needs closer follow-up");
 
                     return new
                     {
@@ -150,7 +150,7 @@ public sealed class AnalyticsController(AppDbContext db) : ControllerBase
                     };
                 })
                 .Where(x => x.reasons.Count > 0)
-                .OrderByDescending(x => x.reasons.Contains("High incident risk (30d)"))
+                .OrderByDescending(x => x.reasons.Contains("Needs closer follow-up"))
                 .ThenBy(x => x.lastHomeVisitDate ?? DateOnly.MinValue)
                 .ThenBy(x => x.lastProcessRecordingDate ?? DateOnly.MinValue)
                 .Take(take)
